@@ -2704,4 +2704,70 @@ private class DMSPortalLwcTest {
             Test.stopTest();
         }
     }
+
+    public class CustomerLedgerMock implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            String body = '{' +
+                '"fromDate":"2025-01-01",' +
+                '"toDate":"2025-01-31",' +
+                '"openingBalance":1000,' +
+                '"closingBalance":1500,' +
+                '"data":[{' +
+                    '"postingDate":"2025-01-05",' +
+                    '"docDate":"2025-01-05",' +
+                    '"docNo":"DOC001",' +
+                    '"remarks":"Test",' +
+                    '"docType":"Invoice",' +
+                    '"debit":500,' +
+                    '"credit":0,' +
+                    '"balance":1500' +
+                '}]' +
+            '}';
+            res.setBody(body);
+            res.setStatusCode(200);
+            return res;
+        }
+    }
+
+    @isTest
+    static void testGetOutstandingReport() {
+        Account secAcc = getSecondaryCustomer();
+        User u = getCommunityUser();
+        System.runAs(u) {
+            Test.startTest();
+            try {
+                List<DMSPortalLwc.OutstandingReportItem> result = DMSPortalLwc.getOutstandingReport(secAcc.Id);
+            } catch (Exception e) { System.debug(e.getMessage()); }
+            Test.stopTest();
+        }
+    }
+
+    @isTest
+    static void testGetPartnerAccountInfo() {
+        User u = getCommunityUser();
+        System.runAs(u) {
+            Test.startTest();
+            try {
+                Map<String, String> result = DMSPortalLwc.getPartnerAccountInfo();
+            } catch (Exception e) { System.debug(e.getMessage()); }
+            Test.stopTest();
+        }
+    }
+
+    @isTest
+    static void testGetCustomerLedger() {
+        User u = getCommunityUser();
+        System.runAs(u) {
+            Test.startTest();
+            try {
+                Test.setMock(HttpCalloutMock.class, new CustomerLedgerMock());
+                String fromDt = String.valueOf(Date.today().addDays(-30));
+                String toDt = String.valueOf(Date.today());
+                DMSPortalLwc.CustomerLedgerResult result = DMSPortalLwc.getCustomerLedger(fromDt, toDt);
+            } catch (Exception e) { System.debug(e.getMessage()); }
+            Test.stopTest();
+        }
+    }
 }
