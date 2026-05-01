@@ -426,7 +426,9 @@ border-right: none;
 .contacts-table td {
 font-size: 14px;
 color: var(--table-text-color);
-white-space: nowrap;
+white-space: normal;
+word-break: break-word;
+overflow-wrap: break-word;
 /* font-weight: 500; */
 
 }
