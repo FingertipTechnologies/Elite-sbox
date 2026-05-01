@@ -96,15 +96,15 @@
                             </div>
                         </template>
 
-                        <template lwc:if={hasLedgerEntries}>
+                        <template lwc:if={showLedgerResults}>
                             <div class="ledger-summary">
                                 <div class="ledger-summary-item">
                                     <span class="ledger-summary-label">Opening Balance</span>
-                                    <span class="ledger-summary-value">{ledgerOpeningBalance}</span>
+                                    <span class="ledger-summary-value">{displayOpeningBalance}</span>
                                 </div>
                                 <div class="ledger-summary-item">
                                     <span class="ledger-summary-label">Closing Balance</span>
-                                    <span class="ledger-summary-value">{ledgerClosingBalance}</span>
+                                    <span class="ledger-summary-value">{displayClosingBalance}</span>
                                 </div>
                             </div>
 
@@ -123,16 +123,27 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <template for:each={ledgerEntries} for:item="row">
-                                            <tr key={row.key}>
-                                                <td>{row.postingDate}</td>
-                                                <td>{row.docDate}</td>
-                                                <td>{row.docNo}</td>
-                                                <td>{row.docType}</td>
-                                                <td>{row.remarks}</td>
-                                                <td>{row.debit}</td>
-                                                <td>{row.credit}</td>
-                                                <td>{row.balance}</td>
+                                        <template lwc:if={hasLedgerEntries}>
+                                            <template for:each={ledgerEntries} for:item="row">
+                                                <tr key={row.key}>
+                                                    <td>{row.postingDate}</td>
+                                                    <td>{row.docDate}</td>
+                                                    <td>{row.docNo}</td>
+                                                    <td>{row.docType}</td>
+                                                    <td>{row.remarks}</td>
+                                                    <td>{row.debit}</td>
+                                                    <td>{row.credit}</td>
+                                                    <td>{row.balance}</td>
+                                                </tr>
+                                            </template>
+                                        </template>
+                                        <template lwc:else>
+                                            <tr>
+                                                <td colspan="8">
+                                                    <div class="slds-truncate" style="text-align:center">
+                                                        <span style="color:red;padding:10px;font-size:large">Data not found</span>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         </template>
                                     </tbody>
@@ -141,7 +152,7 @@
                         </template>
 
                         <template lwc:if={ledgerLoading}>
-                            <div class="ledger-loading">Loading customer ledger...</div>
+                            <c-loading-screen></c-loading-screen>
                         </template>
                     </div>
                 </template>

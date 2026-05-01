@@ -3423,6 +3423,22 @@ export default class NavigationComponent extends LightningElement {
         return this.ledgerEntries && this.ledgerEntries.length > 0;
     }
 
+    get showLedgerResults() {
+        return !this.ledgerLoading
+            && !this.ledgerError
+            && !!this.ledgerFromDate
+            && !!this.ledgerToDate
+            && !this.showLedgerPrompt;
+    }
+
+    get displayOpeningBalance() {
+        return this.ledgerOpeningBalance == null ? 0 : this.ledgerOpeningBalance;
+    }
+
+    get displayClosingBalance() {
+        return this.ledgerClosingBalance == null ? 0 : this.ledgerClosingBalance;
+    }
+
     handleLedgerFromDateChange(event) {
         this.ledgerFromDate = event.target.value;
     }
