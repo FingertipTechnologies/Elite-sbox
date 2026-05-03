@@ -2598,6 +2598,12 @@ global with sharing class beatPlannerlwc {
                     item.After_Scheme_Unit_Price__c = Decimal.valueOf((Integer)afterSchemeObj);
                 }
 
+                // Applied Scheme lookup
+                Object schemeIdObj = product.get('Scheme__c');
+                if (schemeIdObj instanceof String && String.isNotBlank((String)schemeIdObj)) {
+                    item.Scheme__c = (String)schemeIdObj;
+                }
+
                 item.Tax__c = (Decimal)product.get('Tax__c');
                 item.Tax_Amount__c = (Decimal)product.get('Tax_Amount__c');
                 item.Total_Amount__c = (Decimal)product.get('Total_Amount__c');

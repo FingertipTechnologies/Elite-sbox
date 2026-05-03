@@ -930,6 +930,7 @@ export default class ProductScreen4 extends LightningElement {
                 After_Category_Slab_Unit_Price__c: item.UnitPricePriceBook,
                 Before_Scheme_Unit_Price__c: item.UnitPricePriceBook,
                 After_Scheme_Unit_Price__c: item.discountedUnitPrice || item.UnitPricePriceBook,
+                Scheme__c: item.appliedScheme ? item.appliedSchemeId : null,
                 Tax__c: item.taxPercent || 0,
                 Tax_Amount__c: parseFloat(item.taxAmt),
                 Total_Amount__c: parseFloat(item.netValue),
@@ -1581,6 +1582,7 @@ export default class ProductScreen4 extends LightningElement {
         if (!product) return;
 
         let bestScheme = null;
+        let bestSchemeParent = null;
         let maxSavings = 0;
         let bestSchemeDetails = null;
 
@@ -1593,6 +1595,7 @@ export default class ProductScreen4 extends LightningElement {
                     if (savings && savings.isSchemeApplied && savings.discountAmount >= maxSavings) {
                         maxSavings = savings.discountAmount;
                         bestScheme = lineItem;
+                        bestSchemeParent = scheme;
                         bestSchemeDetails = savings;
                     }
                     /*else{
@@ -1634,6 +1637,8 @@ export default class ProductScreen4 extends LightningElement {
                         lineItem.discountedUnitPrice = (bestSchemeDetails.finalUnitPrice).toFixed(2) || product.UnitPricePriceBook;
                         lineItem.quantity = product.quantity;
                         lineItem.appliedScheme = bestSchemeDetails.isSchemeApplied;
+                        lineItem.appliedSchemeId = bestSchemeParent ? bestSchemeParent.id : null;
+                        lineItem.appliedSchemeName = bestSchemeParent ? bestSchemeParent.name : null;
                         lineItem.actualQuantity = bestSchemeDetails.newQuantityFromScheme || product.quantity;// Set the discounted price for the matching product in schemePro
                     }
 
@@ -1655,6 +1660,8 @@ export default class ProductScreen4 extends LightningElement {
                         lineItem.discountedUnitPrice = product.UnitPricePriceBook;
                         lineItem.quantity = product.quantity;
                         lineItem.appliedScheme = false;
+                        lineItem.appliedSchemeId = null;
+                        lineItem.appliedSchemeName = null;
                         lineItem.actualQuantity = product.quantity;// Set the discounted price for the matching product in schemePro
                     }
 
