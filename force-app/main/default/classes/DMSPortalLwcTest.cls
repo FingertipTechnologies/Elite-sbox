@@ -490,7 +490,7 @@ private class DMSPortalLwcTest {
     static void testGetGRNImages() {
         Goods_Received_Note__c grn = getGRN();
         Test.startTest();
-        List<ContentDistribution> result = DMSPortalLwc.getGRNImages(grn.Id);
+        List<DMSPortalLwc.GRNFileWrapper> result = DMSPortalLwc.getGRNImages(grn.Id);
         Test.stopTest();
         System.assertNotEquals(null, result);
     }
@@ -1781,11 +1781,10 @@ private class DMSPortalLwcTest {
         ];
         System.assertEquals(1, links.size(), 'File should be linked to GRN');
 
-        List<ContentDistribution> dists = [
-            SELECT Id FROM ContentDistribution
-            WHERE ContentVersion.ContentDocumentId = :contentDocumentId
-        ];
-        System.assertEquals(1, dists.size(), 'ContentDistribution should be created for the file');
+        List<DMSPortalLwc.GRNFileWrapper> files = DMSPortalLwc.getGRNImages(grn.Id);
+        System.assertEquals(1, files.size(), 'getGRNImages should return the uploaded file');
+        System.assert(files[0].DistributionPublicUrl.contains('/sfc/servlet.shepherd/version/download/'),
+            'URL should be the shepherd download path');
     }
 
     @isTest
@@ -2118,7 +2117,7 @@ private class DMSPortalLwcTest {
     static void testGetGRNImagesNoImages() {
         Goods_Received_Note__c grn = getGRN();
         Test.startTest();
-        List<ContentDistribution> result = DMSPortalLwc.getGRNImages(grn.Id);
+        List<DMSPortalLwc.GRNFileWrapper> result = DMSPortalLwc.getGRNImages(grn.Id);
         Test.stopTest();
         System.assertNotEquals(null, result);
     }
