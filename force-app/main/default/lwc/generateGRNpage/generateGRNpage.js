@@ -1,5 +1,6 @@
 import { LightningElement, api, track } from 'lwc';
 import createGRN from '@salesforce/apex/DMSPortalLwc.createGRN';
+import saveGRNFile from '@salesforce/apex/DMSPortalLwc.saveGRNFile';
 import getInvoicesByIds from '@salesforce/apex/DMSPortalLwc.getInvoicesByIds';
 import GOOGLE_ICONS from '@salesforce/resourceUrl/googleIcons';
 
@@ -9,9 +10,8 @@ export default class GenerateGRNpage extends LightningElement {
     isPageLoaded = false;
     loading = false;
     @track grnComments = '';
-    @track imagePreview = '';
-    imageBase64 = '';
-    imageFileName = '';
+    @track selectedFileName = '';
+    fileBase64 = '';
 
     googleIcons = {
         order: GOOGLE_ICONS + "/googleIcons/order.png",
@@ -118,18 +118,23 @@ export default class GenerateGRNpage extends LightningElement {
         this.grnComments = event.detail.value;
     }
 
-    handleImageUpload(event) {
+    handleFileUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
 
-        this.imageFileName = file.name;
+        this.selectedFileName = file.name;
         const reader = new FileReader();
         reader.onload = () => {
-            const base64 = reader.result.split(',')[1];
-            this.imageBase64 = base64;
-            this.imagePreview = reader.result;
+            this.fileBase64 = reader.result.split(',')[1];
         };
         reader.readAsDataURL(file);
+    }
+
+    handleRemoveFile() {
+        this.selectedFileName = '';
+        this.fileBase64 = '';
+        const input = this.template.querySelector('input[type="file"]');
+        if (input) input.value = null;
     }
 
     handleSave() {
@@ -194,7 +199,26 @@ export default class GenerateGRNpage extends LightningElement {
         this.isPageLoaded = true;
 
         createGRN({ invoiceId: invoiceId, items: payload, comments: this.grnComments || '' })
-         
+
+            .then(grnId => {
+                if (this.fileBase64 && this.selectedFileName) {
+                    return saveGRNFile({
+                        grnId: grnId,
+                        fileName: this.selectedFileName,
+                        base64Data: this.fileBase64
+                    })
+                        .then(() => grnId)
+                        .catch(error => {
+                            this.showToast(
+                                'Warning',
+                                'GRN created but file upload failed: ' + (error.body?.message || 'Unknown error'),
+                                'warning'
+                            );
+                            return grnId;
+                        });
+                }
+                return grnId;
+            })
             .then(grnId => {
                 this.showToast('Success', 'GRN created successfully', 'success');
                 setTimeout(() => {
