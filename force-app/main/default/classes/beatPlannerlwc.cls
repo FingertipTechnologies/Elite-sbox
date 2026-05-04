@@ -2538,7 +2538,9 @@ global with sharing class beatPlannerlwc {
                 item.Product__c = (String)product.get('Product__c');
                 item.Product_Category__c = (String)product.get('Product_Category__c');
                 item.Quantity__c = (Decimal)product.get('Quantity__c');
-                item.SKU_Weight__c = (Decimal)product.get('SKU_Weight__c');
+                if (product.get('SKU_Weight__c') != null) {
+                    item.SKU_Weight__c = (Decimal)product.get('SKU_Weight__c');
+                }
                 
                 // Get UOM from the map (default to empty string if not found)
                 Decimal eachQty = (Decimal)product.get('Each_Qyt__c');
@@ -2596,12 +2598,6 @@ global with sharing class beatPlannerlwc {
                     item.After_Scheme_Unit_Price__c = Decimal.valueOf((String)afterSchemeObj);
                 } else if (afterSchemeObj instanceof Integer) {
                     item.After_Scheme_Unit_Price__c = Decimal.valueOf((Integer)afterSchemeObj);
-                }
-
-                // Applied Scheme lookup
-                Object schemeIdObj = product.get('Scheme__c');
-                if (schemeIdObj instanceof String && String.isNotBlank((String)schemeIdObj)) {
-                    item.Scheme__c = (String)schemeIdObj;
                 }
 
                 item.Tax__c = (Decimal)product.get('Tax__c');

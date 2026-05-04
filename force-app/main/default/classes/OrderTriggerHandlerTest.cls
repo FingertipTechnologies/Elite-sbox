@@ -201,7 +201,10 @@ public class OrderTriggerHandlerTest {
         delete order1;
         DailyLogOrderAmountBatch bt = new DailyLogOrderAmountBatch();
         database.executeBatch(bt,200);
-        
+        UpdateSKUWeightBatch batch = new UpdateSKUWeightBatch();
+        Database.executeBatch(batch, 2000);
+
+
         
         Test.stopTest();
         

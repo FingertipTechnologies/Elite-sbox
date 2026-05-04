@@ -285,11 +285,7 @@ public without sharing class DMSPortalLwc {
         system.debug('frmDate '+frmDate+' toDate '+toDate);
         system.debug('statusstatus '+status);
         system.debug('accountIdaccountId '+accountId);
-        List<Invoice__c> invList = [SELECT Id, Name, Store__c, Invoice_Date__c, isDisabled__c, Status__c, Total_Amount__c, Store__r.Name,
-                                    Total_Quantity__c, Grand_Total__c, Total_Tax_Amount__c,Pending_Amount__c,
-                                    Company_Name__c, GST_Number__c, Non_Taxable_Amount__c, SGST_Amount__c, CGST_Amount__c, IGST_Amount__c
-                                    FROM Invoice__c];
-        system.debug('invlItsinvlist '+invList);
+
         if (status == 'All') {
             inv = [
                 SELECT Id, Name, Store__c, Invoice_Date__c, isDisabled__c, Status__c, Total_Amount__c, Store__r.Name,
@@ -1189,7 +1185,7 @@ public without sharing class DMSPortalLwc {
         
         return [
             SELECT Id, Name, Invoice_No__c, Store__r.Name,
-            (SELECT Id, Name, Quantity__c, SKU__r.Name, SKU__c FROM Invoice_line_items__r where Pending_Quantity__c > 0)
+            (SELECT Id, Name, Quantity__c, SKU__r.Name, SKU__c,Qyt_in_Each__c FROM Invoice_line_items__r where Pending_Quantity__c > 0)
             FROM Invoice__c
             WHERE Id IN :invoiceIds
         ];
@@ -2437,9 +2433,21 @@ public without sharing class DMSPortalLwc {
     @AuraEnabled
     public static DmsData allSecondaryReceiptData(Date frmDate, Date toDate, String status) {
         DmsData dt = new DmsData();
+        Id accountId;
+        List<User> partnerUser = [SELECT ContactId FROM User WHERE Id = :UserInfo.getUserId()];
+        System.debug('partnerUser: ' + partnerUser);
+        if(partnerUser.size() > 0 && partnerUser[0].ContactId != null){
+            List<Contact> contact = [SELECT AccountId FROM Contact WHERE Id = :partnerUser[0].ContactId LIMIT 1];
+            System.debug('contact: ' + contact);
+            if(contact.size() > 0 && contact[0].AccountId != null){
+                accountId = contact[0].AccountId;
+            }
+        }
+
         List<Secondary_Receipt__c> receiptList = [SELECT Id, Name, Payment_Date__c, Customer__c, Customer__r.Name, Payment_Mode__c, Reference_Number__c, Remarks__c, Total_Amount__c
                                                   FROM Secondary_Receipt__c
-                                                  WHERE Payment_Date__c >= :frmDate AND Payment_Date__c <= :toDate];
+                                                  WHERE Payment_Date__c >= :frmDate AND Payment_Date__c <= :toDate
+                                                 AND Distributor__c =:accountId ];
         List<SecondaryReceipt> receiptDataList = new List<SecondaryReceipt>();
         for (Secondary_Receipt__c i : receiptList) {
             String formattedDate = i.Payment_Date__c != null ? 
@@ -3051,6 +3059,17 @@ public without sharing class DMSPortalLwc {
         List<Secondary_Receipt_Item__c> receiptItems,
         List<Secondary_Receipt_Debit_Item__c> debitItems
     ) {
+        Id accountId;
+        List<User> partnerUser = [SELECT ContactId FROM User WHERE Id = :UserInfo.getUserId()];
+        System.debug('partnerUser: ' + partnerUser);
+        if(partnerUser.size() > 0 && partnerUser[0].ContactId != null){
+            List<Contact> contact = [SELECT AccountId FROM Contact WHERE Id = :partnerUser[0].ContactId LIMIT 1];
+            System.debug('contact: ' + contact);
+            if(contact.size() > 0 && contact[0].AccountId != null){
+                accountId = contact[0].AccountId;
+            }
+        }
+        receiptData.Distributor__c = accountId;
         insert receiptData;
 
         if (receiptItems != null && !receiptItems.isEmpty()) {

@@ -124,6 +124,10 @@
                 <behavior>Readonly</behavior>
                 <field>Difference_Scheme_Unit_per_EA__c</field>
             </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>Scheme_Item__c</field>
+            </layoutItems>
         </layoutColumns>
         <layoutColumns>
             <layoutItems>

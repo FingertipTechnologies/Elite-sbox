@@ -1157,6 +1157,14 @@
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>UpdateSKUWeightBatch</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>UpdateSKUWeightBatchTest</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>UpdateSalesChannelAndDepotQueueable</apexClass>
         <enabled>false</enabled>
     </classAccesses>
@@ -6931,7 +6939,7 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
-        <field>Order_Item__c.Scheme__c</field>
+        <field>Order_Item__c.Scheme_Item__c</field>
         <readable>false</readable>
     </fieldPermissions>
     <fieldPermissions>
