@@ -930,6 +930,7 @@ export default class ProductScreen4 extends LightningElement {
                 After_Category_Slab_Unit_Price__c: item.UnitPricePriceBook,
                 Before_Scheme_Unit_Price__c: item.UnitPricePriceBook,
                 After_Scheme_Unit_Price__c: item.discountedUnitPrice || item.UnitPricePriceBook,
+                Scheme_Item__c: item.schemeItemId || null,
                 Tax__c: item.taxPercent || 0,
                 Tax_Amount__c: parseFloat(item.taxAmt),
                 Total_Amount__c: parseFloat(item.netValue),
@@ -1621,6 +1622,9 @@ export default class ProductScreen4 extends LightningElement {
             bestScheme.schemeSelected = true;
             bestScheme.selectedQty = product.value || 0;
 
+            // Track the Buy_Product__c id so it can be persisted on the Order_Item__c
+            product.schemeItemId = bestScheme.id;
+
             // Update the product's discountedPrice with maxSavings
             //product.discountedPrice = maxSavings;
             //alert(JSON.stringify(product));
@@ -1635,6 +1639,7 @@ export default class ProductScreen4 extends LightningElement {
                         lineItem.quantity = product.quantity;
                         lineItem.appliedScheme = bestSchemeDetails.isSchemeApplied;
                         lineItem.actualQuantity = bestSchemeDetails.newQuantityFromScheme || product.quantity;// Set the discounted price for the matching product in schemePro
+                        lineItem.schemeItemId = bestScheme.id;
                     }
 
                 }
@@ -1647,6 +1652,7 @@ export default class ProductScreen4 extends LightningElement {
             //alert(JSON.stringify(this.schemePro)); // You can remove this after debugging
         }
         else {
+            product.schemeItemId = null;
             for (let schemeGroup of this.schemePro) {
                 for (let lineItem of schemeGroup.products) {
                     if (lineItem.id === productId) {
@@ -1656,6 +1662,7 @@ export default class ProductScreen4 extends LightningElement {
                         lineItem.quantity = product.quantity;
                         lineItem.appliedScheme = false;
                         lineItem.actualQuantity = product.quantity;// Set the discounted price for the matching product in schemePro
+                        lineItem.schemeItemId = null;
                     }
 
                 }

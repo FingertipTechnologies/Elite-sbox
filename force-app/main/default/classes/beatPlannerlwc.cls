@@ -2600,6 +2600,11 @@ global with sharing class beatPlannerlwc {
                     item.After_Scheme_Unit_Price__c = Decimal.valueOf((Integer)afterSchemeObj);
                 }
 
+                Object schemeItemObj = product.get('Scheme_Item__c');
+                if (schemeItemObj != null && String.isNotBlank(String.valueOf(schemeItemObj))) {
+                    item.Scheme_Item__c = (Id) String.valueOf(schemeItemObj);
+                }
+
                 item.Tax__c = (Decimal)product.get('Tax__c');
                 item.Tax_Amount__c = (Decimal)product.get('Tax_Amount__c');
                 item.Total_Amount__c = (Decimal)product.get('Total_Amount__c');
