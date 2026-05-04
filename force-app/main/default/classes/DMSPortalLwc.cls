@@ -1176,6 +1176,41 @@ public without sharing class DMSPortalLwc {
         // Step 8: Return GRN ID
         return grn.Id;
     }
+
+    @AuraEnabled
+    public static String saveGRNFile(Id grnId, String fileName, String base64Data) {
+        if (grnId == null || String.isBlank(fileName) || String.isBlank(base64Data)) {
+            throw new AuraHandledException('GRN Id, file name and file data are required.');
+        }
+        try {
+            ContentVersion cv = new ContentVersion();
+            cv.Title = fileName;
+            cv.PathOnClient = fileName;
+            cv.VersionData = EncodingUtil.base64Decode(base64Data);
+            cv.ContentLocation = 'S';
+            cv.OwnerId = UserInfo.getUserId();
+            insert cv;
+
+            ContentVersion insertedCv = [
+                SELECT Id, ContentDocumentId
+                FROM ContentVersion
+                WHERE Id = :cv.Id
+                LIMIT 1
+            ];
+
+            ContentDocumentLink cdl = new ContentDocumentLink();
+            cdl.ContentDocumentId = insertedCv.ContentDocumentId;
+            cdl.LinkedEntityId = grnId;
+            cdl.ShareType = 'I';
+            cdl.Visibility = 'AllUsers';
+            insert cdl;
+
+            return insertedCv.ContentDocumentId;
+        } catch (Exception e) {
+            throw new AuraHandledException('Error saving GRN file: ' + e.getMessage());
+        }
+    }
+
     // Optional: fetch invoices and their line items for LWC display
     @AuraEnabled(cacheable=true)
     public static List<Invoice__c> getInvoicesByIds(List<Id> invoiceIds) {

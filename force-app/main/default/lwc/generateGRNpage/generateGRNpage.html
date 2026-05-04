@@ -25,15 +25,17 @@
                             onchange={handleCommentsChange} placeholder="Enter comments...">
                         </lightning-textarea>
                     </div>
-                    <!--<div class="slds-col slds-size_1-of-1 slds-p-around_small">
-                        <label class="slds-form-element__label">Image</label>
-                        <input type="file" accept="image/*" onchange={handleImageUpload} class="file-input" />
-                        <template lwc:if={imagePreview}>
-                            <div class="image-preview">
-                                <img src={imagePreview} alt="GRN Image" />
+                    <div class="slds-col slds-size_1-of-1 slds-p-around_small">
+                        <label class="slds-form-element__label">Attachment</label>
+                        <input type="file" onchange={handleFileUpload} class="file-input" />
+                        <template lwc:if={selectedFileName}>
+                            <div class="slds-m-top_x-small">
+                                <span class="slds-text-body_small">Selected: {selectedFileName}</span>
+                                <button type="button" class="slds-button slds-button_neutral slds-m-left_small"
+                                    onclick={handleRemoveFile}>Remove</button>
                             </div>
                         </template>
-                    </div>-->
+                    </div>
                 </div>
             </div>
 
