@@ -55,18 +55,14 @@
         <field>Secondary_Invoice_Items__r.Product__c</field>
         <sortOrder>Asc</sortOrder>
     </groupingsDown>
-    <name>Secondary Sales SKU Spike and Dip</name>
+    <name>Secondary Sales SKU Spike and Dip DMS</name>
     <params>
         <name>co</name>
         <value>1</value>
     </params>
-    <reportType>Secondary_Invoice_with_Items</reportType>
+    <reportType>Secondary_Invoice_with_Secondary_Invoice_Items_Custom</reportType>
     <scope>organization</scope>
     <showDetails>false</showDetails>
     <showGrandTotal>true</showGrandTotal>
     <showSubTotals>true</showSubTotals>
-    <timeFrameFilter>
-        <dateColumn>Secondary_Invoice__c.Invoice_Date__c</dateColumn>
-        <interval>INTERVAL_CURFY</interval>
-    </timeFrameFilter>
 </Report>

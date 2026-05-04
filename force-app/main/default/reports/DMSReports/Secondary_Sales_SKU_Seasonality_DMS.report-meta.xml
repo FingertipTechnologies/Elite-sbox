@@ -1,16 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Report xmlns="http://soap.sforce.com/2006/04/metadata">
-    <aggregates>
-        <acrossGroupingContext>Secondary_Invoice__c.Invoice_Date__c</acrossGroupingContext>
-        <calculatedFormula>RowCount</calculatedFormula>
-        <datatype>number</datatype>
-        <developerName>FORMULA1</developerName>
-        <downGroupingContext>Secondary_Invoice_Items__r.Product__c</downGroupingContext>
-        <isActive>false</isActive>
-        <isCrossBlock>false</isCrossBlock>
-        <masterLabel>Invoice Lines</masterLabel>
-        <scale>0</scale>
-    </aggregates>
     <columns>
         <field>Secondary_Invoice_Items__r.Quantity__c</field>
         <aggregateTypes>Sum</aggregateTypes>
@@ -23,7 +12,7 @@
         <field>Secondary_Invoice_Items__r.Total_Amount__c</field>
         <aggregateTypes>Sum</aggregateTypes>
     </columns>
-    <description>SKU-wise monthly demand trend based on secondary invoices.</description>
+    <description>SKU-wise seasonality view: aggregates across years by calendar month (Jan-Dec) to surface seasonal peaks and troughs.</description>
     <filter>
         <criteriaItems>
             <column>Secondary_Invoice__c.Invoice_Status__c</column>
@@ -33,7 +22,7 @@
     </filter>
     <format>Matrix</format>
     <groupingsAcross>
-        <dateGranularity>Month</dateGranularity>
+        <dateGranularity>MonthInYear</dateGranularity>
         <field>Secondary_Invoice__c.Invoice_Date__c</field>
         <sortOrder>Asc</sortOrder>
     </groupingsAcross>
@@ -42,18 +31,14 @@
         <field>Secondary_Invoice_Items__r.Product__c</field>
         <sortOrder>Asc</sortOrder>
     </groupingsDown>
-    <name>Secondary Sales SKU Demand Trend</name>
+    <name>Secondary Sales SKU Seasonality DMS</name>
     <params>
         <name>co</name>
         <value>1</value>
     </params>
-    <reportType>Secondary_Invoice_with_Items</reportType>
+    <reportType>Secondary_Invoice_with_Secondary_Invoice_Items_Custom</reportType>
     <scope>organization</scope>
     <showDetails>false</showDetails>
     <showGrandTotal>true</showGrandTotal>
     <showSubTotals>true</showSubTotals>
-    <timeFrameFilter>
-        <dateColumn>Secondary_Invoice__c.Invoice_Date__c</dateColumn>
-        <interval>INTERVAL_CURFY</interval>
-    </timeFrameFilter>
 </Report>
