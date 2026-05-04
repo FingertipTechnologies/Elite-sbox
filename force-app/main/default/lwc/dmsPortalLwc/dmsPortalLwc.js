@@ -3111,19 +3111,24 @@ export default class NavigationComponent extends LightningElement {
 
 
     handleGRNComplete(event) {
-        this.isgenerateGRN = false;
+        this.resetAllFlags();
+        this.selectedTab = 'GRN';
+
+        const selectedIndex = this.allTabs.findIndex(tab => tab.id === 'GRN');
+        if (selectedIndex >= this.visibleTabCount) {
+            const grnTab = this.allTabs.splice(selectedIndex, 1)[0];
+            this.allTabs.splice(this.visibleTabCount - 1, 0, grnTab);
+        }
+
         this.showPrimaryGrn = true;
         this.getGRNsData();
-
         this.selectedInvoiceId = null;
-
-
-
     }
 
     handleGRNCancel() {
         this.isgenerateGRN = false;
         this.showPrimaryInvoices = true;
+        this.selectedTab = 'Invoices';
         this.selectedInvoiceId = null;
     }
     newreturnScreen() {
