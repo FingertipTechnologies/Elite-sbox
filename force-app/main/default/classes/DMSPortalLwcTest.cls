@@ -1780,6 +1780,12 @@ private class DMSPortalLwcTest {
             WHERE LinkedEntityId = :grn.Id AND ContentDocumentId = :contentDocumentId
         ];
         System.assertEquals(1, links.size(), 'File should be linked to GRN');
+
+        List<ContentDistribution> dists = [
+            SELECT Id FROM ContentDistribution
+            WHERE ContentVersion.ContentDocumentId = :contentDocumentId
+        ];
+        System.assertEquals(1, dists.size(), 'ContentDistribution should be created for the file');
     }
 
     @isTest

@@ -1192,7 +1192,7 @@ public without sharing class DMSPortalLwc {
             insert cv;
 
             ContentVersion insertedCv = [
-                SELECT Id, ContentDocumentId
+                SELECT Id, ContentDocumentId, Title
                 FROM ContentVersion
                 WHERE Id = :cv.Id
                 LIMIT 1
@@ -1204,6 +1204,17 @@ public without sharing class DMSPortalLwc {
             cdl.ShareType = 'I';
             cdl.Visibility = 'AllUsers';
             insert cdl;
+
+            String distName = insertedCv.Title;
+            if (distName != null && distName.length() > 70) {
+                distName = distName.substring(0, 70);
+            }
+            ContentDistribution dist = new ContentDistribution(
+                Name = distName,
+                ContentVersionId = insertedCv.Id,
+                PreferencesAllowOriginalDownload = true
+            );
+            insert dist;
 
             return insertedCv.ContentDocumentId;
         } catch (Exception e) {
