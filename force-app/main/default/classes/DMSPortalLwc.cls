@@ -552,25 +552,43 @@ public without sharing class DMSPortalLwc {
         ];
     }
     
+    public class GRNFileWrapper {
+        @AuraEnabled public Id Id;
+        @AuraEnabled public String Name;
+        @AuraEnabled public String DistributionPublicUrl;
+    }
+
     @AuraEnabled(cacheable=true)
-    public static List<ContentDistribution> getGRNImages(Id grnId) {
-        List<ContentDocumentLink> cdLinks = [
-            SELECT ContentDocumentId FROM ContentDocumentLink WHERE LinkedEntityId = :grnId
-        ];
-        if (cdLinks.isEmpty()) {
-            return new List<ContentDistribution>();
+    public static List<GRNFileWrapper> getGRNImages(Id grnId) {
+        List<GRNFileWrapper> result = new List<GRNFileWrapper>();
+        if (grnId == null) {
+            return result;
         }
+
         Set<Id> contentDocIds = new Set<Id>();
-        for (ContentDocumentLink cdl : cdLinks) {
+        for (ContentDocumentLink cdl : [
+            SELECT ContentDocumentId FROM ContentDocumentLink WHERE LinkedEntityId = :grnId
+        ]) {
             contentDocIds.add(cdl.ContentDocumentId);
         }
-        List<Id> contentVersionIds = new List<Id>();
-        for (ContentVersion cv : [SELECT Id FROM ContentVersion WHERE ContentDocumentId IN :contentDocIds AND IsLatest = true]) {
-            contentVersionIds.add(cv.Id);
+        if (contentDocIds.isEmpty()) {
+            return result;
         }
-        return [
-            SELECT Id, Name, DistributionPublicUrl FROM ContentDistribution WHERE ContentVersionId IN :contentVersionIds
-        ];
+
+        for (ContentVersion cv : [
+            SELECT Id, Title, FileExtension
+            FROM ContentVersion
+            WHERE ContentDocumentId IN :contentDocIds AND IsLatest = true
+        ]) {
+            GRNFileWrapper f = new GRNFileWrapper();
+            f.Id = cv.Id;
+            f.Name = String.isNotBlank(cv.FileExtension)
+                ? cv.Title + '.' + cv.FileExtension
+                : cv.Title;
+            f.DistributionPublicUrl = '/sfc/servlet.shepherd/version/download/' + cv.Id;
+            result.add(f);
+        }
+        return result;
     }
 
     @AuraEnabled(cacheable=true)
@@ -1192,7 +1210,7 @@ public without sharing class DMSPortalLwc {
             insert cv;
 
             ContentVersion insertedCv = [
-                SELECT Id, ContentDocumentId, Title
+                SELECT Id, ContentDocumentId
                 FROM ContentVersion
                 WHERE Id = :cv.Id
                 LIMIT 1
@@ -1204,17 +1222,6 @@ public without sharing class DMSPortalLwc {
             cdl.ShareType = 'I';
             cdl.Visibility = 'AllUsers';
             insert cdl;
-
-            String distName = insertedCv.Title;
-            if (distName != null && distName.length() > 70) {
-                distName = distName.substring(0, 70);
-            }
-            ContentDistribution dist = new ContentDistribution(
-                Name = distName,
-                ContentVersionId = insertedCv.Id,
-                PreferencesAllowOriginalDownload = true
-            );
-            insert dist;
 
             return insertedCv.ContentDocumentId;
         } catch (Exception e) {
