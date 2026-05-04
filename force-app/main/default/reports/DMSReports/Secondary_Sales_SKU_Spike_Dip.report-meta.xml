@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report xmlns="http://soap.sforce.com/2006/04/metadata">
+    <aggregates>
+        <acrossGroupingContext>Secondary_Invoice__c.Invoice_Date__c</acrossGroupingContext>
+        <calculatedFormula>(Secondary_Invoice_Item__c.Quantity__c:SUM - PREVGROUPVAL(Secondary_Invoice_Item__c.Quantity__c:SUM, Secondary_Invoice__c.Invoice_Date__c)) / PREVGROUPVAL(Secondary_Invoice_Item__c.Quantity__c:SUM, Secondary_Invoice__c.Invoice_Date__c)</calculatedFormula>
+        <datatype>percent</datatype>
+        <description>Month-over-month percentage change in quantity. Large positive values are spikes; large negative values are dips.</description>
+        <developerName>FORMULA1</developerName>
+        <downGroupingContext>Secondary_Invoice_Item__c.Product__c</downGroupingContext>
+        <isActive>true</isActive>
+        <isCrossBlock>false</isCrossBlock>
+        <masterLabel>MoM Qty Change %</masterLabel>
+        <scale>2</scale>
+    </aggregates>
+    <aggregates>
+        <acrossGroupingContext>Secondary_Invoice__c.Invoice_Date__c</acrossGroupingContext>
+        <calculatedFormula>(Secondary_Invoice_Item__c.Total_Amount__c:SUM - PREVGROUPVAL(Secondary_Invoice_Item__c.Total_Amount__c:SUM, Secondary_Invoice__c.Invoice_Date__c)) / PREVGROUPVAL(Secondary_Invoice_Item__c.Total_Amount__c:SUM, Secondary_Invoice__c.Invoice_Date__c)</calculatedFormula>
+        <datatype>percent</datatype>
+        <description>Month-over-month percentage change in total amount.</description>
+        <developerName>FORMULA2</developerName>
+        <downGroupingContext>Secondary_Invoice_Item__c.Product__c</downGroupingContext>
+        <isActive>true</isActive>
+        <isCrossBlock>false</isCrossBlock>
+        <masterLabel>MoM Amount Change %</masterLabel>
+        <scale>2</scale>
+    </aggregates>
+    <columns>
+        <field>Secondary_Invoice_Item__c.Quantity__c</field>
+        <aggregateTypes>Sum</aggregateTypes>
+    </columns>
+    <columns>
+        <field>Secondary_Invoice_Item__c.Quantity_in_Kgs__c</field>
+        <aggregateTypes>Sum</aggregateTypes>
+    </columns>
+    <columns>
+        <field>Secondary_Invoice_Item__c.Total_Amount__c</field>
+        <aggregateTypes>Sum</aggregateTypes>
+    </columns>
+    <description>SKU-wise month-over-month spike/dip detection. Highlights products with sharp demand changes vs the prior month.</description>
+    <filter>
+        <criteriaItems>
+            <column>Secondary_Invoice__c.Invoice_Status__c</column>
+            <operator>notEqual</operator>
+            <value>Cancelled</value>
+        </criteriaItems>
+    </filter>
+    <format>Matrix</format>
+    <groupingsAcross>
+        <dateGranularity>Month</dateGranularity>
+        <field>Secondary_Invoice__c.Invoice_Date__c</field>
+        <sortOrder>Asc</sortOrder>
+    </groupingsAcross>
+    <groupingsDown>
+        <dateGranularity>Day</dateGranularity>
+        <field>Secondary_Invoice_Item__c.Product__c</field>
+        <sortOrder>Asc</sortOrder>
+    </groupingsDown>
+    <name>Secondary Sales SKU Spike and Dip</name>
+    <params>
+        <name>co</name>
+        <value>1</value>
+    </params>
+    <reportType>Secondary_Invoice_with_Items</reportType>
+    <scope>organization</scope>
+    <showDetails>false</showDetails>
+    <showGrandTotal>true</showGrandTotal>
+    <showSubTotals>true</showSubTotals>
+    <timeFrameFilter>
+        <dateColumn>Secondary_Invoice__c.Invoice_Date__c</dateColumn>
+        <interval>INTERVAL_LAST_N_MONTHSAGO:12</interval>
+    </timeFrameFilter>
+</Report>
