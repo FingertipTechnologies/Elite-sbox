@@ -73,3 +73,56 @@
     background-color: #f4f6f9;
     font-weight: 600;
 }
+
+.preview-table-wrap {
+    max-height: 360px;
+    overflow: auto;
+    border: 1px solid #e0e3e8;
+    border-radius: 4px;
+}
+
+.preview-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.result-cards {
+    margin-top: 4px;
+}
+
+.result-card {
+    background: #f4f6f9;
+    border: 1px solid #e0e3e8;
+    border-radius: 6px;
+    padding: 16px;
+    text-align: center;
+}
+
+.result-card.success-card {
+    background: #eaf7ee;
+    border-color: #c7e9d2;
+}
+
+.result-card.error-card {
+    background: #fdecec;
+    border-color: #f4c7c7;
+}
+
+.result-label {
+    font-size: 13px;
+    color: #555;
+    margin: 0 0 4px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.result-value {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+    color: #02323e;
+}
+
+.success-card .result-value { color: #28a745; }
+.error-card .result-value { color: #c23934; }

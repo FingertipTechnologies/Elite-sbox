@@ -3,69 +3,140 @@
         <div class="upload-header slds-grid slds-grid_align-spread slds-wrap">
             <h3 class="upload-title">Upload Secondary Debit Notes</h3>
             <div class="upload-actions">
-                <button class="actionButton" onclick={handleSampleDownload}>Download Sample CSV</button>
+                <template if:true={isSelectView}>
+                    <button class="actionButton" onclick={handleSampleDownload}>Download Sample CSV</button>
+                </template>
                 <button class="actionButton1" onclick={handleClose}>Close</button>
             </div>
         </div>
 
-        <div class="upload-body slds-p-around_medium">
-            <div class="slds-grid slds-wrap slds-gutters">
-                <div class="slds-col slds-size_1-of-2 slds-p-around_small">
-                    <label class="slds-form-element__label">Select CSV File</label>
-                    <input type="file" accept=".csv" onchange={handleFileChange} class="file-input" />
-                    <template if:true={fileName}>
-                        <p class="slds-text-body_small slds-m-top_x-small">Selected: {fileName} ({rowCount} rows)</p>
-                    </template>
-                </div>
-                <div class="slds-col slds-size_1-of-2 slds-p-around_small slds-text-align_right">
-                    <button class="actionButton" disabled={uploadDisabled} onclick={handleUpload}>Upload</button>
+        <!-- Step 1: File Select -->
+        <template if:true={isSelectView}>
+            <div class="upload-body slds-p-around_medium">
+                <div class="slds-grid slds-wrap slds-gutters">
+                    <div class="slds-col slds-size_1-of-1 slds-p-around_small">
+                        <label class="slds-form-element__label">Select CSV File</label>
+                        <input type="file" accept=".csv,text/csv" onchange={handleFileChange} class="file-input" />
+                        <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                            Required columns: Customer_Code, Note_Date (YYYY-MM-DD), Amount, Reason, Description.
+                        </p>
+                    </div>
                 </div>
             </div>
+        </template>
 
-            <template if:true={isUploading}>
-                <div class="slds-p-around_medium slds-text-align_center">
-                    <c-loading-screen></c-loading-screen>
-                    <p class="slds-text-body_regular">Uploading records, please wait...</p>
+        <!-- Step 2: Preview -->
+        <template if:true={isPreviewView}>
+            <div class="upload-body slds-p-around_medium">
+                <div class="slds-grid slds-grid_align-spread slds-wrap slds-m-bottom_small">
+                    <div>
+                        <p class="slds-text-body_regular"><strong>{fileName}</strong></p>
+                        <p class="slds-text-body_small slds-text-color_weak">
+                            {totalRowCount} row(s) parsed. Showing first {previewDisplayCount}.
+                        </p>
+                    </div>
+                    <div class="upload-actions">
+                        <button class="actionButton" onclick={handleUpload} disabled={isUploading}>Upload Records</button>
+                        <button class="actionButton1" onclick={handleBackToSelect} disabled={isUploading}>Choose Another File</button>
+                    </div>
                 </div>
-            </template>
 
-            <template if:true={hasResult}>
-                <div class="result-summary slds-box slds-m-top_medium">
-                    <div class="slds-grid slds-gutters">
-                        <div class="slds-col slds-size_1-of-3">
-                            <p><strong>Total Records:</strong> {result.totalRecords}</p>
+                <div class="preview-table-wrap">
+                    <table class="contacts-table preview-table">
+                        <thead>
+                            <tr>
+                                <th style="width:6%;">Row</th>
+                                <th style="width:18%;">Customer Code</th>
+                                <th style="width:14%;">Date</th>
+                                <th style="width:12%;">Amount</th>
+                                <th style="width:20%;">Reason</th>
+                                <th style="width:30%;">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={previewDisplayRows} for:item="row">
+                                <tr key={row.rowKey}>
+                                    <td>{row.rowNumber}</td>
+                                    <td>{row.customerCode}</td>
+                                    <td>{row.noteDate}</td>
+                                    <td>{row.amount}</td>
+                                    <td>{row.reason}</td>
+                                    <td>{row.description}</td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <template if:true={hasMoreRows}>
+                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                        + {extraRowCount} more row(s) will be uploaded but are not shown in the preview.
+                    </p>
+                </template>
+
+                <template if:true={isUploading}>
+                    <div class="slds-p-around_medium slds-text-align_center">
+                        <c-loading-screen></c-loading-screen>
+                        <p class="slds-text-body_regular">Uploading records, please wait...</p>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <!-- Step 3: Result -->
+        <template if:true={isResultView}>
+            <div class="upload-body slds-p-around_medium">
+                <div class="slds-grid slds-gutters slds-wrap result-cards">
+                    <div class="slds-col slds-size_1-of-3">
+                        <div class="result-card">
+                            <p class="result-label">Total Records</p>
+                            <p class="result-value">{result.totalRecords}</p>
                         </div>
-                        <div class="slds-col slds-size_1-of-3 success-text">
-                            <p><strong>Successful:</strong> {result.successCount}</p>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
+                        <div class="result-card success-card">
+                            <p class="result-label">Successful</p>
+                            <p class="result-value">{result.successCount}</p>
                         </div>
-                        <div class="slds-col slds-size_1-of-3 error-text">
-                            <p><strong>Failed:</strong> {result.failedCount}</p>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
+                        <div class="result-card error-card">
+                            <p class="result-label">Failed</p>
+                            <p class="result-value">{result.failedCount}</p>
                         </div>
                     </div>
                 </div>
 
                 <template if:true={hasErrors}>
-                    <table class="contacts-table slds-m-top_medium">
-                        <thead>
-                            <tr>
-                                <th style="width:10%;">Row #</th>
-                                <th style="width:25%;">Customer Code</th>
-                                <th style="width:65%;">Error Message</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <template for:each={result.errors} for:item="err">
-                                <tr key={err.rowNumber}>
-                                    <td>{err.rowNumber}</td>
-                                    <td>{err.customerCode}</td>
-                                    <td class="error-text">{err.message}</td>
+                    <h4 class="slds-text-heading_small slds-m-top_medium slds-m-bottom_x-small">Failed Rows</h4>
+                    <div class="preview-table-wrap">
+                        <table class="contacts-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:10%;">Row No</th>
+                                    <th style="width:25%;">Customer Code</th>
+                                    <th style="width:65%;">Error Message</th>
                                 </tr>
-                            </template>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <template for:each={result.errors} for:item="err">
+                                    <tr key={err.rowNumber}>
+                                        <td>{err.rowNumber}</td>
+                                        <td>{err.customerCode}</td>
+                                        <td class="error-text">{err.message}</td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
                 </template>
-            </template>
-        </div>
+
+                <div class="slds-m-top_medium upload-actions">
+                    <button class="actionButton" onclick={handleBackToSelect}>Upload Another File</button>
+                    <button class="actionButton1" onclick={handleClose}>Close</button>
+                </div>
+            </div>
+        </template>
     </div>
     <c-custom-toast auto-close-time="8000"></c-custom-toast>
 </template>

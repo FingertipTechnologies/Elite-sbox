@@ -2,23 +2,41 @@ import { LightningElement, track, api } from 'lwc';
 import uploadCreditNotes from '@salesforce/apex/SecondaryNoteUploadController.uploadCreditNotes';
 
 const HEADERS = ['Customer_Code', 'Credit_Date', 'Amount', 'Reason', 'Description'];
+const PREVIEW_LIMIT = 50;
 
 export default class NewCreditNoteDataUpload extends LightningElement {
     @track parsedRows = [];
     @track result = null;
     @track fileName = '';
     @track isUploading = false;
+    @track view = 'select'; // 'select' | 'preview' | 'result'
 
-    get rowCount() {
+    get isSelectView() { return this.view === 'select'; }
+    get isPreviewView() { return this.view === 'preview'; }
+    get isResultView() { return this.view === 'result'; }
+
+    get totalRowCount() {
         return this.parsedRows.length;
     }
 
-    get uploadDisabled() {
-        return this.isUploading || this.parsedRows.length === 0;
+    get previewDisplayRows() {
+        return this.parsedRows.slice(0, PREVIEW_LIMIT).map((r, idx) => ({
+            ...r,
+            rowKey: 'r' + idx,
+            rowNumber: idx + 2
+        }));
     }
 
-    get hasResult() {
-        return this.result !== null;
+    get previewDisplayCount() {
+        return Math.min(this.parsedRows.length, PREVIEW_LIMIT);
+    }
+
+    get hasMoreRows() {
+        return this.parsedRows.length > PREVIEW_LIMIT;
+    }
+
+    get extraRowCount() {
+        return Math.max(0, this.parsedRows.length - PREVIEW_LIMIT);
     }
 
     get hasErrors() {
@@ -33,14 +51,23 @@ export default class NewCreditNoteDataUpload extends LightningElement {
             this.fileName = '';
             return;
         }
+        const lower = file.name.toLowerCase();
+        if (!lower.endsWith('.csv')) {
+            this.showToast('error', 'Unsupported file format. Please upload a .csv file.');
+            event.target.value = '';
+            return;
+        }
         this.fileName = file.name;
         const reader = new FileReader();
         reader.onload = () => {
             try {
-                this.parsedRows = this.parseCsv(reader.result);
-                if (this.parsedRows.length === 0) {
+                const rows = this.parseCsv(reader.result);
+                if (rows.length === 0) {
                     this.showToast('error', 'No data rows found in the file.');
+                    return;
                 }
+                this.parsedRows = rows;
+                this.view = 'preview';
             } catch (e) {
                 this.showToast('error', 'Failed to parse file: ' + e.message);
             }
@@ -101,7 +128,7 @@ export default class NewCreditNoteDataUpload extends LightningElement {
 
     handleUpload() {
         if (this.parsedRows.length === 0) {
-            this.showToast('error', 'Please select a file with at least one data row.');
+            this.showToast('error', 'No rows to upload.');
             return;
         }
         this.isUploading = true;
@@ -110,6 +137,7 @@ export default class NewCreditNoteDataUpload extends LightningElement {
             .then(res => {
                 this.result = res;
                 this.isUploading = false;
+                this.view = 'result';
                 if (res.failedCount === 0) {
                     this.showToast('success', `${res.successCount} credit note(s) uploaded successfully.`);
                 } else if (res.successCount === 0) {
@@ -138,12 +166,20 @@ export default class NewCreditNoteDataUpload extends LightningElement {
         link.click();
     }
 
+    handleBackToSelect() {
+        this.parsedRows = [];
+        this.result = null;
+        this.fileName = '';
+        this.view = 'select';
+    }
+
     @api
     reset() {
         this.parsedRows = [];
         this.result = null;
         this.fileName = '';
         this.isUploading = false;
+        this.view = 'select';
     }
 
     handleClose() {
