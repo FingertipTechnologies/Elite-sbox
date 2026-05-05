@@ -131,13 +131,11 @@ export default class NewCreditNoteDataUpload extends LightningElement {
             HEADERS.join(',') + '\n' +
             'CUST001,2026-05-05,1000,Price Difference,Sample description\n' +
             'CUST002,2026-05-05,500,Discounts or Rebates,\n';
-        const blob = new Blob([sample], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
+        const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + sample);
         const link = document.createElement('a');
-        link.href = url;
-        link.download = 'secondary_credit_note_sample.csv';
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', 'secondary_credit_note_sample.csv');
         link.click();
-        URL.revokeObjectURL(url);
     }
 
     @api
