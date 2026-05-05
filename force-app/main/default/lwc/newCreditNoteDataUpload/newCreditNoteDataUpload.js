@@ -149,7 +149,16 @@ export default class NewCreditNoteDataUpload extends LightningElement {
             })
             .catch(error => {
                 this.isUploading = false;
-                const msg = error.body && error.body.message ? error.body.message : 'Upload failed.';
+                // eslint-disable-next-line no-console
+                console.error('Credit note upload error', error);
+                const msg = error && error.body && error.body.message ? error.body.message : 'Upload failed.';
+                this.result = {
+                    totalRecords: this.parsedRows.length,
+                    successCount: 0,
+                    failedCount: this.parsedRows.length,
+                    errors: [{ rowNumber: '-', customerCode: '', message: msg }]
+                };
+                this.view = 'result';
                 this.showToast('error', msg);
             });
     }

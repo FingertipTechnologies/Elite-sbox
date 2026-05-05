@@ -69,23 +69,38 @@ public with sharing class SecondaryNoteUploadController {
             return null;
         }
         String trimmed = value.trim();
+        String sep = null;
+        if (trimmed.contains('-')) {
+            sep = '-';
+        } else if (trimmed.contains('/')) {
+            sep = '/';
+        }
+        if (sep == null) {
+            return null;
+        }
+        List<String> parts = trimmed.split(sep == '/' ? '/' : '-');
+        if (parts.size() != 3) {
+            return null;
+        }
         try {
-            return Date.valueOf(trimmed);
-        } catch (Exception e) {
-            // Try dd/MM/yyyy
-            if (trimmed.contains('/')) {
-                List<String> parts = trimmed.split('/');
-                if (parts.size() == 3) {
-                    try {
-                        Integer d = Integer.valueOf(parts[0]);
-                        Integer m = Integer.valueOf(parts[1]);
-                        Integer y = Integer.valueOf(parts[2]);
-                        return Date.newInstance(y, m, d);
-                    } catch (Exception ex) {
-                        return null;
-                    }
-                }
+            Integer y;
+            Integer m;
+            Integer d;
+            if (parts[0].length() == 4) {
+                // YYYY-MM-DD
+                y = Integer.valueOf(parts[0]);
+                m = Integer.valueOf(parts[1]);
+                d = Integer.valueOf(parts[2]);
+            } else if (parts[2].length() == 4) {
+                // DD-MM-YYYY or DD/MM/YYYY
+                d = Integer.valueOf(parts[0]);
+                m = Integer.valueOf(parts[1]);
+                y = Integer.valueOf(parts[2]);
+            } else {
+                return null;
             }
+            return Date.newInstance(y, m, d);
+        } catch (Exception e) {
             return null;
         }
     }
@@ -145,7 +160,7 @@ public with sharing class SecondaryNoteUploadController {
             if (String.isBlank(dateStr)) {
                 errs.add('Credit Date is required');
             } else if (creditDate == null) {
-                errs.add('Invalid Credit Date format (use YYYY-MM-DD)');
+                errs.add('Invalid Credit Date format (use YYYY-MM-DD, DD-MM-YYYY or DD/MM/YYYY)');
             }
             Decimal amount = parseAmount(amountStr);
             if (String.isBlank(amountStr)) {
@@ -241,7 +256,7 @@ public with sharing class SecondaryNoteUploadController {
             if (String.isBlank(dateStr)) {
                 errs.add('Note Date is required');
             } else if (noteDate == null) {
-                errs.add('Invalid Note Date format (use YYYY-MM-DD)');
+                errs.add('Invalid Note Date format (use YYYY-MM-DD, DD-MM-YYYY or DD/MM/YYYY)');
             }
             Decimal amount = parseAmount(amountStr);
             if (String.isBlank(amountStr)) {
