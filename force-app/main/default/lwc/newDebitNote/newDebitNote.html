@@ -73,14 +73,23 @@
             </div>
         </template>
 
+        <!-- Upload View -->
+        <template if:true={showUpload}>
+            <c-new-debit-note-data-upload onclose={handleUploadClose} onuploadcomplete={handleUploadComplete}></c-new-debit-note-data-upload>
+        </template>
+
         <!-- Debit Note List -->
         <template if:false={showNewDebitNoteForm}>
+        <template if:false={showUpload}>
             <div class="orders layouts" id="DebitNoteListLayout">
                 <h3 class="order-title">Secondary Debit Notes</h3>
                 <div class="order-head">
                     <div class="order-filters">
                         <button class="actionButton" style="margin-top:30px; width:auto; padding:0 12px; white-space:nowrap;" onclick={handleNewDebitNote}>
                             New Secondary Debit Note
+                        </button>
+                        <button class="actionButton" style="margin-top:30px; width:auto; padding:0 12px; white-space:nowrap;" onclick={handleShowUpload}>
+                            Upload Debit Notes
                         </button>
                         <button class="actionButton" onclick={downloadDebitNotesAsCSV}
                             style="background-color: #28a745; color: white; margin-top:30px; align-items: center; padding: 6px 12px; border-radius: 4px; border: none;">
@@ -143,6 +152,7 @@
                     </tbody>
                 </table>
             </div>
+        </template>
         </template>
     </template>
     <c-custom-toast auto-close-time="8000"></c-custom-toast>

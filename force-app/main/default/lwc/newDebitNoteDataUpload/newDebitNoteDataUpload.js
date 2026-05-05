@@ -1,0 +1,162 @@
+import { LightningElement, track, api } from 'lwc';
+import uploadDebitNotes from '@salesforce/apex/SecondaryNoteUploadController.uploadDebitNotes';
+
+const HEADERS = ['Customer_Code', 'Note_Date', 'Amount', 'Reason', 'Description'];
+
+export default class NewDebitNoteDataUpload extends LightningElement {
+    @track parsedRows = [];
+    @track result = null;
+    @track fileName = '';
+    @track isUploading = false;
+
+    get rowCount() {
+        return this.parsedRows.length;
+    }
+
+    get uploadDisabled() {
+        return this.isUploading || this.parsedRows.length === 0;
+    }
+
+    get hasResult() {
+        return this.result !== null;
+    }
+
+    get hasErrors() {
+        return this.result && this.result.errors && this.result.errors.length > 0;
+    }
+
+    handleFileChange(event) {
+        this.result = null;
+        this.parsedRows = [];
+        const file = event.target.files && event.target.files[0];
+        if (!file) {
+            this.fileName = '';
+            return;
+        }
+        this.fileName = file.name;
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                this.parsedRows = this.parseCsv(reader.result);
+                if (this.parsedRows.length === 0) {
+                    this.showToast('error', 'No data rows found in the file.');
+                }
+            } catch (e) {
+                this.showToast('error', 'Failed to parse file: ' + e.message);
+            }
+        };
+        reader.onerror = () => {
+            this.showToast('error', 'Unable to read the selected file.');
+        };
+        reader.readAsText(file);
+    }
+
+    parseCsv(text) {
+        const rows = [];
+        const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+        if (lines.length === 0) {
+            return rows;
+        }
+        const headers = this.splitCsvLine(lines[0]).map(h => h.trim());
+        for (let i = 1; i < lines.length; i++) {
+            const cols = this.splitCsvLine(lines[i]);
+            const row = {};
+            headers.forEach((h, idx) => {
+                row[h] = cols[idx] !== undefined ? cols[idx].trim() : '';
+            });
+            rows.push({
+                customerCode: row['Customer_Code'] || row['Customer Code'] || '',
+                noteDate: row['Note_Date'] || row['Note Date'] || '',
+                amount: row['Amount'] || '',
+                reason: row['Reason'] || '',
+                description: row['Description'] || ''
+            });
+        }
+        return rows;
+    }
+
+    splitCsvLine(line) {
+        const out = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') {
+                if (inQuotes && line[i + 1] === '"') {
+                    cur += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (ch === ',' && !inQuotes) {
+                out.push(cur);
+                cur = '';
+            } else {
+                cur += ch;
+            }
+        }
+        out.push(cur);
+        return out;
+    }
+
+    handleUpload() {
+        if (this.parsedRows.length === 0) {
+            this.showToast('error', 'Please select a file with at least one data row.');
+            return;
+        }
+        this.isUploading = true;
+        this.result = null;
+        uploadDebitNotes({ rowsJson: JSON.stringify(this.parsedRows) })
+            .then(res => {
+                this.result = res;
+                this.isUploading = false;
+                if (res.failedCount === 0) {
+                    this.showToast('success', `${res.successCount} debit note(s) uploaded successfully.`);
+                } else if (res.successCount === 0) {
+                    this.showToast('error', `Upload failed for all ${res.failedCount} record(s).`);
+                } else {
+                    this.showToast('warning', `${res.successCount} succeeded, ${res.failedCount} failed.`);
+                }
+                this.dispatchEvent(new CustomEvent('uploadcomplete', { detail: res }));
+            })
+            .catch(error => {
+                this.isUploading = false;
+                const msg = error.body && error.body.message ? error.body.message : 'Upload failed.';
+                this.showToast('error', msg);
+            });
+    }
+
+    handleSampleDownload() {
+        const sample =
+            HEADERS.join(',') + '\n' +
+            'CUST001,2026-05-05,1000,Price Difference,Sample description\n' +
+            'CUST002,2026-05-05,500,Discounts or Rebates,\n';
+        const blob = new Blob([sample], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'secondary_debit_note_sample.csv';
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+
+    @api
+    reset() {
+        this.parsedRows = [];
+        this.result = null;
+        this.fileName = '';
+        this.isUploading = false;
+    }
+
+    handleClose() {
+        this.reset();
+        this.dispatchEvent(new CustomEvent('close'));
+    }
+
+    showToast(variant, message) {
+        const toast = this.template.querySelector('c-custom-toast');
+        if (toast) {
+            toast.showToast(variant, message);
+        }
+    }
+}
