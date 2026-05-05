@@ -5,6 +5,7 @@ import allDebitNoteData from '@salesforce/apex/DMSPortalLwc.allDebitNoteData';
 
 export default class NewDebitNote extends LightningElement {
     @track showNewDebitNoteForm = false;
+    @track showUpload = false;
     @track customerSearch = '';
     @track customerOptions = [];
     @track selectedCustomerId = '';
@@ -232,6 +233,19 @@ export default class NewDebitNote extends LightningElement {
 
     handleNewDebitNote() {
         this.showNewDebitNoteForm = true;
+    }
+
+    handleShowUpload() {
+        this.showUpload = true;
+    }
+
+    handleUploadClose() {
+        this.showUpload = false;
+        this.loadDebitNotes();
+    }
+
+    handleUploadComplete() {
+        this.loadDebitNotes();
     }
 
     handleCancel() {

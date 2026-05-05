@@ -1,0 +1,75 @@
+:host {
+    display: block;
+    background: transparent;
+}
+
+.upload-wrapper {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin: 1rem auto;
+    width: 95%;
+}
+
+.upload-title {
+    font-size: 22px;
+    font-weight: bold;
+    color: #02323e;
+    margin: 0;
+}
+
+.upload-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.actionButton {
+    background-color: #02323e;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+}
+
+.actionButton:disabled {
+    background-color: #999;
+    cursor: not-allowed;
+}
+
+.actionButton1 {
+    background-color: #fff;
+    color: #02323e;
+    border: 1px solid #02323e;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+}
+
+.file-input {
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+}
+
+.success-text { color: #28a745; }
+.error-text { color: #c23934; }
+
+.contacts-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.contacts-table th,
+.contacts-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    font-size: 14px;
+}
+
+.contacts-table th {
+    background-color: #f4f6f9;
+    font-weight: 600;
+}
