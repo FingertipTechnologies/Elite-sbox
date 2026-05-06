@@ -86,6 +86,9 @@ private class PriceBookTriggerHandlerTest {
         Test.startTest();
         pb.Customer__c = other.Id;
         update pb;
+        PriceBookSharingBatch batch = new PriceBookSharingBatch();
+        Database.executeBatch(batch, 200);
+        
         Test.stopTest();
 
         Price_Book__c refreshed = [SELECT Customer__c FROM Price_Book__c WHERE Id = :pb.Id];

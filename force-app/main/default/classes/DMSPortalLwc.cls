@@ -552,25 +552,43 @@ public without sharing class DMSPortalLwc {
         ];
     }
     
+    public class GRNFileWrapper {
+        @AuraEnabled public Id Id;
+        @AuraEnabled public String Name;
+        @AuraEnabled public String DistributionPublicUrl;
+    }
+
     @AuraEnabled(cacheable=true)
-    public static List<ContentDistribution> getGRNImages(Id grnId) {
-        List<ContentDocumentLink> cdLinks = [
-            SELECT ContentDocumentId FROM ContentDocumentLink WHERE LinkedEntityId = :grnId
-        ];
-        if (cdLinks.isEmpty()) {
-            return new List<ContentDistribution>();
+    public static List<GRNFileWrapper> getGRNImages(Id grnId) {
+        List<GRNFileWrapper> result = new List<GRNFileWrapper>();
+        if (grnId == null) {
+            return result;
         }
+
         Set<Id> contentDocIds = new Set<Id>();
-        for (ContentDocumentLink cdl : cdLinks) {
+        for (ContentDocumentLink cdl : [
+            SELECT ContentDocumentId FROM ContentDocumentLink WHERE LinkedEntityId = :grnId
+        ]) {
             contentDocIds.add(cdl.ContentDocumentId);
         }
-        List<Id> contentVersionIds = new List<Id>();
-        for (ContentVersion cv : [SELECT Id FROM ContentVersion WHERE ContentDocumentId IN :contentDocIds AND IsLatest = true]) {
-            contentVersionIds.add(cv.Id);
+        if (contentDocIds.isEmpty()) {
+            return result;
         }
-        return [
-            SELECT Id, Name, DistributionPublicUrl FROM ContentDistribution WHERE ContentVersionId IN :contentVersionIds
-        ];
+
+        for (ContentVersion cv : [
+            SELECT Id, Title, FileExtension
+            FROM ContentVersion
+            WHERE ContentDocumentId IN :contentDocIds AND IsLatest = true
+        ]) {
+            GRNFileWrapper f = new GRNFileWrapper();
+            f.Id = cv.Id;
+            f.Name = String.isNotBlank(cv.FileExtension)
+                ? cv.Title + '.' + cv.FileExtension
+                : cv.Title;
+            f.DistributionPublicUrl = '/sfc/servlet.shepherd/version/download/' + cv.Id;
+            result.add(f);
+        }
+        return result;
     }
 
     @AuraEnabled(cacheable=true)
@@ -1176,6 +1194,41 @@ public without sharing class DMSPortalLwc {
         // Step 8: Return GRN ID
         return grn.Id;
     }
+
+    @AuraEnabled
+    public static String saveGRNFile(Id grnId, String fileName, String base64Data) {
+        if (grnId == null || String.isBlank(fileName) || String.isBlank(base64Data)) {
+            throw new AuraHandledException('GRN Id, file name and file data are required.');
+        }
+        try {
+            ContentVersion cv = new ContentVersion();
+            cv.Title = fileName;
+            cv.PathOnClient = fileName;
+            cv.VersionData = EncodingUtil.base64Decode(base64Data);
+            cv.ContentLocation = 'S';
+            cv.OwnerId = UserInfo.getUserId();
+            insert cv;
+
+            ContentVersion insertedCv = [
+                SELECT Id, ContentDocumentId
+                FROM ContentVersion
+                WHERE Id = :cv.Id
+                LIMIT 1
+            ];
+
+            ContentDocumentLink cdl = new ContentDocumentLink();
+            cdl.ContentDocumentId = insertedCv.ContentDocumentId;
+            cdl.LinkedEntityId = grnId;
+            cdl.ShareType = 'I';
+            cdl.Visibility = 'AllUsers';
+            insert cdl;
+
+            return insertedCv.ContentDocumentId;
+        } catch (Exception e) {
+            throw new AuraHandledException('Error saving GRN file: ' + e.getMessage());
+        }
+    }
+
     // Optional: fetch invoices and their line items for LWC display
     @AuraEnabled(cacheable=true)
     public static List<Invoice__c> getInvoicesByIds(List<Id> invoiceIds) {

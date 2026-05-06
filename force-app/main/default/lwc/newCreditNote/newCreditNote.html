@@ -93,8 +93,14 @@
             </div>
         </template>
 
+        <!-- Upload View -->
+        <template if:true={showUpload}>
+            <c-new-credit-note-data-upload onclose={handleUploadClose} onuploadcomplete={handleUploadComplete}></c-new-credit-note-data-upload>
+        </template>
+
         <!-- Credit Note List -->
         <template if:false={showNewCreditNoteForm}>
+        <template if:false={showUpload}>
             <div class="orders layouts" id="InvoiceLayout">
                 <h3 class="order-title">Secondary Credit Notes</h3>
                 <div class="order-head">
@@ -102,6 +108,9 @@
                         <button class="actionButton" style="margin-top:30px; width:auto; padding:0 12px; white-space:nowrap;" onclick={handleNewCreditNote}>
                             New Secondary Credit Note
                         </button>
+                        <!--<button class="actionButton" style="margin-top:30px; width:auto; padding:0 12px; white-space:nowrap;" onclick={handleShowUpload}>
+                            Upload Credit Notes
+                        </button>-->
                         <button class="actionButton" onclick={downloadCreditNotesAsCSV}
                             style="background-color: #28a745; color: white; margin-top:30px; align-items: center; padding: 6px 12px; border-radius: 4px;">
                             <span style="align-items: center;">
@@ -162,6 +171,7 @@
                     </tbody>
                 </table>
             </div>
+        </template>
         </template>
     </template>
     <c-custom-toast auto-close-time="8000"></c-custom-toast>

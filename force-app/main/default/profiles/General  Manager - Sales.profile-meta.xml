@@ -1013,6 +1013,10 @@
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>SecondaryNoteUploadController</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>SendAccountDocumentsOrgWide</apexClass>
         <enabled>false</enabled>
     </classAccesses>
@@ -6939,7 +6943,7 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Order_Item__c.Scheme__c</field>
+        <field>Order_Item__c.Scheme_Item__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -9410,6 +9414,11 @@
     <fieldPermissions>
         <editable>false</editable>
         <field>Secondary_Invoice_Item__c.Scheme_Claim_Amount__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Secondary_Invoice_Item__c.Scheme_Item__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

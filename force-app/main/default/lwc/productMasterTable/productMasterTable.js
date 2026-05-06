@@ -21,6 +21,7 @@ export default class ProductMasterTable extends LightningElement {
     selectedProductGroup = '';
     selectedProductSubGroup = '';
     searchKey = '';
+    @track viewMode = 'table';
 
     isLoading = false;
     productRecordTypeId;
@@ -81,7 +82,8 @@ export default class ProductMasterTable extends LightningElement {
                     const uomConversion = p.Uom_Conversion__c || '';
                     const uom = p.UOM__c || '';
 
-                    const hasConversion = alternateUom && uomConversion && uom;
+                    const hasConversion = !!(alternateUom && uomConversion !== '' && uom);
+                    const imageUrl = p.Product_Image_Url__c || null;
 
                     return {
                         id: p.Id,
@@ -95,10 +97,13 @@ export default class ProductMasterTable extends LightningElement {
                         uom: uom,
                         alternateUom: alternateUom,
                         uomConversion: uomConversion,
+                        hasConversion: hasConversion,
                         conversionText: hasConversion
                             ? `Conversion : 1 ${alternateUom} = ${uomConversion} ${uom}`
                             : '',
-                        channel: p.Channel__c || ''
+                        channel: p.Channel__c || '',
+                        imageUrl: imageUrl,
+                        hasImage: !!imageUrl
                     };
                 });
 
@@ -156,6 +161,29 @@ export default class ProductMasterTable extends LightningElement {
 
     get hasProducts() {
         return this.filteredProducts && this.filteredProducts.length > 0;
+    }
+
+    get isTableView() {
+        return this.viewMode === 'table';
+    }
+
+    get isGridView() {
+        return this.viewMode === 'grid';
+    }
+
+    get tableViewClass() {
+        return this.viewMode === 'table' ? 'rs-filter-btn rs-filter-active' : 'rs-filter-btn';
+    }
+
+    get gridViewClass() {
+        return this.viewMode === 'grid' ? 'rs-filter-btn rs-filter-active' : 'rs-filter-btn';
+    }
+
+    handleViewToggle(event) {
+        const view = event.currentTarget.dataset.view;
+        if (view === 'table' || view === 'grid') {
+            this.viewMode = view;
+        }
     }
 
    handleDownload() {

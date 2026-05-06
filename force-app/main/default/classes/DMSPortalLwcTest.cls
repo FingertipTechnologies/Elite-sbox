@@ -490,7 +490,7 @@ private class DMSPortalLwcTest {
     static void testGetGRNImages() {
         Goods_Received_Note__c grn = getGRN();
         Test.startTest();
-        List<ContentDistribution> result = DMSPortalLwc.getGRNImages(grn.Id);
+        List<DMSPortalLwc.GRNFileWrapper> result = DMSPortalLwc.getGRNImages(grn.Id);
         Test.stopTest();
         System.assertNotEquals(null, result);
     }
@@ -1763,6 +1763,44 @@ private class DMSPortalLwcTest {
         Test.stopTest();
     }
 
+    // ========== Tests for saveGRNFile ==========
+
+    @isTest
+    static void testSaveGRNFile() {
+        Goods_Received_Note__c grn = getGRN();
+        String base64Data = EncodingUtil.base64Encode(Blob.valueOf('Test GRN file content'));
+
+        Test.startTest();
+        String contentDocumentId = DMSPortalLwc.saveGRNFile(grn.Id, 'grn-test.txt', base64Data);
+        Test.stopTest();
+
+        System.assertNotEquals(null, contentDocumentId, 'ContentDocumentId should be returned');
+        List<ContentDocumentLink> links = [
+            SELECT Id FROM ContentDocumentLink
+            WHERE LinkedEntityId = :grn.Id AND ContentDocumentId = :contentDocumentId
+        ];
+        System.assertEquals(1, links.size(), 'File should be linked to GRN');
+
+        List<DMSPortalLwc.GRNFileWrapper> files = DMSPortalLwc.getGRNImages(grn.Id);
+        System.assertEquals(1, files.size(), 'getGRNImages should return the uploaded file');
+        System.assert(files[0].DistributionPublicUrl.contains('/sfc/servlet.shepherd/version/download/'),
+            'URL should be the shepherd download path');
+    }
+
+    @isTest
+    static void testSaveGRNFileMissingArgs() {
+        Test.startTest();
+        try {
+            DMSPortalLwc.saveGRNFile(null, 'a.txt', 'abc');
+            System.assert(false, 'Should have thrown exception');
+        } catch (AuraHandledException e) {
+            System.assert(true, 'Exception thrown for null grnId');
+        } catch (Exception e) {
+            System.assert(true, 'Exception thrown');
+        }
+        Test.stopTest();
+    }
+
     // ========== Tests for saveSecondaryInvoice ==========
 
     @isTest
@@ -2079,7 +2117,7 @@ private class DMSPortalLwcTest {
     static void testGetGRNImagesNoImages() {
         Goods_Received_Note__c grn = getGRN();
         Test.startTest();
-        List<ContentDistribution> result = DMSPortalLwc.getGRNImages(grn.Id);
+        List<DMSPortalLwc.GRNFileWrapper> result = DMSPortalLwc.getGRNImages(grn.Id);
         Test.stopTest();
         System.assertNotEquals(null, result);
     }

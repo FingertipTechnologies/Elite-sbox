@@ -1,0 +1,128 @@
+:host {
+    display: block;
+    background: transparent;
+}
+
+.upload-wrapper {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin: 1rem auto;
+    width: 95%;
+}
+
+.upload-title {
+    font-size: 22px;
+    font-weight: bold;
+    color: #02323e;
+    margin: 0;
+}
+
+.upload-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.actionButton {
+    background-color: #02323e;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+}
+
+.actionButton:disabled {
+    background-color: #999;
+    cursor: not-allowed;
+}
+
+.actionButton1 {
+    background-color: #fff;
+    color: #02323e;
+    border: 1px solid #02323e;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+}
+
+.file-input {
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+}
+
+.success-text { color: #28a745; }
+.error-text { color: #c23934; }
+
+.contacts-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.contacts-table th,
+.contacts-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    font-size: 14px;
+}
+
+.contacts-table th {
+    background-color: #f4f6f9;
+    font-weight: 600;
+}
+
+.preview-table-wrap {
+    max-height: 360px;
+    overflow: auto;
+    border: 1px solid #e0e3e8;
+    border-radius: 4px;
+}
+
+.preview-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.result-cards {
+    margin-top: 4px;
+}
+
+.result-card {
+    background: #f4f6f9;
+    border: 1px solid #e0e3e8;
+    border-radius: 6px;
+    padding: 16px;
+    text-align: center;
+}
+
+.result-card.success-card {
+    background: #eaf7ee;
+    border-color: #c7e9d2;
+}
+
+.result-card.error-card {
+    background: #fdecec;
+    border-color: #f4c7c7;
+}
+
+.result-label {
+    font-size: 13px;
+    color: #555;
+    margin: 0 0 4px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.result-value {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+    color: #02323e;
+}
+
+.success-card .result-value { color: #28a745; }
+.error-card .result-value { color: #c23934; }

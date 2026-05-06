@@ -46,61 +46,115 @@
                     </div>
 
                     <div class="filters-right">
+                        <div class="rs-filter-group">
+                            <button class={tableViewClass} onclick={handleViewToggle} data-view="table">Tabular</button>
+                            <button class={gridViewClass} onclick={handleViewToggle} data-view="grid">Grid</button>
+                        </div>
                         <button class="StockAdjustmentactionButton" onclick={handleDownload}>Download</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Table -->
-            <div class="table-wrapper">
-                <table class="custom-table">
-                    <thead>
-                        <tr>
-                            <th>S.No</th>
-                            <th>Product Name</th>
-                            <th>SKU</th>
-                            <th>Category</th>
-                            <th>Product Group</th>
-                            <th>Sub Group</th>
-                            <th>MRP</th>
-                            <th>UOM</th>
-                            <th>Alternate UOM</th>
-                            <th>UOM Conversion </th>
-                            <th>Conversion Summary</th>
-                        </tr>
-                    </thead>
+            <!-- Table View -->
+            <template lwc:if={isTableView}>
+                <div class="table-wrapper">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>S.No</th>
+                                <th>Product Name</th>
+                                <th>SKU</th>
+                                <th>Category</th>
+                                <th>Product Group</th>
+                                <th>Sub Group</th>
+                                <th>MRP</th>
+                                <th>UOM</th>
+                                <th>Alternate UOM</th>
+                                <th>UOM Conversion </th>
+                                <th>Conversion Summary</th>
+                            </tr>
+                        </thead>
 
-                    <tbody>
-                        <template if:true={hasProducts}>
-                            <template for:each={filteredProducts} for:item="prod">
-                                <tr key={prod.id}>
-                                    <td>{prod.index}</td>
-                                    <td>{prod.name}</td>
-                                    <td>{prod.sku}</td>
-                                    <td>{prod.category}</td>
-                                    <td>{prod.productGroup}</td>
-                                    <td>{prod.productSubGroup}</td>
-                                    <td>₹ {prod.mrp}</td>
-                                    <td> {prod.uom}</td>
-                                    <td>{prod.alternateUom}</td>
-                                    <td>{prod.uomConversion}</td>
-                                    <!-- Conversion Text -->
-                                    <td>{prod.conversionText}</td>
+                        <tbody>
+                            <template if:true={hasProducts}>
+                                <template for:each={filteredProducts} for:item="prod">
+                                    <tr key={prod.id}>
+                                        <td>{prod.index}</td>
+                                        <td>{prod.name}</td>
+                                        <td>{prod.sku}</td>
+                                        <td>{prod.category}</td>
+                                        <td>{prod.productGroup}</td>
+                                        <td>{prod.productSubGroup}</td>
+                                        <td>₹ {prod.mrp}</td>
+                                        <td> {prod.uom}</td>
+                                        <td>{prod.alternateUom}</td>
+                                        <td>{prod.uomConversion}</td>
+                                        <!-- Conversion Text -->
+                                        <td>{prod.conversionText}</td>
+                                    </tr>
+                                </template>
+                            </template>
+
+                            <!-- No Records -->
+                            <template if:false={hasProducts}>
+                                <tr>
+                                    <td colspan="11" class="no-data-cell">
+                                        No records found!
+                                    </td>
                                 </tr>
                             </template>
-                        </template>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
 
-                        <!-- No Records -->
-                        <template if:false={hasProducts}>
-                            <tr>
-                                <td colspan="11" class="no-data-cell">
-                                    No records found!
-                                </td>
-                            </tr>
+            <!-- Grid View -->
+            <template lwc:if={isGridView}>
+                <template lwc:if={hasProducts}>
+                    <div class="product-grid">
+                        <template for:each={filteredProducts} for:item="product">
+                            <div key={product.id} class="product-card">
+                                <div class="product-icon-wrapper">
+                                    <template lwc:if={product.hasImage}>
+                                        <img src={product.imageUrl} alt={product.name} class="product-image" />
+                                    </template>
+                                    <template lwc:else>
+                                        <lightning-icon icon-name="standard:product" size="large"></lightning-icon>
+                                    </template>
+                                </div>
+                                <div class="product-info">
+                                    <h3 class="product-name" title={product.name}>{product.name}</h3>
+                                    <p class="product-category">{product.category}</p>
+                                    <template lwc:if={product.productGroup}>
+                                        <p class="product-group">Product Group: {product.productGroup}</p>
+                                    </template>
+                                    <template lwc:if={product.productSubGroup}>
+                                        <p class="product-sub-group">Product Sub Group: {product.productSubGroup}</p>
+                                    </template>
+                                    <template lwc:if={product.sku}>
+                                        <p class="product-sku">SKU: {product.sku}</p>
+                                    </template>
+                                    <p class="product-channel">{product.channel}</p>
+                                    <div class="product-price-row">
+                                        <span class="product-price">MRP: &#8377; {product.mrp}</span>
+                                    </div>
+                                    <template lwc:if={product.uom}>
+                                        <p class="product-uom">{product.uom}</p>
+                                    </template>
+                                    <template lwc:if={product.hasConversion}>
+                                        <p class="product-conversion">({product.conversionText})</p>
+                                    </template>
+                                </div>
+                            </div>
                         </template>
-                    </tbody>
-                </table>
-            </div>
+                    </div>
+                </template>
+                <template lwc:else>
+                    <div class="slds-align_absolute-center" style="padding: 40px;">
+                        <span style="color:red; font-size:large;">No products found!</span>
+                    </div>
+                </template>
+            </template>
 
         </div>
     </template>

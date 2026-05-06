@@ -59,7 +59,7 @@ export default class NavigationComponent extends LightningElement {
         { id: 'Orders', label: 'Primary Orders' },
         { id: 'Invoices', label: 'Primary Invoices' },
         { id: 'Returns', label: 'Sale Return' },
-        { id: 'Payments', label: 'Receipts' },
+       /* { id: 'Payments', label: 'Receipts' },*/
         { id: 'GRN', label: 'GRNs' },
         { id: 'Claims', label: 'Claims' },
         { id: 'Stock', label: 'Stock' },
@@ -73,7 +73,7 @@ export default class NavigationComponent extends LightningElement {
         { id: 'Secondary Customer Ledger', label: 'Secondary Customer Ledger' },
         { id: 'Users', label: 'Users' },
         { id: 'Stock Adjustment', label: 'Stock Adjustment' },
-        { id: 'Product Gallery', label: 'Product Gallery' },
+        /*{ id: 'Product Gallery', label: 'Product Gallery' },*/
         { id: 'Product Master', label: 'Product Master' },
         { id: 'Schemes', label: 'Schemes' },
        /*{ id: 'Claim Reports', label: 'Claim Reports' }**/
@@ -3111,19 +3111,24 @@ export default class NavigationComponent extends LightningElement {
 
 
     handleGRNComplete(event) {
-        this.isgenerateGRN = false;
+        this.resetAllFlags();
+        this.selectedTab = 'GRN';
+
+        const selectedIndex = this.allTabs.findIndex(tab => tab.id === 'GRN');
+        if (selectedIndex >= this.visibleTabCount) {
+            const grnTab = this.allTabs.splice(selectedIndex, 1)[0];
+            this.allTabs.splice(this.visibleTabCount - 1, 0, grnTab);
+        }
+
         this.showPrimaryGrn = true;
         this.getGRNsData();
-
         this.selectedInvoiceId = null;
-
-
-
     }
 
     handleGRNCancel() {
         this.isgenerateGRN = false;
         this.showPrimaryInvoices = true;
+        this.selectedTab = 'Invoices';
         this.selectedInvoiceId = null;
     }
     newreturnScreen() {
@@ -3254,6 +3259,15 @@ export default class NavigationComponent extends LightningElement {
         this.getSecoundaryOrderData();
     }
     handleSecondaryorderCreated() {
+
+        this.resetAllFlags();
+        this.selectedTab = 'Secondary Invoices';
+
+        const selectedIndex = this.allTabs.findIndex(tab => tab.id === 'Secondary Invoices');
+        if (selectedIndex >= this.visibleTabCount) {
+            const invTab = this.allTabs.splice(selectedIndex, 1)[0];
+            this.allTabs.splice(this.visibleTabCount - 1, 0, invTab);
+        }
         this.isGenerateInvoice = false;
         this.showSecoundaryInvoices = true;
         this.getSecoundaryInvoiceData();
@@ -3478,7 +3492,9 @@ export default class NavigationComponent extends LightningElement {
         getCustomerLedger({ fromDate: this.ledgerFromDate, toDate: this.ledgerToDate })
             .then((result) => {
                 if (!result || !result.success) {
-                    this.ledgerError = (result && result.errorMessage) || 'Failed to load customer ledger.';
+                    this.ledgerError = this.extractLedgerErrorMessage(
+                        result && result.errorMessage
+                    ) || 'Failed to load customer ledger.';
                     this.ledgerEntries = [];
                     this.ledgerOpeningBalance = null;
                     this.ledgerClosingBalance = null;
@@ -3492,12 +3508,30 @@ export default class NavigationComponent extends LightningElement {
                 }));
             })
             .catch((error) => {
-                this.ledgerError = (error && error.body && error.body.message) || 'Unexpected error loading ledger.';
+                this.ledgerError = this.extractLedgerErrorMessage(
+                    error && error.body && error.body.message
+                ) || 'Unexpected error loading ledger.';
                 this.ledgerEntries = [];
             })
             .finally(() => {
                 this.ledgerLoading = false;
             });
+    }
+
+    extractLedgerErrorMessage(raw) {
+        if (!raw) return '';
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (match) {
+            try {
+                const parsed = JSON.parse(match[0]);
+                if (parsed && parsed.message) {
+                    return parsed.message;
+                }
+            } catch (e) {
+                // fall through to raw
+            }
+        }
+        return raw;
     }
 
     backToCarousel() {

@@ -376,12 +376,12 @@
                                         <th style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">GST No.</th>
                                         <th style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">Order No.</th>
                                         <th style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">Invoice Date</th>
-                                        <th style="width:5%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">Total Qty</th>
-                                        <th style="width:10%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">Base Amount</th>
+                                        <th style="width:5%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">Total Qty (EA)</th>
+                                        <th style="width:10%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">Base Amount (₹)</th>
                                         <th style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">SGST</th>
                                         <th style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">CGST</th>
                                         <th style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">IGST</th>
-                                        <th style="width:9%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">Total Amount</th>
+                                        <th style="width:9%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">Total Amount (₹)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -448,10 +448,10 @@
                                 <tr>
                                     <th style="width:5%">S.No.</th>
                                     <th style="width:15%">SKU Name</th>
-                                    <th style="width:20%">Quantity</th>
+                                    <th style="width:20%">Quantity (EA)</th>
                                     <th style="width:20%">Unit Price</th>
-                                    <th style="width:20%">Tax Amount</th>
-                                    <th style="width:20%">Total Amount</th>
+                                    <th style="width:20%">Tax Amount (₹)</th>
+                                    <th style="width:20%">Total Amount (₹)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -527,8 +527,8 @@
                                 <tr>
                                     <th style="width:5%">S.No.</th>
                                     <th style="width:15%">Return No.</th>
-                                    <th style="width:20%">Total Quantity</th>
-                                    <th style="width:20%">Total Amount</th>
+                                    <th style="width:20%">Total Quantity (EA)</th>
+                                    <th style="width:20%">Total Amount (₹)</th>
                                     <th style="width:20%">Date</th>
                                 </tr>
                             </thead>
@@ -564,7 +564,7 @@
             <template if:true={showPrimaryReturnItems}>
                 <div class="orders layouts" id="primaryReturnItemsLayout">
                     <div class="order-head">
-                        <h3 class="order-title">Primary Return Items for Return:
+                        <h3 class="order-title">Sale Return Items for :
                             {selectedPrimaryReturnNo}</h3>
 
                         <div class="order-filters">
@@ -578,9 +578,9 @@
                             <tr>
                                 <th style="width:5%">S.No.</th>
                                 <th style="width:15%">SKU Name</th>
-                                <th style="width:20%">Quantity</th>
+                                <th style="width:20%">Quantity (EA)</th>
                                 <th style="width:20%">Unit Price</th>
-                                <th style="width:20%">Total Amount</th>
+                                <th style="width:20%">Total Amount (₹)</th>
                                 <th style="width:20%">Reason</th>
                             </tr>
                         </thead>
@@ -658,7 +658,7 @@
                                     <th style="width:5%">S.No.</th>
                                     <th style="width:35%">Payment Receipt</th>
                                     <th style="width:30%">Payment Date</th>
-                                    <th style="width:30%">Amount</th>
+                                    <th style="width:30%">Amount (₹)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -710,7 +710,7 @@
                                 <th style="width:5%">S.No.</th>
                                 <th style="width:35%">Payment Receipt Item Name</th>
                                 <th style="width:30%">Invoice</th>
-                                <th style="width:30%">Amount</th>
+                                <th style="width:30%">Amount (₹)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -820,10 +820,10 @@
                                 <th style="width:5%">S.No.</th>
                                 <th style="width:15%">GRN Item Name</th>
                                 <th style="width:15%">Invoice Item</th>
-                                <th style="width:15%">Invoiced Quantity</th>
+                                <th style="width:15%">Invoiced Quantity (EA)</th>
                                 <th style="width:15%">Product</th>
-                                <th style="width:15%">Received Saleable Qty</th>
-                                <th style="width:15%">Received Non-Saleable Qty</th>
+                                <th style="width:15%">Received Saleable Qty (EA)</th>
+                                <th style="width:15%">Received Non-Saleable Qty (EA)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -851,10 +851,10 @@
                         </tbody>
                     </table>
 
-                    <!-- GRN Images Card -->
+                    <!-- GRN Files Card -->
                     <template lwc:if={GRNFilter.grnImages.length}>
                         <div class="grn-images-card">
-                            <h4 class="grn-images-header">GRN Images</h4>
+                            <h4 class="grn-images-header">GRN Files</h4>
                             <ul class="grn-images-list">
                                 <template for:each={GRNFilter.grnImages} for:item="img">
                                     <li key={img.id}>
@@ -903,7 +903,7 @@
                                     <th style="width:5%">S.No.</th>
                                     <th style="width:30%">Claim No.</th>
                                     <th style="width:15%">Customer Name</th>
-                                    <th style="width:15%">Claim Amount</th>
+                                    <th style="width:15%">Claim Amount (₹)</th>
                                     <!--<th style="width:15%">Status</th>-->
                                     <th style="width:15%">Claim Date</th>
                                     <th style="width:15%">Description</th>
@@ -985,19 +985,19 @@
                                     <th style="width:10%">SKU</th>
                                     <th style="width:8%">Product Group</th>
                                     <th style="width:8%">Product Sub Group</th>
-                                    <th style="width:5%">GRN Sale Qty</th>
-                                    <th style="width:5%">GRN Non-Sale Qty</th>
-                                    <th style="width:5%">Secondary Invoice Qty</th>
-                                    <th style="width:5%">Primary Return Qty</th>
-                                    <th style="width:5%">Secondary Return Sale Qty</th>
-                                    <th style="width:5%">Secondary Return Non-Sale Qty</th>
-                                    <th style="width:5%">Sale → Non-Sale Qty</th>
-                                    <th style="width:5%">Non-Sale → Sale Qty</th>
-                                    <th style="width:5%">Written Off Qty</th>
-                                    <th style="width:7%">Available Sale Qty</th>
-                                    <th style="width:7%">Available Non-Sale Qty</th>
+                                    <th style="width:5%">GRN Sale Qty (EA)</th>
+                                    <th style="width:5%">GRN Non-Sale Qty (EA)</th>
+                                    <th style="width:5%">Secondary Invoice Qty (EA)</th>
+                                    <th style="width:5%">Sale Return Qty (EA)</th>
+                                    <th style="width:5%">Secondary Return Sale Qty (EA)</th>
+                                    <th style="width:5%">Secondary Return Non-Sale Qty (EA)</th>
+                                    <th style="width:5%">Sale → Non-Sale Qty (EA)</th>
+                                    <th style="width:5%">Non-Sale → Sale Qty (EA)</th>
+                                    <th style="width:5%">Written Off Qty (EA)</th>
+                                    <th style="width:7%">Available Sale Qty (EA)</th>
+                                    <th style="width:7%">Available Non-Sale Qty (EA)</th>
                                     <th style="width:7%">Unit Price</th>
-                                    <th style="width:8%">Total Amount</th>
+                                    <th style="width:8%">Total Amount (₹)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1103,9 +1103,9 @@
                                     <th style="width:5%;">S.No.</th>
                                     <th style="width:15%;">Order No.</th>
                                     <th style="width:20%;">Customer Name</th>
-                                    <th style="width:15%;">Total Amount</th>
-                                    <th style="width:15%;">Order Quantity</th>
-                                    <th style="width:15%;">Invoiced Quantity</th>
+                                    <th style="width:15%;">Total Amount (₹)</th>
+                                    <th style="width:15%;">Order Quantity (EA)</th>
+                                    <th style="width:15%;">Invoiced Quantity (EA)</th>
                                     <th style="width:15%;">Order Date</th>
                                 </tr>
                             </thead>
@@ -1166,10 +1166,10 @@
                             <tr>
                                 <th style="width:5%">S.No.</th>
                                 <th style="width:20%">Product Name</th>
-                                <th style="width:20%">Quantity</th>
+                                <th style="width:20%">Quantity (EA)</th>
                                 <th style="width:10%">Unit Price (₹)</th>
 
-                                <th style="width:10%">Tax  (%)</th> 
+                                <th style="width:10%">Tax  (%)</th>
                                 <th style="width:15%">Tax Amount (₹)</th>
                                 <th style="width:20%">Total Amount (₹)</th>
                             </tr>
@@ -1258,11 +1258,11 @@
                                     <th style="width:12%;">Beat Name</th>
                                     <th style="width:8%;">Date</th>
                                     <th style="width:8%;">Status</th>
-                                    <th style="width:8%;">Total Quantity</th>
-                                    <th style="width:10%;">Non Taxable Amount</th>
+                                    <th style="width:8%;">Total Quantity (EA)</th>
+                                    <th style="width:10%;">Base Amount (₹)</th>
                                     <th style="width:8%;">SGST</th>
                                     <th style="width:8%;">CGST</th>
-                                    <th style="width:11%;">Total Amount</th>
+                                    <th style="width:11%;">Total Amount (₹)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1348,9 +1348,9 @@
                             <tr>
                                 <th style="width:5%">S.No.</th>
                                 <th style="width:15%">Product Name</th>
-                                <th style="width:15%">Quantity</th>
+                                <th style="width:15%">Quantity (EA)</th>
                                 <th style="width:15%">Unit Price (₹)</th>
-                                <th style="width:15%">Tax Percent </th>
+                                <th style="width:15%">Tax %</th>
                                 <th style="width:15%">Tax Amount (₹)</th>
                                 <th style="width:15%">Total Amount (₹)</th>
 
@@ -1457,8 +1457,8 @@
                                     <th style="width:5%">S.No.</th>
                                     <th style="width:20%">Return Name</th>
                                     <th style="width:25%">Secondary Customer</th>
-                                    <th style="width:15%">Total Quantity</th>
-                                    <th style="width:20%">Total Amount</th>
+                                    <th style="width:15%">Total Quantity (EA)</th>
+                                    <th style="width:20%">Total Amount (₹)</th>
                                     <th style="width:15%">Return Date</th>
                                 </tr>
                             </thead>
@@ -1515,8 +1515,8 @@
                             <tr>
                                 <th style="width:5%">S.No.</th>
                                 <th style="width:20%">Product Name</th>
-                                <th style="width:15%">Saleable Qty</th>
-                                <th style="width:15%">Non-Saleable Qty</th>
+                                <th style="width:15%">Saleable Qty (EA)</th>
+                                <th style="width:15%">Non-Saleable Qty (EA)</th>
                                 <th style="width:20%">Return Reason</th>
                                 <th style="width:15%">Unit Price (₹)</th>
                                 <th style="width:10%">UOM</th>
@@ -1936,7 +1936,7 @@
                                     <th style="width:15%">Stock Adjustment No</th>
                                     <th style="width:15%">SKU Name</th>
                                     <th style="width:25%">Adjustment Type</th>
-                                    <th style="width:10%">Quantity</th>
+                                    <th style="width:10%">Quantity (EA)</th>
                                     <th style="width:10%">Date</th>
                                     <th style="width:20%">Reason</th>
                                 </tr>

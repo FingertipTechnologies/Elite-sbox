@@ -5,6 +5,7 @@ import allCreditNoteData from '@salesforce/apex/DMSPortalLwc.allCreditNoteData';
 
 export default class NewCreditNote extends LightningElement {
     @track showNewCreditNoteForm = false;
+    @track showUpload = false;
     @track customerSearch = '';
     @track customerOptions = [];
     @track selectedCustomerId = '';
@@ -233,6 +234,19 @@ export default class NewCreditNote extends LightningElement {
 
     handleNewCreditNote() {
         this.showNewCreditNoteForm = true;
+    }
+
+    handleShowUpload() {
+        this.showUpload = true;
+    }
+
+    handleUploadClose() {
+        this.showUpload = false;
+        this.loadCreditNotes();
+    }
+
+    handleUploadComplete() {
+        this.loadCreditNotes();
     }
 
     handleCancel() {
