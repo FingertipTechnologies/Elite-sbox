@@ -41,20 +41,20 @@ public class InvoiceHeaderTriggerHandler {
             system.debug('inv.Customer_SAP_Code__c '+inv.Customer_SAP_Code__c );
              system.debug('inv.Delivery_Plant__c '+inv.Delivery_Plant__c );
             if(inv.Is_Order_Owner_Active__c == True && inv.SF_Order__c != null && inv.Order_OwnerId__c != null){inv.OwnerId = inv.Order_OwnerId__c; }
-
-         /*   else if((inv.SF_Order__c == null || inv.SF_Order__c == '') && (inv.Customer_SAP_Code__c != null && inv.Delivery_Plant__c != null))
+            
+            else if (String.isBlank(inv.SF_Order__c)  && String.isNotBlank(inv.Customer_SAP_Code__c) && String.isNotBlank(inv.Delivery_Plant__c))
             {
                 system.debug('key p>>'+inv.Customer_SAP_Code__c + '_' + inv.Delivery_Plant__c);
                 
                 String key = inv.Customer_SAP_Code__c + '_' + inv.Delivery_Plant__c;
                 if (pairWithLowestHierarchy.containsKey(key)) {
-                     system.debug('key p>>'+pairWithLowestHierarchy.get(key));
+                    system.debug('key p>>'+pairWithLowestHierarchy.get(key));
                     Product_Mapping__c lowestMapping = pairWithLowestHierarchy.get(key);
-                     if (String.isNotBlank(lowestMapping.Exectuive__c)) {
+                    if (String.isNotBlank(lowestMapping.Exectuive__c)) {
                         inv.OwnerId = lowestMapping.Exectuive__c; 
                     }
                 }
-            } */
+            } 
         }
     }
 }
