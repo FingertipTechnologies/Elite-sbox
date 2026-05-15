@@ -1,0 +1,6 @@
+.focused-pack-table {
+    position: relative;
+    min-height: 12rem;
+    max-height: 26rem;
+    overflow: auto;
+}
