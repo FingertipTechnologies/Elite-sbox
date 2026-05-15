@@ -140,10 +140,35 @@
 }
 
 .empty-hint {
-    padding: 1.25rem;
-    color: var(--neutral-400);
+    padding: 2.25rem 1.25rem;
     text-align: center;
-    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f6faff 100%);
+}
+
+.empty-hint__icon {
+    --sds-c-icon-color-foreground-default: var(--brand-primary);
+    background: var(--brand-light);
+    padding: 0.6rem;
+    border-radius: 50%;
+    margin-bottom: 0.25rem;
+}
+
+.empty-hint__title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--brand-dark);
+    margin: 0;
+}
+
+.empty-hint__sub {
+    font-size: 0.8rem;
+    color: var(--neutral-400);
+    margin: 0;
+    max-width: 360px;
 }
 
 .card__header {

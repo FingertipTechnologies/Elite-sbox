@@ -117,14 +117,14 @@ export default class FocusedPackForm extends NavigationMixin(LightningElement) {
     handleFilterChange(event) {
         const field = event.target.dataset.field;
         this.filters = { ...this.filters, [field]: event.detail.value };
+        this.refreshSkus();
     }
 
     handleSearchChange(event) {
-        this.filters = { ...this.filters, searchTerm: event.target.value };
-    }
-
-    handleApplyFilters() {
-        this.refreshSkus();
+        const value = event.target.value;
+        this.filters = { ...this.filters, searchTerm: value };
+        window.clearTimeout(this._searchDebounce);
+        this._searchDebounce = window.setTimeout(() => this.refreshSkus(), 300);
     }
 
     handleClearFilters() {

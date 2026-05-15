@@ -65,7 +65,9 @@
         <!-- ── Channel-not-selected hint ── -->
         <template if:false={hasChannel}>
             <div class="card empty-hint">
-                Select a Sales Channel to load SKUs.
+                <lightning-icon icon-name="utility:filterList" alternative-text="Filter" size="medium" class="empty-hint__icon"></lightning-icon>
+                <p class="empty-hint__title">Select a Sales Channel</p>
+                <p class="empty-hint__sub">Pick a Sales Channel above to load the SKUs available for that channel.</p>
             </div>
         </template>
 
@@ -114,7 +116,6 @@
                     </div>
                 </div>
                 <div class="filter-card__actions">
-                    <lightning-button label="Apply Filters" variant="brand" onclick={handleApplyFilters}></lightning-button>
                     <lightning-button label="Clear Filters" onclick={handleClearFilters}></lightning-button>
                     <lightning-button label="Select All Visible" onclick={handleSelectAllVisible}></lightning-button>
                     <lightning-button label="Clear Selection" onclick={handleClearSelection}></lightning-button>
@@ -126,9 +127,6 @@
         <!-- ── Table card ── -->
         <template if:true={hasChannel}>
             <div class="card table-card">
-                <div class="card__header">
-                    <p class="card__header-title">SKUs</p>
-                </div>
                 <div class="table-scroll">
                     <template if:true={isLoading}>
                         <div class="table-loading">
