@@ -573,6 +573,14 @@
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>FocusedPackController</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>FocusedPackControllerTest</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>ForeCastController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -13387,6 +13395,10 @@
     <tabVisibilities>
         <tab>Expenses_Line_Item__c</tab>
         <visibility>DefaultOn</visibility>
+    </tabVisibilities>
+    <tabVisibilities>
+        <tab>Focused_Pack__c</tab>
+        <visibility>Hidden</visibility>
     </tabVisibilities>
     <tabVisibilities>
         <tab>Forecast_Period__c</tab>
