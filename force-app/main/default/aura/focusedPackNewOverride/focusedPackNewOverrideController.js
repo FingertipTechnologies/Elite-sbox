@@ -3,6 +3,7 @@
         component.set("v.openPopup", true);
     },
     onSaved: function (component, event) {
+        component.set("v.openPopup", false);
         var recordId = event.getParam('recordId');
         var navEvt = $A.get("e.force:navigateToSObject");
         if (navEvt && recordId) {
@@ -10,7 +11,8 @@
             navEvt.fire();
         }
     },
-    onCancel: function () {
+    onCancel: function (component) {
+        component.set("v.openPopup", false);
         var urlEvent = $A.get("e.force:navigateToURL");
         urlEvent.setParams({ "url": "/lightning/o/Focused_Pack__c/list" });
         urlEvent.fire();
