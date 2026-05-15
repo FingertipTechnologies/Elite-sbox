@@ -87,12 +87,6 @@
     <actionOverrides>
         <actionName>New</actionName>
         <content>focusedPackNewOverride</content>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>LightningComponent</type>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>New</actionName>
-        <content>focusedPackNewOverride</content>
         <formFactor>Large</formFactor>
         <skipRecordTypeSelect>false</skipRecordTypeSelect>
         <type>LightningComponent</type>
@@ -103,6 +97,10 @@
         <formFactor>Small</formFactor>
         <skipRecordTypeSelect>false</skipRecordTypeSelect>
         <type>LightningComponent</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>New</actionName>
+        <type>Default</type>
     </actionOverrides>
     <actionOverrides>
         <actionName>SaveEdit</actionName>
