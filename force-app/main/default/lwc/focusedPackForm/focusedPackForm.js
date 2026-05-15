@@ -40,12 +40,16 @@ export default class FocusedPackForm extends NavigationMixin(LightningElement) {
         try {
             const data = await getPicklists();
             this.salesChannelOptions    = data.salesChannels;
-            this.categoryOptions        = data.categories;
-            this.productGroupOptions    = data.productGroups;
-            this.productSubGroupOptions = data.productSubGroups;
+            this.categoryOptions        = this.withAllOption(data.categories);
+            this.productGroupOptions    = this.withAllOption(data.productGroups);
+            this.productSubGroupOptions = this.withAllOption(data.productSubGroups);
         } catch (error) {
             this.toast('Error', this.reduceError(error), 'error');
         }
+    }
+
+    withAllOption(options) {
+        return [{ label: 'All', value: '' }, ...(options || [])];
     }
 
     get hasChannel() {
