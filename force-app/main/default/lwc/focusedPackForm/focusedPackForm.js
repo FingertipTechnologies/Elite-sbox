@@ -6,15 +6,6 @@ import getSkusForChannel from '@salesforce/apex/FocusedPackController.getSkusFor
 import isNameAvailable from '@salesforce/apex/FocusedPackController.isNameAvailable';
 import saveFocusedPack from '@salesforce/apex/FocusedPackController.saveFocusedPack';
 
-const SKU_COLUMNS = [
-    { label: 'SKU Code',          fieldName: 'skuCode',         type: 'text', initialWidth: 140 },
-    { label: 'Product Name',      fieldName: 'name',            type: 'text' },
-    { label: 'SKU Name',          fieldName: 'skuName',         type: 'text' },
-    { label: 'Category',          fieldName: 'category',        type: 'text', initialWidth: 140 },
-    { label: 'Group',             fieldName: 'productGroup',    type: 'text', initialWidth: 140 },
-    { label: 'Sub Group',         fieldName: 'productSubGroup', type: 'text', initialWidth: 140 }
-];
-
 export default class FocusedPackForm extends NavigationMixin(LightningElement) {
     @track header = {
         name: '',
@@ -37,8 +28,6 @@ export default class FocusedPackForm extends NavigationMixin(LightningElement) {
     productGroupOptions = [];
     productSubGroupOptions = [];
 
-    columns = SKU_COLUMNS;
-
     isLoading = false;
     isSaving = false;
     nameError = '';
@@ -51,12 +40,16 @@ export default class FocusedPackForm extends NavigationMixin(LightningElement) {
         try {
             const data = await getPicklists();
             this.salesChannelOptions    = data.salesChannels;
-            this.categoryOptions        = data.categories;
-            this.productGroupOptions    = data.productGroups;
-            this.productSubGroupOptions = data.productSubGroups;
+            this.categoryOptions        = this.withAllOption(data.categories);
+            this.productGroupOptions    = this.withAllOption(data.productGroups);
+            this.productSubGroupOptions = this.withAllOption(data.productSubGroups);
         } catch (error) {
             this.toast('Error', this.reduceError(error), 'error');
         }
+    }
+
+    withAllOption(options) {
+        return [{ label: 'All', value: '' }, ...(options || [])];
     }
 
     get hasChannel() {
@@ -67,8 +60,21 @@ export default class FocusedPackForm extends NavigationMixin(LightningElement) {
         return this.selectedSkuIds.size;
     }
 
-    get selectedRowIds() {
-        return Array.from(this.selectedSkuIds);
+    get rowsForDisplay() {
+        return this.skuRows.map((r, i) => ({
+            ...r,
+            sNo: i + 1,
+            isSelected: this.selectedSkuIds.has(r.id)
+        }));
+    }
+
+    get isAllSelected() {
+        return this.skuRows.length > 0
+            && this.skuRows.every(r => this.selectedSkuIds.has(r.id));
+    }
+
+    get isEmpty() {
+        return !this.isLoading && this.skuRows.length === 0;
     }
 
     get isSubmitDisabled() {
@@ -115,14 +121,14 @@ export default class FocusedPackForm extends NavigationMixin(LightningElement) {
     handleFilterChange(event) {
         const field = event.target.dataset.field;
         this.filters = { ...this.filters, [field]: event.detail.value };
+        this.refreshSkus();
     }
 
     handleSearchChange(event) {
-        this.filters = { ...this.filters, searchTerm: event.target.value };
-    }
-
-    handleApplyFilters() {
-        this.refreshSkus();
+        const value = event.target.value;
+        this.filters = { ...this.filters, searchTerm: value };
+        window.clearTimeout(this._searchDebounce);
+        this._searchDebounce = window.setTimeout(() => this.refreshSkus(), 300);
     }
 
     handleClearFilters() {
@@ -145,14 +151,6 @@ export default class FocusedPackForm extends NavigationMixin(LightningElement) {
                 searchTerm: this.filters.searchTerm
             });
             this.skuRows = rows || [];
-            const presentIds = new Set(this.skuRows.map(r => r.id));
-            const trimmed = new Set();
-            this.selectedSkuIds.forEach(id => {
-                if (presentIds.has(id)) {
-                    trimmed.add(id);
-                }
-            });
-            this.selectedSkuIds = trimmed;
         } catch (error) {
             this.toast('Error', this.reduceError(error), 'error');
         } finally {
@@ -160,16 +158,24 @@ export default class FocusedPackForm extends NavigationMixin(LightningElement) {
         }
     }
 
-    handleRowSelection(event) {
-        const visibleIds = new Set(this.skuRows.map(r => r.id));
-        const selectedNow = new Set(event.detail.selectedRows.map(r => r.id));
-        const next = new Set();
-        this.selectedSkuIds.forEach(id => {
-            if (!visibleIds.has(id)) {
-                next.add(id);
-            }
-        });
-        selectedNow.forEach(id => next.add(id));
+    handleRowCheckbox(event) {
+        const id = event.target.dataset.id;
+        const next = new Set(this.selectedSkuIds);
+        if (event.target.checked) {
+            next.add(id);
+        } else {
+            next.delete(id);
+        }
+        this.selectedSkuIds = next;
+    }
+
+    handleSelectAll(event) {
+        const next = new Set(this.selectedSkuIds);
+        if (event.target.checked) {
+            this.skuRows.forEach(r => next.add(r.id));
+        } else {
+            this.skuRows.forEach(r => next.delete(r.id));
+        }
         this.selectedSkuIds = next;
     }
 

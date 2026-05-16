@@ -155,9 +155,10 @@
     <externalSharingModel>Private</externalSharingModel>
     <label>Focused Pack Item</label>
     <nameField>
+        <displayFormat>FPI-{0000}</displayFormat>
         <label>Focused Pack Item Name</label>
         <trackHistory>false</trackHistory>
-        <type>Text</type>
+        <type>AutoNumber</type>
     </nameField>
     <pluralLabel>Focused Pack Items</pluralLabel>
     <searchLayouts></searchLayouts>

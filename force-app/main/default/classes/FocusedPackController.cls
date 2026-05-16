@@ -27,7 +27,6 @@ public with sharing class FocusedPackController {
         @AuraEnabled public Id id { get; set; }
         @AuraEnabled public String name { get; set; }
         @AuraEnabled public String skuCode { get; set; }
-        @AuraEnabled public String skuName { get; set; }
         @AuraEnabled public String category { get; set; }
         @AuraEnabled public String productGroup { get; set; }
         @AuraEnabled public String productSubGroup { get; set; }
@@ -93,7 +92,7 @@ public with sharing class FocusedPackController {
         }
 
         String soql =
-            'SELECT Id, Name, SKU_Code__c, Sku_Name__c, Category__c, ' +
+            'SELECT Id, Name, SKU_Code__c, Category__c, ' +
             'Product_Group__c, Product_Sub_Group__c ' +
             'FROM Product__c ' +
             'WHERE Id IN :productIds AND Is_Active__c = true';
@@ -111,7 +110,7 @@ public with sharing class FocusedPackController {
         String likeTerm;
         if (String.isNotBlank(searchTerm)) {
             likeTerm = '%' + String.escapeSingleQuotes(searchTerm.trim()) + '%';
-            soql += ' AND (Name LIKE :likeTerm OR Sku_Name__c LIKE :likeTerm OR SKU_Code__c LIKE :likeTerm)';
+            soql += ' AND (Name LIKE :likeTerm OR SKU_Code__c LIKE :likeTerm)';
         }
 
         soql += ' ORDER BY Name LIMIT 1000';
@@ -122,7 +121,6 @@ public with sharing class FocusedPackController {
             row.id              = p.Id;
             row.name            = p.Name;
             row.skuCode         = p.SKU_Code__c;
-            row.skuName         = p.Sku_Name__c;
             row.category        = p.Category__c;
             row.productGroup    = p.Product_Group__c;
             row.productSubGroup = p.Product_Sub_Group__c;

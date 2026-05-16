@@ -1,152 +1,180 @@
 <template>
-    <section role="dialog" tabindex="-1" aria-modal="true"
-             class="slds-modal slds-fade-in-open slds-modal_large">
-        <div class="slds-modal__container">
-            <header class="slds-modal__header">
-                <h1 class="slds-modal__title slds-hyphenate">New Focused Pack</h1>
-            </header>
+    <div class="focused-pack-wrapper">
 
-            <div class="slds-modal__content slds-p-around_medium">
-
-                <!-- Header section -->
-                <div class="slds-section slds-is-open">
-                    <h3 class="slds-section__title slds-theme_shade slds-p-around_x-small">
-                        <span>Focused Pack Information</span>
-                    </h3>
-                    <div class="slds-grid slds-gutters slds-wrap slds-p-top_small">
-                        <div class="slds-col slds-size_1-of-3">
-                            <lightning-input
-                                label="Focused Pack Name"
-                                data-field="name"
-                                value={header.name}
-                                required
-                                message-when-value-missing="Name is required"
-                                onchange={handleHeaderChange}
-                                onblur={handleNameBlur}>
-                            </lightning-input>
-                            <template if:true={nameError}>
-                                <p class="slds-text-color_error slds-p-top_xx-small">{nameError}</p>
-                            </template>
-                        </div>
-                        <div class="slds-col slds-size_1-of-3">
-                            <lightning-combobox
-                                label="Sales Channel"
-                                data-field="salesChannel"
-                                value={header.salesChannel}
-                                options={salesChannelOptions}
-                                required
-                                placeholder="Select Channel"
-                                onchange={handleHeaderChange}>
-                            </lightning-combobox>
-                        </div>
-                        <div class="slds-col slds-size_1-of-3">
-                            <lightning-input
-                                type="number"
-                                label="Minimum Qualifying Quantity"
-                                data-field="minimumQuantity"
-                                value={header.minimumQuantity}
-                                min="0"
-                                step="1"
-                                onchange={handleHeaderChange}>
-                            </lightning-input>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SKU section -->
-                <div class="slds-section slds-is-open slds-m-top_medium">
-                    <h3 class="slds-section__title slds-theme_shade slds-p-around_x-small">
-                        <span>SKUs ({selectedCount} selected)</span>
-                    </h3>
-
-                    <template if:false={hasChannel}>
-                        <div class="slds-p-around_medium slds-text-color_weak">
-                            Select a Sales Channel to load SKUs.
-                        </div>
-                    </template>
-
-                    <template if:true={hasChannel}>
-                        <div class="slds-grid slds-gutters slds-wrap slds-p-top_small">
-                            <div class="slds-col slds-size_1-of-4">
-                                <lightning-combobox
-                                    label="Category"
-                                    data-field="category"
-                                    value={filters.category}
-                                    options={categoryOptions}
-                                    placeholder="All"
-                                    onchange={handleFilterChange}>
-                                </lightning-combobox>
-                            </div>
-                            <div class="slds-col slds-size_1-of-4">
-                                <lightning-combobox
-                                    label="Group"
-                                    data-field="productGroup"
-                                    value={filters.productGroup}
-                                    options={productGroupOptions}
-                                    placeholder="All"
-                                    onchange={handleFilterChange}>
-                                </lightning-combobox>
-                            </div>
-                            <div class="slds-col slds-size_1-of-4">
-                                <lightning-combobox
-                                    label="Sub Group"
-                                    data-field="productSubGroup"
-                                    value={filters.productSubGroup}
-                                    options={productSubGroupOptions}
-                                    placeholder="All"
-                                    onchange={handleFilterChange}>
-                                </lightning-combobox>
-                            </div>
-                            <div class="slds-col slds-size_1-of-4">
-                                <lightning-input
-                                    type="search"
-                                    label="Search SKU"
-                                    value={filters.searchTerm}
-                                    placeholder="Name / SKU code"
-                                    onchange={handleSearchChange}>
-                                </lightning-input>
-                            </div>
-                        </div>
-
-                        <div class="slds-p-top_small">
-                            <lightning-button label="Apply Filters" variant="brand"
-                                              onclick={handleApplyFilters} class="slds-m-right_x-small">
-                            </lightning-button>
-                            <lightning-button label="Clear Filters"
-                                              onclick={handleClearFilters} class="slds-m-right_x-small">
-                            </lightning-button>
-                            <lightning-button label="Select All Visible"
-                                              onclick={handleSelectAllVisible} class="slds-m-right_x-small">
-                            </lightning-button>
-                            <lightning-button label="Clear Selection"
-                                              onclick={handleClearSelection}>
-                            </lightning-button>
-                        </div>
-
-                        <div class="slds-p-top_small focused-pack-table">
-                            <template if:true={isLoading}>
-                                <lightning-spinner alternative-text="Loading SKUs"></lightning-spinner>
-                            </template>
-                            <lightning-datatable
-                                key-field="id"
-                                data={skuRows}
-                                columns={columns}
-                                selected-rows={selectedRowIds}
-                                onrowselection={handleRowSelection}>
-                            </lightning-datatable>
-                        </div>
-                    </template>
+        <!-- ── Top bar: brand | header fields | actions ── -->
+        <div class="top-bar">
+            <div class="top-bar__brand">
+                <div class="top-bar__title-wrap">
+                    <p class="top-bar__eyebrow">Focused Pack</p>
+                    <p class="top-bar__title">New Focused Pack</p>
                 </div>
             </div>
 
-            <footer class="slds-modal__footer">
-                <lightning-button label="Cancel" onclick={handleCancel} class="slds-m-right_x-small"></lightning-button>
-                <lightning-button label="Submit" variant="brand"
+            <div class="top-bar__divider"></div>
+
+            <div class="top-bar__fields">
+                <div class="top-bar__field">
+                    <lightning-input
+                        label="Focused Pack Name"
+                        data-field="name"
+                        value={header.name}
+                        required
+                        message-when-value-missing="Name is required"
+                        onchange={handleHeaderChange}
+                        onblur={handleNameBlur}>
+                    </lightning-input>
+                    <template if:true={nameError}>
+                        <p class="field-error">{nameError}</p>
+                    </template>
+                </div>
+                <div class="top-bar__field">
+                    <lightning-combobox
+                        label="Sales Channel"
+                        data-field="salesChannel"
+                        value={header.salesChannel}
+                        options={salesChannelOptions}
+                        required
+                        placeholder="Select Channel"
+                        onchange={handleHeaderChange}>
+                    </lightning-combobox>
+                </div>
+                <div class="top-bar__field">
+                    <lightning-input
+                        type="number"
+                        label="Min Qualifying Qty"
+                        data-field="minimumQuantity"
+                        value={header.minimumQuantity}
+                        min="0"
+                        step="1"
+                        onchange={handleHeaderChange}>
+                    </lightning-input>
+                </div>
+            </div>
+
+            <div class="top-bar__divider"></div>
+
+            <div class="top-bar__actions">
+                <lightning-button label="Cancel" variant="destructive-text" onclick={handleCancel}></lightning-button>
+                <lightning-button label="Save" variant="brand"
                                   disabled={isSubmitDisabled}
                                   onclick={handleSubmit}>
                 </lightning-button>
-            </footer>
+            </div>
         </div>
-    </section>
-    <div class="slds-backdrop slds-backdrop_open"></div>
+
+        <!-- ── Channel-not-selected hint ── -->
+        <template if:false={hasChannel}>
+            <div class="card empty-hint">
+                <lightning-icon icon-name="utility:filterList" alternative-text="Filter" size="medium" class="empty-hint__icon"></lightning-icon>
+                <p class="empty-hint__title">Select a Sales Channel</p>
+                <p class="empty-hint__sub">Pick a Sales Channel above to load the SKUs available for that channel.</p>
+            </div>
+        </template>
+
+        <!-- ── Filter card ── -->
+        <template if:true={hasChannel}>
+            <div class="card filter-card">
+                <div class="filter-card__row">
+                    <div class="filter-card__field">
+                        <lightning-combobox
+                            label="Category"
+                            data-field="category"
+                            value={filters.category}
+                            options={categoryOptions}
+                            placeholder="All"
+                            onchange={handleFilterChange}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="filter-card__field">
+                        <lightning-combobox
+                            label="Group"
+                            data-field="productGroup"
+                            value={filters.productGroup}
+                            options={productGroupOptions}
+                            placeholder="All"
+                            onchange={handleFilterChange}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="filter-card__field">
+                        <lightning-combobox
+                            label="Sub Group"
+                            data-field="productSubGroup"
+                            value={filters.productSubGroup}
+                            options={productSubGroupOptions}
+                            placeholder="All"
+                            onchange={handleFilterChange}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="filter-card__field">
+                        <lightning-input
+                            type="search"
+                            label="Search SKU"
+                            value={filters.searchTerm}
+                            placeholder="Name / SKU code"
+                            onchange={handleSearchChange}>
+                        </lightning-input>
+                    </div>
+                </div>
+                <div class="filter-card__actions">
+                    <lightning-button label="Clear Filters" onclick={handleClearFilters}></lightning-button>
+                    <lightning-button label="Select All Visible" onclick={handleSelectAllVisible}></lightning-button>
+                    <lightning-button label="Clear Selection" onclick={handleClearSelection}></lightning-button>
+                    <span class="filter-card__count">{selectedCount} selected</span>
+                </div>
+            </div>
+        </template>
+
+        <!-- ── Table card ── -->
+        <template if:true={hasChannel}>
+            <div class="card table-card">
+                <div class="table-scroll">
+                    <template if:true={isLoading}>
+                        <div class="table-loading">
+                            <lightning-spinner alternative-text="Loading SKUs" size="small"></lightning-spinner>
+                        </div>
+                    </template>
+                    <table class="focused-pack-table">
+                        <thead>
+                            <tr>
+                                <th class="col-check">
+                                    <input type="checkbox"
+                                           checked={isAllSelected}
+                                           onchange={handleSelectAll}/>
+                                </th>
+                                <th class="col-sno">S.No.</th>
+                                <th>SKU Code</th>
+                                <th>Product Name</th>
+                                <th>Category</th>
+                                <th>Group</th>
+                                <th>Sub Group</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={rowsForDisplay} for:item="row">
+                                <tr key={row.id} class="table-row">
+                                    <td class="col-check">
+                                        <input type="checkbox"
+                                               data-id={row.id}
+                                               checked={row.isSelected}
+                                               onchange={handleRowCheckbox}/>
+                                    </td>
+                                    <td class="col-sno">{row.sNo}</td>
+                                    <td>{row.skuCode}</td>
+                                    <td>{row.name}</td>
+                                    <td>{row.category}</td>
+                                    <td>{row.productGroup}</td>
+                                    <td>{row.productSubGroup}</td>
+                                </tr>
+                            </template>
+                            <template if:true={isEmpty}>
+                                <tr>
+                                    <td colspan="7" class="table-empty">No SKUs match the current filters.</td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </template>
+    </div>
 </template>
