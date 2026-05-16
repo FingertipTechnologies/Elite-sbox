@@ -1,21 +1,27 @@
 import { LightningElement, track, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
+import FORM_FACTOR from '@salesforce/client/formFactor';
 import PRODUCT_FORECAST_OBJECT from '@salesforce/schema/Product_Forecast__c';
 import SUB_GROUP_FIELD from '@salesforce/schema/Product_Forecast__c.Product_Sub_Group__c';
 import MONTH_FIELD from '@salesforce/schema/Product_Forecast__c.Forecast_Month__c';
 import YEAR_FIELD from '@salesforce/schema/Product_Forecast__c.Forecast_Year__c';
 import UOM_FIELD from '@salesforce/schema/Product_Forecast__c.Forecast_UOM__c';
 
-import getProductsBySubGroup from '@salesforce/apex/ForecastSubmissionController.getProductsBySubGroup';
+import searchProducts from '@salesforce/apex/ForecastSubmissionController.searchProducts';
 import saveAndSubmit from '@salesforce/apex/ForecastSubmissionController.saveAndSubmit';
 
 export default class ForecastCreation extends LightningElement {
     isLoading = false;
+    isDesktop = false;
+    isPhone = false;
+    containerClass = 'slds-modal__container';
+    fieldClass = 'slds-size_1-of-2 slds-p-bottom_small';
 
     distributorId;
     subGroup;
     productId;
+    productName = '';
     month;
     year;
     uom = 'KG';
@@ -25,9 +31,20 @@ export default class ForecastCreation extends LightningElement {
     @track monthOptions = [];
     @track yearOptions = [];
     @track uomOptions = [];
-    @track productOptions = [];
+    @track searchedProducts = [];
+    isShowProductValues = false;
 
     defaultRecordTypeId;
+    searchDebounce;
+
+    connectedCallback() {
+        this.isDesktop = FORM_FACTOR === 'Large';
+        this.isPhone = FORM_FACTOR === 'Small';
+        if (FORM_FACTOR === 'Medium') this.isDesktop = true;
+        this.fieldClass = this.isDesktop
+            ? 'slds-size_1-of-2 slds-p-bottom_small'
+            : 'slds-size_1-of-1 slds-p-bottom_small';
+    }
 
     @wire(getObjectInfo, { objectApiName: PRODUCT_FORECAST_OBJECT })
     objectInfoHandler({ data }) {
@@ -61,37 +78,68 @@ export default class ForecastCreation extends LightningElement {
     }
 
     get isProductDisabled() {
-        return !this.subGroup;
+        return !this.distributorId || !this.subGroup;
     }
 
-    handleDistributorChange(e) { this.distributorId = e.detail.recordId; }
+    handleDistributorChange(e) {
+        this.distributorId = e.detail.recordId;
+        this.clearProduct();
+    }
+
     handleSubGroupChange(e) {
         this.subGroup = e.detail.value;
-        this.productId = null;
-        this.loadProducts();
+        this.clearProduct();
     }
-    handleProductChange(e) { this.productId = e.detail.value; }
-    handleMonthChange(e)   { this.month = e.detail.value; }
-    handleYearChange(e)    { this.year = e.detail.value; }
-    handleUomChange(e)     { this.uom = e.detail.value; }
-    handleQuantityChange(e){ this.quantity = e.detail.value; }
 
-    loadProducts() {
-        if (!this.subGroup) {
-            this.productOptions = [];
+    handleProductSearch(e) {
+        const term = e.target.value || '';
+        this.productName = term;
+        this.productId = null;
+
+        if (!this.distributorId || !this.subGroup) {
+            this.isShowProductValues = false;
+            this.searchedProducts = [];
             return;
         }
-        this.isLoading = true;
-        getProductsBySubGroup({ subGroup: this.subGroup })
-            .then(rows => {
-                this.productOptions = (rows || []).map(p => ({
-                    label: p.Sku_Name__c ? `${p.Name} (${p.Sku_Name__c})` : p.Name,
-                    value: p.Id
-                }));
+
+        if (this.searchDebounce) {
+            clearTimeout(this.searchDebounce);
+        }
+        this.searchDebounce = setTimeout(() => {
+            searchProducts({
+                distributorId: this.distributorId,
+                subGroup: this.subGroup,
+                searchKey: term
             })
-            .catch(err => this.toast('Error', this.errMsg(err), 'error'))
-            .finally(() => { this.isLoading = false; });
+                .then(rows => {
+                    this.searchedProducts = rows || [];
+                    this.isShowProductValues = this.searchedProducts.length > 0;
+                })
+                .catch(err => {
+                    this.isShowProductValues = false;
+                    this.searchedProducts = [];
+                    this.toast('Error', this.errMsg(err), 'error');
+                });
+        }, 250);
     }
+
+    selectProduct(e) {
+        this.productId = e.currentTarget.dataset.id;
+        this.productName = e.currentTarget.dataset.name;
+        this.isShowProductValues = false;
+    }
+
+    clearProduct() {
+        this.productId = null;
+        this.productName = '';
+        this.searchedProducts = [];
+        this.isShowProductValues = false;
+    }
+
+    handleMonthChange(e)    { this.month = e.detail.value; }
+    handleYearChange(e)     { this.year = e.detail.value; }
+    handleUomChange(e)      { this.uom = e.detail.value; }
+    handleQuantityChange(e) { this.quantity = e.detail.value; }
 
     validate() {
         if (!this.distributorId) return 'Distributor is required.';
@@ -135,12 +183,11 @@ export default class ForecastCreation extends LightningElement {
     resetForm() {
         this.distributorId = null;
         this.subGroup = null;
-        this.productId = null;
+        this.clearProduct();
         this.month = null;
         this.year = null;
         this.uom = 'KG';
         this.quantity = null;
-        this.productOptions = [];
     }
 
     errMsg(err) {

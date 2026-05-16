@@ -7,36 +7,8 @@ private class ForecastSubmissionControllerTest {
         return a;
     }
 
-    private static Product__c makeProduct(String subGroup) {
-        Product__c p = new Product__c(
-            Name = 'Test SKU',
-            Is_Active__c = true,
-            Product_Sub_Group__c = subGroup
-        );
-        insert p;
-        return p;
-    }
-
-    private static Product_Forecast__c baseRecord(Account dist, Product__c prod) {
-        return new Product_Forecast__c(
-            Distributor__c = dist.Id,
-            Product__c = prod != null ? prod.Id : null,
-            Product_Sub_Group__c = prod != null ? prod.Product_Sub_Group__c : null,
-            Forecast_Month__c = 'May',
-            Forecast_Year__c = '2026',
-            Forecast_UOM__c = 'KG',
-            Forecast__c = 1500
-        );
-    }
-
     @isTest
-    static void getProductsBySubGroup_returnsActiveProductsForSubGroup() {
-        // Pick any value from the global value set; the SOQL filter is what we exercise.
-        Account d = makeDistributor();
-        Product__c p = new Product__c(Name = 'Active SKU', Is_Active__c = true);
-        // Skip Product_Sub_Group__c assignment if global value set is empty in the test org.
-        insert p;
-
+    static void getProductsBySubGroup_handlesBlankInput() {
         Test.startTest();
         List<Product__c> blank = ForecastSubmissionController.getProductsBySubGroup('');
         List<Product__c> none  = ForecastSubmissionController.getProductsBySubGroup(null);
@@ -44,6 +16,24 @@ private class ForecastSubmissionControllerTest {
 
         System.assertEquals(0, blank.size(), 'Blank sub group should return no products.');
         System.assertEquals(0, none.size(), 'Null sub group should return no products.');
+    }
+
+    @isTest
+    static void searchProducts_returnsEmptyWhenInputsMissing() {
+        Account d = makeDistributor();
+
+        Test.startTest();
+        List<ForecastSubmissionController.SkuOption> noDist =
+            ForecastSubmissionController.searchProducts(null, 'AnySubGroup', '');
+        List<ForecastSubmissionController.SkuOption> noSub =
+            ForecastSubmissionController.searchProducts(d.Id, '', '');
+        List<ForecastSubmissionController.SkuOption> noChannel =
+            ForecastSubmissionController.searchProducts(d.Id, 'AnySubGroup', '');
+        Test.stopTest();
+
+        System.assertEquals(0, noDist.size(), 'Null distributor should return no rows.');
+        System.assertEquals(0, noSub.size(), 'Blank sub group should return no rows.');
+        System.assertEquals(0, noChannel.size(), 'Account without sales channel should return no rows.');
     }
 
     @isTest
@@ -72,9 +62,6 @@ private class ForecastSubmissionControllerTest {
             ForecastSubmissionController.saveAndSubmit(rec);
         Test.stopTest();
 
-        // Insert path always runs; approval submit may fail without an active process
-        // configured in the test org. We assert the controller doesn't throw and that
-        // a record id is returned (success or failure both populate recordId after insert).
         System.assertNotEquals(null, res, 'SaveResult must not be null.');
         if (res.success) {
             Product_Forecast__c saved = [
