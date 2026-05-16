@@ -47,11 +47,11 @@ private class ForecastApprovalEmailQueueableTest {
         // Is_Monthly_Forecast__c stays false to bypass BRD validation rules in seed.
         insert f;
 
-        ForecastApprovalEmailQueueable.InvocableInput in = new ForecastApprovalEmailQueueable.InvocableInput();
-        in.forecastId = f.Id;
+        ForecastApprovalEmailQueueable.InvocableInput input = new ForecastApprovalEmailQueueable.InvocableInput();
+        input.forecastId = f.Id;
 
         Test.startTest();
-        ForecastApprovalEmailQueueable.enqueueFromFlow(new List<ForecastApprovalEmailQueueable.InvocableInput>{ in });
+        ForecastApprovalEmailQueueable.enqueueFromFlow(new List<ForecastApprovalEmailQueueable.InvocableInput>{ input });
         ForecastApprovalEmailQueueable.enqueueFromFlow(null);
         ForecastApprovalEmailQueueable.enqueueFromFlow(new List<ForecastApprovalEmailQueueable.InvocableInput>());
         Test.stopTest();

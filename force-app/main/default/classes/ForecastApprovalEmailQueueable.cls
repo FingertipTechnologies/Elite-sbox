@@ -14,9 +14,9 @@ public without sharing class ForecastApprovalEmailQueueable implements Queueable
     @InvocableMethod(label='Send Forecast Approval Email' description='Enqueues the Production-team email after a Product_Forecast__c is approved.')
     public static void enqueueFromFlow(List<InvocableInput> inputs) {
         if (inputs == null || inputs.isEmpty()) return;
-        for (InvocableInput in : inputs) {
-            if (in != null && in.forecastId != null) {
-                System.enqueueJob(new ForecastApprovalEmailQueueable(in.forecastId));
+        for (InvocableInput input : inputs) {
+            if (input != null && input.forecastId != null) {
+                System.enqueueJob(new ForecastApprovalEmailQueueable(input.forecastId));
             }
         }
     }
