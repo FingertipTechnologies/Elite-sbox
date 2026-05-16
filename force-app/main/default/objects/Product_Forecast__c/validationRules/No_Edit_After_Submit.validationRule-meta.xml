@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>No_Edit_After_Submit</fullName>
+    <active>true</active>
+    <description>Prevents users from editing key forecast fields once the record has been submitted for approval. Allowed only when status is Draft.</description>
+    <errorConditionFormula>AND(
+  Is_Monthly_Forecast__c,
+  NOT(ISPICKVAL(PRIORVALUE(Approval_Status__c), &quot;Draft&quot;)),
+  OR(
+    ISCHANGED(Forecast__c),
+    ISCHANGED(Forecast_UOM__c),
+    ISCHANGED(Distributor__c),
+    ISCHANGED(Product__c),
+    ISCHANGED(Product_Sub_Group__c),
+    ISCHANGED(Forecast_Month__c),
+    ISCHANGED(Forecast_Year__c)
+  )
+)</errorConditionFormula>
+    <errorMessage>This forecast has already been submitted and cannot be edited.</errorMessage>
+</ValidationRule>

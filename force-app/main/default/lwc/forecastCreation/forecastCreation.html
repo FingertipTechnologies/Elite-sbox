@@ -1,0 +1,105 @@
+<template>
+    <lightning-card title="Create Forecast" icon-name="standard:forecasts">
+        <div class="slds-p-around_medium">
+
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </template>
+
+            <div class="slds-grid slds-wrap slds-gutters">
+                <div class="slds-col slds-size_1-of-2 slds-p-bottom_small">
+                    <label class="slds-form-element__label">
+                        <abbr class="slds-required" title="required">*</abbr>Distributor
+                    </label>
+                    <lightning-record-picker
+                        placeholder="Search Distributors..."
+                        object-api-name="Account"
+                        label=""
+                        variant="label-hidden"
+                        value={distributorId}
+                        onchange={handleDistributorChange}>
+                    </lightning-record-picker>
+                </div>
+
+                <div class="slds-col slds-size_1-of-2 slds-p-bottom_small">
+                    <lightning-combobox
+                        name="subGroup"
+                        label="Product Sub Group"
+                        value={subGroup}
+                        placeholder="Select Sub Group"
+                        options={subGroupOptions}
+                        required
+                        onchange={handleSubGroupChange}>
+                    </lightning-combobox>
+                </div>
+
+                <div class="slds-col slds-size_1-of-2 slds-p-bottom_small">
+                    <lightning-combobox
+                        name="product"
+                        label="Product (optional)"
+                        value={productId}
+                        placeholder="Select Product"
+                        options={productOptions}
+                        disabled={isProductDisabled}
+                        onchange={handleProductChange}>
+                    </lightning-combobox>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4 slds-p-bottom_small">
+                    <lightning-combobox
+                        name="month"
+                        label="Month"
+                        value={month}
+                        options={monthOptions}
+                        required
+                        onchange={handleMonthChange}>
+                    </lightning-combobox>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4 slds-p-bottom_small">
+                    <lightning-combobox
+                        name="year"
+                        label="Year"
+                        value={year}
+                        options={yearOptions}
+                        required
+                        onchange={handleYearChange}>
+                    </lightning-combobox>
+                </div>
+
+                <div class="slds-col slds-size_1-of-2 slds-p-bottom_small">
+                    <lightning-combobox
+                        name="uom"
+                        label="UOM"
+                        value={uom}
+                        options={uomOptions}
+                        required
+                        onchange={handleUomChange}>
+                    </lightning-combobox>
+                </div>
+
+                <div class="slds-col slds-size_1-of-2 slds-p-bottom_small">
+                    <lightning-input
+                        type="number"
+                        name="quantity"
+                        label="Quantity"
+                        value={quantity}
+                        step="0.01"
+                        min="0"
+                        required
+                        onchange={handleQuantityChange}>
+                    </lightning-input>
+                </div>
+            </div>
+
+            <div class="slds-m-top_medium slds-align_absolute-center">
+                <lightning-button
+                    variant="brand"
+                    label="Save &amp; Submit for Approval"
+                    onclick={handleSaveAndSubmit}
+                    disabled={isLoading}>
+                </lightning-button>
+            </div>
+        </div>
+    </lightning-card>
+</template>

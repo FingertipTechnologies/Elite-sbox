@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Start_Date__c</fullName>
+    <description>First day of the forecast month, derived from Forecast_Month__c and Forecast_Year__c.</description>
+    <externalId>false</externalId>
+    <formula>IF(
+  OR(ISBLANK(TEXT(Forecast_Month__c)), ISBLANK(TEXT(Forecast_Year__c))),
+  NULL,
+  DATE(
+    VALUE(TEXT(Forecast_Year__c)),
+    CASE(TEXT(Forecast_Month__c),
+      &quot;January&quot;, 1,
+      &quot;February&quot;, 2,
+      &quot;March&quot;, 3,
+      &quot;April&quot;, 4,
+      &quot;May&quot;, 5,
+      &quot;June&quot;, 6,
+      &quot;July&quot;, 7,
+      &quot;August&quot;, 8,
+      &quot;September&quot;, 9,
+      &quot;October&quot;, 10,
+      &quot;November&quot;, 11,
+      &quot;December&quot;, 12,
+      0
+    ),
+    1
+  )
+)</formula>
+    <formulaTreatBlanksAs>BlankAsBlank</formulaTreatBlanksAs>
+    <label>Start Date</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Date</type>
+</CustomField>
