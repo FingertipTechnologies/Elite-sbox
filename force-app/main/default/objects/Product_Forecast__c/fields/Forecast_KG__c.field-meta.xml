@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Forecast_KG__c</fullName>
+    <description>Forecast quantity normalised to KG. Used by the actuals scheduler to compare against Invoice_item__c.Net_Weight_in_KG__c.</description>
+    <externalId>false</externalId>
+    <formula>IF(ISPICKVAL(Forecast_UOM__c, &quot;TON&quot;), Forecast__c * 1000, Forecast__c)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>Forecast (KG)</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+</CustomField>

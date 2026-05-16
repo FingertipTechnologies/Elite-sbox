@@ -6,11 +6,11 @@
     <picklistValues>
         <picklist>Customer_Type__c</picklist>
         <values>
-            <fullName>Primary Customer</fullName>
+            <fullName>Existing Primary Customer</fullName>
             <default>false</default>
         </values>
         <values>
-            <fullName>Secondary Customer</fullName>
+            <fullName>Existing Secondary Customer</fullName>
             <default>false</default>
         </values>
     </picklistValues>
@@ -3082,6 +3082,108 @@
         </values>
     </picklistValues>
     <picklistValues>
+        <picklist>Primary_Customer_Business_Type__c</picklist>
+        <values>
+            <fullName>Bakery</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Chappati %2F Parotta %2F Khubus makers</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Co-Operative Societies</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Consignee Agent</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Ethnic Distributor</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Export</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Horeca</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>ICDS</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Institutions</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>KSCCF Depots</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Others</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Police Canteen</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Repacking Unit</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Repacking units</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Retailer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Samt Distributor</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Super Market</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Supermarkets</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Supply co</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Triveni</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Wholesaler</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Product_Categories__c</picklist>
+        <values>
+            <fullName>Bakery</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Bakery %26 Staple</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Staple</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
         <picklist>Product_Group__c</picklist>
         <values>
             <fullName>Bread</fullName>
@@ -3144,10 +3246,6 @@
             <default>false</default>
         </values>
         <values>
-            <fullName>Whole Grain</fullName>
-            <default>false</default>
-        </values>
-        <values>
             <fullName>Whole Grain%C2%A0</fullName>
             <default>false</default>
         </values>
@@ -3164,6 +3262,53 @@
         </values>
         <values>
             <fullName>Staple</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Secondary_Customer_Business_Type__c</picklist>
+        <values>
+            <fullName>Bakery</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Bakery and Condiments</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>CPD %2F Bulk</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Cafeteria</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Catering</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Grocery</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Hotel</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Institution</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Restaurant</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Retail</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Super Market</fullName>
             <default>false</default>
         </values>
     </picklistValues>
@@ -3299,6 +3444,17 @@
         </values>
         <values>
             <fullName>West Bengal</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Visit_Type__c</picklist>
+        <values>
+            <fullName>Existing Market Expansion</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>New Market Expansion</fullName>
             <default>false</default>
         </values>
     </picklistValues>

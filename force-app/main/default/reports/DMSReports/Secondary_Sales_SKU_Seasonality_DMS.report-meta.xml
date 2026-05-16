@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report xmlns="http://soap.sforce.com/2006/04/metadata">
+    <columns>
+        <field>Secondary_Invoice_Items__r.Quantity__c</field>
+        <aggregateTypes>Sum</aggregateTypes>
+    </columns>
+    <columns>
+        <field>Secondary_Invoice_Items__r.Quantity_in_Kgs__c</field>
+        <aggregateTypes>Sum</aggregateTypes>
+    </columns>
+    <columns>
+        <field>Secondary_Invoice_Items__r.Total_Amount__c</field>
+        <aggregateTypes>Sum</aggregateTypes>
+    </columns>
+    <description>SKU-wise seasonality view: aggregates across years by calendar month (Jan-Dec) to surface seasonal peaks and troughs.</description>
+    <filter>
+        <criteriaItems>
+            <column>Secondary_Invoice__c.Invoice_Status__c</column>
+            <operator>notEqual</operator>
+            <value>Cancelled</value>
+        </criteriaItems>
+    </filter>
+    <format>Matrix</format>
+    <groupingsAcross>
+        <dateGranularity>MonthInYear</dateGranularity>
+        <field>Secondary_Invoice__c.Invoice_Date__c</field>
+        <sortOrder>Asc</sortOrder>
+    </groupingsAcross>
+    <groupingsDown>
+        <dateGranularity>Day</dateGranularity>
+        <field>Secondary_Invoice_Items__r.Product__c</field>
+        <sortOrder>Asc</sortOrder>
+    </groupingsDown>
+    <name>Secondary Sales SKU Seasonality DMS</name>
+    <params>
+        <name>co</name>
+        <value>1</value>
+    </params>
+    <reportType>Secondary_Invoice_with_Secondary_Invoice_Items_Custom</reportType>
+    <scope>organization</scope>
+    <showDetails>false</showDetails>
+    <showGrandTotal>true</showGrandTotal>
+    <showSubTotals>true</showSubTotals>
+</Report>

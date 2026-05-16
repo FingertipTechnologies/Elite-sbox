@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>UOM_Required</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(Is_Monthly_Forecast__c, ISBLANK(TEXT(Forecast_UOM__c)))</errorConditionFormula>
+    <errorDisplayField>Forecast_UOM__c</errorDisplayField>
+    <errorMessage>Forecast UOM (KG or TON) is required.</errorMessage>
+</ValidationRule>
