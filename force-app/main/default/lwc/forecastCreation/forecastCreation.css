@@ -1,3 +1,61 @@
-.slds-card {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+:host {
+    display: block;
+}
+
+.slds-modal__container {
+    max-width: 60rem;
+    width: 90%;
+}
+
+.slds-modal__content {
+    height: auto;
+    max-height: none;
+    min-height: 30%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.slds-modal__footer {
+    text-align: center;
+    justify-content: center;
+    display: flex;
+}
+
+.small-modal-title {
+    white-space: normal;
+    word-break: break-word;
+    text-align: center;
+}
+
+@media only screen and (max-width: 768px) {
+    .slds-modal__header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: #ffffff;
+    }
+
+    .slds-modal__container {
+        max-width: 100%;
+        width: 100%;
+        position: relative;
+        max-height: 100%;
+        left: 0;
+        margin: 0;
+        padding: 0;
+    }
+
+    .slds-modal__content {
+        min-height: 100vh;
+        height: auto;
+        overflow-y: auto;
+        padding-bottom: 100px;
+    }
+
+    .slds-modal__footer {
+        position: sticky;
+        bottom: 0;
+        background: #ffffff;
+        z-index: 10;
+    }
 }

@@ -1,105 +1,155 @@
 <template>
-    <lightning-card title="Create Forecast" icon-name="standard:forecasts">
-        <div class="slds-p-around_medium">
+    <section role="dialog" tabindex="-1" aria-labelledby="forecast-modal-heading" aria-modal="true"
+        aria-describedby="forecast-modal-content" class="slds-modal slds-fade-in-open">
+        <div class={containerClass}>
+            <!-- Header -->
+            <header class="slds-modal__header">
+                <h1 id="forecast-modal-heading" class="slds-modal__title slds-hyphenate small-modal-title" tabindex="-1">
+                    Create Forecast
+                </h1>
+            </header>
 
-            <template if:true={isLoading}>
-                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
-            </template>
+            <!-- Body -->
+            <div class="slds-modal__content slds-p-around_medium" id="forecast-modal-content">
+                <template lwc:if={isLoading}>
+                    <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                </template>
 
-            <div class="slds-grid slds-wrap slds-gutters">
-                <div class="slds-col slds-size_1-of-2 slds-p-bottom_small">
-                    <label class="slds-form-element__label">
-                        <abbr class="slds-required" title="required">*</abbr>Distributor
-                    </label>
-                    <lightning-record-picker
-                        placeholder="Search Distributors..."
-                        object-api-name="Account"
-                        label=""
-                        variant="label-hidden"
-                        value={distributorId}
-                        onchange={handleDistributorChange}>
-                    </lightning-record-picker>
-                </div>
+                <div class="slds-grid slds-wrap">
+                    <!-- Distributor -->
+                    <div class={fieldClass} style="padding-right:5px;padding-left:5px">
+                        <label class="slds-form-element__label">
+                            <abbr class="slds-required" title="required">*</abbr>Distributor
+                        </label>
+                        <lightning-record-picker
+                            placeholder="Search Distributors..."
+                            object-api-name="Account"
+                            label=""
+                            variant="label-hidden"
+                            value={distributorId}
+                            onchange={handleDistributorChange}>
+                        </lightning-record-picker>
+                    </div>
 
-                <div class="slds-col slds-size_1-of-2 slds-p-bottom_small">
-                    <lightning-combobox
-                        name="subGroup"
-                        label="Product Sub Group"
-                        value={subGroup}
-                        placeholder="Select Sub Group"
-                        options={subGroupOptions}
-                        required
-                        onchange={handleSubGroupChange}>
-                    </lightning-combobox>
-                </div>
+                    <!-- Product Sub Group -->
+                    <div class={fieldClass} style="padding-right:5px;padding-left:5px">
+                        <lightning-combobox
+                            name="subGroup"
+                            label="Product Sub Group"
+                            value={subGroup}
+                            placeholder="Select Sub Group"
+                            options={subGroupOptions}
+                            required
+                            onchange={handleSubGroupChange}>
+                        </lightning-combobox>
+                    </div>
 
-                <div class="slds-col slds-size_1-of-2 slds-p-bottom_small">
-                    <lightning-combobox
-                        name="product"
-                        label="Product (optional)"
-                        value={productId}
-                        placeholder="Select Product"
-                        options={productOptions}
-                        disabled={isProductDisabled}
-                        onchange={handleProductChange}>
-                    </lightning-combobox>
-                </div>
+                    <!-- Product Search (typeahead) -->
+                    <div class={fieldClass} style="padding-right:5px;padding-left:5px">
+                        <div class="slds-form-element">
+                            <div class="slds-form-element__control">
+                                <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open">
+                                    <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
+                                        <lightning-input
+                                            label="Product (optional)"
+                                            type="search"
+                                            value={productName}
+                                            disabled={isProductDisabled}
+                                            placeholder="Search Product"
+                                            onchange={handleProductSearch}>
+                                        </lightning-input>
+                                    </div>
+                                    <template lwc:if={isShowProductValues}>
+                                        <div class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" role="listbox">
+                                            <template for:each={searchedProducts} for:item="srch">
+                                                <ul key={srch.Id} class="slds-listbox slds-listbox_vertical" role="presentation">
+                                                    <li role="presentation" class="slds-listbox__item">
+                                                        <div class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small"
+                                                            role="option"
+                                                            onclick={selectProduct}
+                                                            data-id={srch.Id}
+                                                            data-name={srch.Name}
+                                                            data-plant={srch.DeliveryPlant}>
+                                                            <lightning-icon icon-name="standard:product" size="small"></lightning-icon>
+                                                            <span class="slds-media__figure slds-listbox__option-icon"></span>
+                                                            <span class="slds-media__body">
+                                                                <span class="slds-truncate" title={srch.Name}>
+                                                                    <span>{srch.Name}</span>
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </li>
+                                                </ul>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="slds-col slds-size_1-of-4 slds-p-bottom_small">
-                    <lightning-combobox
-                        name="month"
-                        label="Month"
-                        value={month}
-                        options={monthOptions}
-                        required
-                        onchange={handleMonthChange}>
-                    </lightning-combobox>
-                </div>
+                    <!-- Month -->
+                    <div class={fieldClass} style="padding-right:5px;padding-left:5px">
+                        <lightning-combobox
+                            name="month"
+                            label="Month"
+                            value={month}
+                            options={monthOptions}
+                            required
+                            onchange={handleMonthChange}>
+                        </lightning-combobox>
+                    </div>
 
-                <div class="slds-col slds-size_1-of-4 slds-p-bottom_small">
-                    <lightning-combobox
-                        name="year"
-                        label="Year"
-                        value={year}
-                        options={yearOptions}
-                        required
-                        onchange={handleYearChange}>
-                    </lightning-combobox>
-                </div>
+                    <!-- Year -->
+                    <div class={fieldClass} style="padding-right:5px;padding-left:5px">
+                        <lightning-combobox
+                            name="year"
+                            label="Year"
+                            value={year}
+                            options={yearOptions}
+                            required
+                            onchange={handleYearChange}>
+                        </lightning-combobox>
+                    </div>
 
-                <div class="slds-col slds-size_1-of-2 slds-p-bottom_small">
-                    <lightning-combobox
-                        name="uom"
-                        label="UOM"
-                        value={uom}
-                        options={uomOptions}
-                        required
-                        onchange={handleUomChange}>
-                    </lightning-combobox>
-                </div>
+                    <!-- UOM -->
+                    <div class={fieldClass} style="padding-right:5px;padding-left:5px">
+                        <lightning-combobox
+                            name="uom"
+                            label="UOM"
+                            value={uom}
+                            options={uomOptions}
+                            required
+                            onchange={handleUomChange}>
+                        </lightning-combobox>
+                    </div>
 
-                <div class="slds-col slds-size_1-of-2 slds-p-bottom_small">
-                    <lightning-input
-                        type="number"
-                        name="quantity"
-                        label="Quantity"
-                        value={quantity}
-                        step="0.01"
-                        min="0"
-                        required
-                        onchange={handleQuantityChange}>
-                    </lightning-input>
+                    <!-- Quantity -->
+                    <div class={fieldClass} style="padding-right:5px;padding-left:5px">
+                        <lightning-input
+                            type="number"
+                            name="quantity"
+                            label="Quantity"
+                            value={quantity}
+                            step="0.01"
+                            min="0"
+                            required
+                            onchange={handleQuantityChange}>
+                        </lightning-input>
+                    </div>
                 </div>
             </div>
 
-            <div class="slds-m-top_medium slds-align_absolute-center">
+            <!-- Footer -->
+            <footer class="slds-modal__footer">
                 <lightning-button
                     variant="brand"
                     label="Save &amp; Submit for Approval"
                     onclick={handleSaveAndSubmit}
                     disabled={isLoading}>
                 </lightning-button>
-            </div>
+            </footer>
         </div>
-    </lightning-card>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
 </template>
