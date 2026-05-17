@@ -1,4 +1,4 @@
-public with sharing class ForecastSubmissionController {
+public without sharing class ForecastSubmissionController {
 
     public class SaveResult {
         @AuraEnabled public Boolean success;
@@ -33,6 +33,7 @@ public with sharing class ForecastSubmissionController {
         if (distributorId == null || String.isBlank(subGroup)) {
             return result;
         }
+        system.debug('distributorId'+distributorId +'-'+'subGroup'+subGroup +'-'+'searchKey'+searchKey );
 
         Account dist = [
             SELECT Id, Sales_Channel__c
@@ -44,13 +45,20 @@ public with sharing class ForecastSubmissionController {
         if (String.isBlank(salesChannel)) {
             return result;
         }
+        
+        Set<String> salesChannelSet = new Set<String>();
+        
+        if (!String.isBlank(salesChannel)) {
+            salesChannelSet.addAll(salesChannel.split(','));
+        }
+        system.debug('salesChannel'+salesChannel);
 
         String key = '%' + (searchKey == null ? '' : searchKey.trim()) + '%';
 
         List<Sales_Channel_To_SKU__c> channels = [
             SELECT Id, Name, SKU__c, SKU__r.Name, Delivery_Plant__c
             FROM Sales_Channel_To_SKU__c
-            WHERE Sales_Channel__c = :salesChannel
+            WHERE Sales_Channel__c In: salesChannelSet
               AND SKU__r.Product_Sub_Group__c = :subGroup
               AND SKU__r.Is_Active__c = true
               AND SKU__r.Name LIKE :key
@@ -68,6 +76,7 @@ public with sharing class ForecastSubmissionController {
             o.DeliveryPlant = c.Delivery_Plant__c;
             result.add(o);
         }
+        system.debug('result'+result);
         return result;
     }
 

@@ -8,7 +8,7 @@
         if(getMessage == 'Cancel'){
             var urlEvent = $A.get("e.force:navigateToURL");
             urlEvent.setParams({
-                "url": "/lightning/o/Employee__c/list?filterName=Today"
+                "url": "/lightning/o/Product_Forecast__c/list?filterName=Today"
             });
             urlEvent.fire();
             $A.get('e.force:refreshView').fire();

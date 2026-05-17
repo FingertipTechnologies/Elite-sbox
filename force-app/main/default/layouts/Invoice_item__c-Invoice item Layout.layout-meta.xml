@@ -44,6 +44,14 @@
                 <behavior>Readonly</behavior>
                 <field>Pending_Quantity__c</field>
             </layoutItems>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>Product_Sub_Group__c</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>Total_Weigh_in_KG__c</field>
+            </layoutItems>
         </layoutColumns>
         <layoutColumns>
             <layoutItems>

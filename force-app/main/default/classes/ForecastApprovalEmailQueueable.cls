@@ -86,13 +86,23 @@ public without sharing class ForecastApprovalEmailQueueable implements Queueable
             + row('Product Sub Group', f.Product_Sub_Group__c)
             + row('Product / SKU', f.Product__r != null ? f.Product__r.Name : null)
             + row('SKU Code', f.Product__r != null ? f.Product__r.SKU_Code__c : null)
-            + row('Forecast Quantity', f.Forecast__c)
             + row('UOM', f.Forecast_UOM__c)
+            + row('Forecast Quantity', f.Forecast__c)
             + row('Forecast (KG)', f.Forecast_KG__c)
             + row('Forecast Month', f.Forecast_Month__c)
             + row('Forecast Year', f.Forecast_Year__c)
-            + row('Start Date', f.Start_Date__c)
-            + row('End Date', f.End_Date__c)
+            + row(
+                'Start Date',
+                f.Start_Date__c != null
+                ? f.Start_Date__c.format()
+                : ''
+            )
+            + row(
+                'End Date',
+                f.End_Date__c != null
+                ? f.End_Date__c.format()
+                : ''
+            )
             + row('Submitted By', f.Owner != null ? f.Owner.Name : null)
             + row('Approved On', f.Approved_Date__c)
             + '</table>'

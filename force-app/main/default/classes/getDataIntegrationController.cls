@@ -161,12 +161,8 @@ global class getDataIntegrationController {
                                 }
                                 //Extra paramets                             
                                 invItem.SAP_Order_Id__c = obj.SAPOrderId; 
-                                // Set Order__r from ad.SAP_OrderId if present
-                                //  if(obj.sfOrderId != null && obj.sfOrderId != '') invItem.Order__r = new Order__c(Order_Id_Text__c = obj.sfOrderId);
-
-                                if(ad.SAP_OrderId != null && ad.SAP_OrderId != '') {
-                            //        invItem.Order__r = new Order__c(Order_Id_Text__c = ad.SAP_OrderId);
-                                }
+                                // Set Order__r from obj.sfOrderId if present
+                                if(obj.sfOrderId != null && obj.sfOrderId != '') invItem.Order__r = new Order__c(Order_Id_Text__c = obj.sfOrderId);
 
                                 invItem.Company_Code__c = obj.companyCode;
                                 invItem.Plant__c  = obj.delivaryPlant;

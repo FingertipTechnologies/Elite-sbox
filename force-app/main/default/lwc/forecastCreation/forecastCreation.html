@@ -18,16 +18,17 @@
                 <div class="slds-grid slds-wrap">
                     <!-- Distributor -->
                     <div class={fieldClass} style="padding-right:5px;padding-left:5px">
-                        <label class="slds-form-element__label">
-                            <abbr class="slds-required" title="required">*</abbr>Distributor
-                        </label>
+                        <!-- Primary Customer -->
                         <lightning-record-picker
-                            placeholder="Search Distributors..."
+                            label="Distributor"
+                            placeholder="Search Customer..."
                             object-api-name="Account"
-                            label=""
-                            variant="label-hidden"
                             value={distributorId}
-                            onchange={handleDistributorChange}>
+                            display-info={displayInfo}
+                            matching-info={matchingInfo}
+                            filter={accountFilter}
+                            onchange={handleDistributorChange}
+                            required>
                         </lightning-record-picker>
                     </div>
 
@@ -51,7 +52,7 @@
                                 <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open">
                                     <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
                                         <lightning-input
-                                            label="Product (optional)"
+                                            label="Product"
                                             type="search"
                                             value={productName}
                                             disabled={isProductDisabled}
@@ -142,6 +143,13 @@
 
             <!-- Footer -->
             <footer class="slds-modal__footer">
+                <lightning-button
+                    variant="brand"
+                    label="Cancel"
+                    style="padding-right:10px"
+                    onclick={cancel}
+                    disabled={isLoading}>
+                </lightning-button>
                 <lightning-button
                     variant="brand"
                     label="Save &amp; Submit for Approval"

@@ -37,6 +37,28 @@ export default class ForecastCreation extends LightningElement {
     defaultRecordTypeId;
     searchDebounce;
 
+    
+
+    displayInfo = {
+        primaryField: "Name",
+        additionalFields: ["SAP_Customer_Code__c"]
+    };
+    matchingInfo = {
+        primaryField: { fieldPath: "Name", mode: "contains" },
+        additionalFields: [
+            { fieldPath: "SAP_Customer_Code__c", mode: "contains" }
+        ]
+    };
+    accountFilter = {
+        criteria: [
+            {
+                fieldPath: "Customer_Type__c",
+                operator: "eq",
+                value: "Primary Customer"
+            }
+        ]
+    };
+
     connectedCallback() {
         this.isDesktop = FORM_FACTOR === 'Large';
         this.isPhone = FORM_FACTOR === 'Small';
@@ -153,7 +175,10 @@ export default class ForecastCreation extends LightningElement {
 
     handleSaveAndSubmit() {
         const err = this.validate();
-        if (err) { this.toast('Validation', err, 'warning'); return; }
+        if (err) {
+            this.toast('Validation', err, 'warning');
+            return;
+        }
 
         const record = {
             sobjectType: 'Product_Forecast__c',
@@ -167,17 +192,60 @@ export default class ForecastCreation extends LightningElement {
         };
 
         this.isLoading = true;
+
         saveAndSubmit({ record })
             .then(res => {
                 if (res && res.success) {
+                    const recordId = res.recordId;
                     this.toast('Success', res.message || 'Submitted for approval.', 'success');
+                    this.dispatchToAura('Done', recordId);
                     this.resetForm();
                 } else {
-                    this.toast('Error', (res && res.message) || 'Submission failed.', 'error');
+                    const rawMsg = (res && res.message) || 'Submission failed.';
+                    this.toast('Error', this.extractValidationMessage(rawMsg), 'error');
                 }
             })
-            .catch(err => this.toast('Error', this.errMsg(err), 'error'))
-            .finally(() => { this.isLoading = false; });
+            .catch(err => this.toast('Error', this.extractValidationMessage(this.getRawMessage(err)), 'error'))
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
+
+    getRawMessage(err) {
+        try {
+            const body = err?.body;
+
+            const pageErrors = body?.output?.errors;
+            if (pageErrors && pageErrors.length > 0) {
+                return pageErrors[0].message;
+            }
+
+            const fieldErrors = body?.output?.fieldErrors;
+            if (fieldErrors) {
+                for (const field in fieldErrors) {
+                    const list = fieldErrors[field];
+                    if (list && list.length > 0) return list[0].message;
+                }
+            }
+
+            if (body?.message) return body.message;
+            if (typeof err === 'string') return err;
+            return err?.message || 'An unexpected error occurred.';
+        } catch (e) {
+            return 'An unexpected error occurred.';
+        }
+    }
+
+    extractValidationMessage(rawMessage) {
+        if (!rawMessage) return 'An unexpected error occurred.';
+
+        // Extract everything after "FIELD_CUSTOM_VALIDATION_EXCEPTION, "
+        const match = rawMessage.match(/FIELD_CUSTOM_VALIDATION_EXCEPTION,\s*(.+)/s);
+        if (match) {
+            return match[1].replace(/:\s*\[\]$/, '').trim();
+        }
+
+        return rawMessage;
     }
 
     resetForm() {
@@ -196,5 +264,22 @@ export default class ForecastCreation extends LightningElement {
 
     toast(title, message, variant) {
         this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
+    }
+
+    cancel() {
+        this.dispatchToAura('Cancel',null);
+    }
+
+      
+
+    dispatchToAura(textMessage,expenseId){
+        // Created a custom event to Pass to aura component
+        const event =  new CustomEvent('closepopup', {
+            detail: {
+                eventType: textMessage,
+                Id:expenseId,
+            },
+          });
+          this.dispatchEvent(event);
     }
 }
