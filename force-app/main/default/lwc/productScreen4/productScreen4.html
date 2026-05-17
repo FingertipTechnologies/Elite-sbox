@@ -132,11 +132,11 @@
                             <template lwc:if={schemePro}>
                                 <div class="vertical-scroll-container">
                                     <template for:each={schemePro} for:item="itm" for:index="index">
-                                        <div key={itm.Id} class="task-head slds-align_absolute-center">{itm.name}</div>
+                                        <div key={itm.Id} class={itm.headerClass}>{itm.name}</div>
 
                                         <!-- Product Rows with Card Layout -->
                                         <template for:each={itm.products} for:item="item" for:index="index1">
-                                            <div class="product-card" key={item.Id}>
+                                            <div class={itm.cardClass} key={item.Id}>
                                                 <!-- Left Side - Product Details -->
                                                 <div class="product-details">
                                                     <div class="col sku-name"><strong>SKU : {item.name}</strong>

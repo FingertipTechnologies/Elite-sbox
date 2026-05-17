@@ -468,6 +468,42 @@
     background-color: #f2f2f2; /* light grey */
 }
 
+/* Sales Strategy color bands */
+.category-band {
+    font-weight: 700;
+    color: #fff;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+.focused-band {
+    background-color: #2e844a; /* strong green */
+    color: #fff;
+    border-left: 6px solid #16572a;
+}
+.must-band {
+    background-color: #c23934; /* strong red - urgency */
+    color: #fff;
+    border-left: 6px solid #8e1f1b;
+}
+.others-band {
+    background-color: #706e6b; /* neutral grey */
+    color: #fff;
+    border-left: 6px solid #514f4d;
+}
+
+.focused-card {
+    border-left: 6px solid #2e844a !important;
+    background-color: #f1faf3 !important;
+}
+.must-card {
+    border-left: 6px solid #c23934 !important;
+    background-color: #fdf2f2 !important;
+}
+.others-card {
+    border-left: 6px solid #706e6b !important;
+}
+
 
 @media only screen and (min-width: 769px) {
     .lightning-button {
