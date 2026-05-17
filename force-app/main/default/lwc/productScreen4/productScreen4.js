@@ -207,18 +207,16 @@ export default class ProductScreen4 extends LightningElement {
 
     applyCategoryStyles(groupList) {
         if (!groupList) return groupList;
+        const baseHeader = 'task-head slds-align_absolute-center';
         return groupList.map(group => {
             const groupName = (group && group.name) ? group.name.toLowerCase() : '';
-            let headerClass = 'task-head slds-align_absolute-center category-band others-band';
             let cardClass = 'product-card others-card';
             if (groupName.includes('focused')) {
-                headerClass = 'task-head slds-align_absolute-center category-band focused-band';
                 cardClass = 'product-card focused-card';
             } else if (groupName.includes('must')) {
-                headerClass = 'task-head slds-align_absolute-center category-band must-band';
                 cardClass = 'product-card must-card';
             }
-            return { ...group, headerClass, cardClass };
+            return { ...group, headerClass: baseHeader, cardClass };
         });
     }
 
