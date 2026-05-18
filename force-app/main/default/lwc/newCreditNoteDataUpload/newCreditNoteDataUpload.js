@@ -160,7 +160,7 @@ export default class NewCreditNoteDataUpload extends LightningElement {
                     totalRecords: this.parsedRows.length,
                     successCount: 0,
                     failedCount: this.parsedRows.length,
-                    errors: [{ rowNumber: '-', customerCode: '', message: msg }],
+                    errors: [{ rowNumber: '-', customerCode: '', noteDate: '', amount: '', reason: '', description: '', message: msg }],
                     successes: []
                 };
                 this.view = 'result';
@@ -184,7 +184,7 @@ export default class NewCreditNoteDataUpload extends LightningElement {
             return;
         }
 
-        const header = ['Row No', 'Status', 'Customer Code', 'Customer Name', 'Record Id', 'Credit Note No', 'Date', 'Amount', 'Message'];
+        const header = ['Row No', 'Status', 'Customer Code', 'Customer Name', 'Record Id', 'Credit Note No', 'Credit Date', 'Amount', 'Reason', 'Description', 'Message'];
 
         const escape = (v) => {
             const str = v == null ? '' : String(v);
@@ -195,18 +195,20 @@ export default class NewCreditNoteDataUpload extends LightningElement {
         (this.result.successes || []).forEach(s => {
             rows.push([s.rowNumber, 'Success', s.customerCode || '', s.customerName || '',
                        s.recordId || '', s.recordName || '', s.noteDate || '',
-                       s.amount != null ? s.amount : '', '']);
+                       s.amount != null ? s.amount : '', '', '', '']);
         });
         (this.result.errors || []).forEach(e => {
-            rows.push([e.rowNumber, 'Failed', e.customerCode || '', '', '', '', '', '', e.message || '']);
+            rows.push([e.rowNumber, 'Failed', e.customerCode || '', '', '', '',
+                       e.noteDate || '', e.amount || '', e.reason || '', e.description || '',
+                       e.message || '']);
         });
 
-        let csvContent = 'data:text/csv;charset=utf-8,' + header.join(',') + '\n';
+        let csvBody = header.join(',') + '\n';
         rows.forEach(row => {
-            csvContent += row.map(escape).join(',') + '\n';
+            csvBody += row.map(escape).join(',') + '\n';
         });
 
-        const encodedUri = encodeURI(csvContent);
+        const encodedUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvBody);
         const baseName = this.fileName ? this.fileName.replace(/\.csv$/i, '') : 'credit_note_upload';
         const link = document.createElement('a');
         link.setAttribute('href', encodedUri);

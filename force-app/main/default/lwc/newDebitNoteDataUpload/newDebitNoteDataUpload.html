@@ -145,9 +145,13 @@
                         <table class="contacts-table">
                             <thead>
                                 <tr>
-                                    <th style="width:10%;">Row No</th>
-                                    <th style="width:25%;">Customer Code</th>
-                                    <th style="width:65%;">Error Message</th>
+                                    <th style="width:6%;">Row No</th>
+                                    <th style="width:13%;">Customer Code</th>
+                                    <th style="width:11%;">Note Date</th>
+                                    <th style="width:9%;">Amount</th>
+                                    <th style="width:13%;">Reason</th>
+                                    <th style="width:18%;">Description</th>
+                                    <th style="width:30%;">Error Message</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -155,6 +159,10 @@
                                     <tr key={err.rowNumber}>
                                         <td>{err.rowNumber}</td>
                                         <td>{err.customerCode}</td>
+                                        <td>{err.noteDate}</td>
+                                        <td>{err.amount}</td>
+                                        <td>{err.reason}</td>
+                                        <td>{err.description}</td>
                                         <td class="error-text">{err.message}</td>
                                     </tr>
                                 </template>

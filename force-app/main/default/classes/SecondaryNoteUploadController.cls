@@ -3,11 +3,19 @@ public without sharing class SecondaryNoteUploadController {
     public class RowError {
         @AuraEnabled public Integer rowNumber { get; set; }
         @AuraEnabled public String customerCode { get; set; }
+        @AuraEnabled public String noteDate { get; set; }
+        @AuraEnabled public String amount { get; set; }
+        @AuraEnabled public String reason { get; set; }
+        @AuraEnabled public String description { get; set; }
         @AuraEnabled public String message { get; set; }
 
-        public RowError(Integer rowNumber, String customerCode, String message) {
+        public RowError(Integer rowNumber, String customerCode, String noteDate, String amount, String reason, String description, String message) {
             this.rowNumber = rowNumber;
             this.customerCode = customerCode;
+            this.noteDate = noteDate;
+            this.amount = amount;
+            this.reason = reason;
+            this.description = description;
             this.message = message;
         }
     }
@@ -164,6 +172,10 @@ public without sharing class SecondaryNoteUploadController {
         List<Secondary_Credit_Note__c> toInsert = new List<Secondary_Credit_Note__c>();
         List<Integer> rowIndexFor = new List<Integer>();
         List<String> codeFor = new List<String>();
+        List<String> dateFor = new List<String>();
+        List<String> amountFor = new List<String>();
+        List<String> reasonFor = new List<String>();
+        List<String> descFor = new List<String>();
 
         for (Integer i = 0; i < rows.size(); i++) {
             Map<String, Object> row = rows[i];
@@ -198,7 +210,7 @@ public without sharing class SecondaryNoteUploadController {
             }
 
             if (!errs.isEmpty()) {
-                result.errors.add(new RowError(rowNum, code, String.join(errs, '; ')));
+                result.errors.add(new RowError(rowNum, code, dateStr, amountStr, reason, description, String.join(errs, '; ')));
                 result.failedCount++;
                 continue;
             }
@@ -213,6 +225,10 @@ public without sharing class SecondaryNoteUploadController {
             toInsert.add(cn);
             rowIndexFor.add(rowNum);
             codeFor.add(code);
+            dateFor.add(dateStr);
+            amountFor.add(amountStr);
+            reasonFor.add(reason);
+            descFor.add(description);
         }
 
         if (!toInsert.isEmpty()) {
@@ -248,7 +264,7 @@ public without sharing class SecondaryNoteUploadController {
                     for (Database.Error err : sr[i].getErrors()) {
                         msg += err.getMessage() + ' ';
                     }
-                    result.errors.add(new RowError(rowIndexFor[i], codeFor[i], msg.trim()));
+                    result.errors.add(new RowError(rowIndexFor[i], codeFor[i], dateFor[i], amountFor[i], reasonFor[i], descFor[i], msg.trim()));
                 }
             }
         }
@@ -282,6 +298,10 @@ public without sharing class SecondaryNoteUploadController {
         List<Secondary_Debit_Note__c> toInsert = new List<Secondary_Debit_Note__c>();
         List<Integer> rowIndexFor = new List<Integer>();
         List<String> codeFor = new List<String>();
+        List<String> dateFor = new List<String>();
+        List<String> amountFor = new List<String>();
+        List<String> reasonFor = new List<String>();
+        List<String> descFor = new List<String>();
 
         for (Integer i = 0; i < rows.size(); i++) {
             Map<String, Object> row = rows[i];
@@ -316,7 +336,7 @@ public without sharing class SecondaryNoteUploadController {
             }
 
             if (!errs.isEmpty()) {
-                result.errors.add(new RowError(rowNum, code, String.join(errs, '; ')));
+                result.errors.add(new RowError(rowNum, code, dateStr, amountStr, reason, description, String.join(errs, '; ')));
                 result.failedCount++;
                 continue;
             }
@@ -331,6 +351,10 @@ public without sharing class SecondaryNoteUploadController {
             toInsert.add(dn);
             rowIndexFor.add(rowNum);
             codeFor.add(code);
+            dateFor.add(dateStr);
+            amountFor.add(amountStr);
+            reasonFor.add(reason);
+            descFor.add(description);
         }
 
         if (!toInsert.isEmpty()) {
@@ -366,7 +390,7 @@ public without sharing class SecondaryNoteUploadController {
                     for (Database.Error err : sr[i].getErrors()) {
                         msg += err.getMessage() + ' ';
                     }
-                    result.errors.add(new RowError(rowIndexFor[i], codeFor[i], msg.trim()));
+                    result.errors.add(new RowError(rowIndexFor[i], codeFor[i], dateFor[i], amountFor[i], reasonFor[i], descFor[i], msg.trim()));
                 }
             }
         }
