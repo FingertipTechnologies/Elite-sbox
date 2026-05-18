@@ -2118,6 +2118,17 @@ export default class NavigationComponent extends LightningElement {
             });
     }
 
+    // Method to open the GRN PDF (Visualforce page) in a new tab for download
+    downloadGRNPdf() {
+        const grnId = this.selectedGrnId;
+        if (!grnId) {
+            this.showToast('Error', 'No GRN selected.', 'error');
+            return;
+        }
+        const url = `${orgUrl}/GRNPdf?id=${grnId}`;
+        window.open(url, '_blank');
+    }
+
     // Method to Close GRN Items View and Show GRN List
     closeGrnItems() {
         this.showGrnItems = false;
