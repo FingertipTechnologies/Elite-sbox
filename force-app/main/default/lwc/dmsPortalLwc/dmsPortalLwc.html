@@ -370,13 +370,12 @@
                                             <c-custom-check-box type="checkbox" onchange={handleSelectAll} checked={isAllSelected}></c-custom-check-box>
                                         </th>
                                         <th style="width:4%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">S.No.</th>
-                                        <th style="width:8%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">SAP Inv No.</th>
+                                        <th style="width:10%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">SAP Inv No.</th>
                                         <th style="width:8%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">SF Inv No.</th>
                                         <th style="width:11%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">Party Name</th>
                                         <th style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">GST No.</th>
                                         <th style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">Order No.</th>
-                                        <th style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">Invoice Date</th>
-                                        <th style="width:5%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">Total Qty (EA)</th>
+                                        <th style="width:10%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">Invoice Date</th>
                                         <th style="width:10%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">Base Amount (₹)</th>
                                         <th style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">SGST</th>
                                         <th style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:nowrap; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">CGST</th>
@@ -392,7 +391,7 @@
                                                     <c-custom-check-box checked={inv.isSelected} onchange={handleRowSelection} name={inv.InvId}></c-custom-check-box>
                                                 </td>
                                                 <td style="width:4%; word-break:break-word; overflow-wrap:break-word; white-space:normal; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">{inv.rowIndex}</td>
-                                                <td style="width:8%; word-break:break-word; overflow-wrap:break-word; white-space:normal; overflow:hidden; padding:8px; text-align:left; vertical-align:middle; cursor:pointer; color:blue; text-decoration:underline;"
+                                                <td style="width:10%; word-break:break-word; overflow-wrap:break-word; white-space:normal; overflow:hidden; padding:8px; text-align:left; vertical-align:middle; cursor:pointer; color:blue; text-decoration:underline;"
                                                     data-id={inv.InvId} onclick={handleInvoiceClick}>
                                                     {inv.invoiceNo}
                                                 </td>
@@ -400,8 +399,7 @@
                                                 <td style="width:11%; word-break:break-word; overflow-wrap:break-word; white-space:normal; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">{inv.companyName}</td>
                                                 <td style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:normal; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">{inv.gstNumber}</td>
                                                 <td style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:normal; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">{inv.orderId}</td>
-                                                <td style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:normal; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">{inv.InvDate}</td>
-                                                <td style="width:5%; word-break:break-word; overflow-wrap:break-word; white-space:normal; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">{inv.TotalQuantity}</td>
+                                                <td style="width:10%; word-break:break-word; overflow-wrap:break-word; white-space:normal; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">{inv.InvDate}</td>
                                                 <td style="width:10%; word-break:break-word; overflow-wrap:break-word; white-space:normal; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">{inv.nonTaxableAmount}</td>
                                                 <td style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:normal; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">{inv.sgstAmount}</td>
                                                 <td style="width:7%; word-break:break-word; overflow-wrap:break-word; white-space:normal; overflow:hidden; padding:8px; text-align:left; vertical-align:middle;">{inv.cgstAmount}</td>
@@ -996,7 +994,7 @@
                                     <th style="width:5%">Written Off Qty (EA)</th>
                                     <th style="width:7%">Available Sale Qty (EA)</th>
                                     <th style="width:7%">Available Non-Sale Qty (EA)</th>
-                                    <th style="width:7%">Unit Price</th>
+                                    <th style="width:7%">Unit Price (₹)</th>
                                     <th style="width:8%">Total Amount (₹)</th>
                                 </tr>
                             </thead>
@@ -1697,7 +1695,7 @@
                                     <tr>
                                         <th>S.No.</th>
                                         <th>Action</th>
-                                        <th>Outstanding</th>
+                                        <th>Outstanding (₹)</th>
                                         <th>Customer Name</th>
                                         <th>Customer Code</th>
                                         <th>Customer Type</th>
@@ -1711,7 +1709,7 @@
                                         <th>Contact Person</th>
                                         <th>PAN Number</th>
                                         <th>Payment Type</th>
-                                        <th>Credit Limit</th>
+                                        <th>Credit Limit (₹)</th>
                                         <th>Payment Term</th>
                                         <th>Credit Description</th>
                                         <th>District</th>
@@ -1977,9 +1975,9 @@
             </template>
 
             <!--Product Gallery Tab-->
-            <template lwc:if={showProductGallery}>
+            <!--<template lwc:if={showProductGallery}>
                 <c-product-gallery-lwc></c-product-gallery-lwc>
-            </template>
+            </template>-->
 
              <!--showSecondaryCustomerLedger Tab-->
             <template lwc:if={showSecondaryCustomerLedger}>

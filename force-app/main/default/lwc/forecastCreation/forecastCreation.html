@@ -88,6 +88,17 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Year -->
+                    <div class={fieldClass} style="padding-right:5px;padding-left:5px">
+                        <lightning-combobox
+                            name="year"
+                            label="Year"
+                            value={year}
+                            options={yearOptions}
+                            required
+                            onchange={handleYearChange}>
+                        </lightning-combobox>
+                    </div>
 
                     <!-- Month -->
                     <div class={fieldClass} style="padding-right:5px;padding-left:5px">
@@ -101,17 +112,7 @@
                         </lightning-combobox>
                     </div>
 
-                    <!-- Year -->
-                    <div class={fieldClass} style="padding-right:5px;padding-left:5px">
-                        <lightning-combobox
-                            name="year"
-                            label="Year"
-                            value={year}
-                            options={yearOptions}
-                            required
-                            onchange={handleYearChange}>
-                        </lightning-combobox>
-                    </div>
+              
 
                     <!-- UOM -->
                     <div class={fieldClass} style="padding-right:5px;padding-left:5px">
