@@ -183,53 +183,35 @@ export default class NewDebitNoteDataUpload extends LightningElement {
             this.showToast('error', 'No result available to download.');
             return;
         }
+
         const header = ['Row No', 'Status', 'Customer Code', 'Customer Name', 'Record Id', 'Debit Note No', 'Date', 'Amount', 'Message'];
-        const rows = [];
-        const successes = this.result.successes || [];
-        successes.forEach(s => {
-            rows.push([
-                s.rowNumber,
-                'Success',
-                s.customerCode || '',
-                s.customerName || '',
-                s.recordId || '',
-                s.recordName || '',
-                s.noteDate || '',
-                s.amount != null ? s.amount : '',
-                ''
-            ]);
-        });
-        const errors = this.result.errors || [];
-        errors.forEach(e => {
-            rows.push([
-                e.rowNumber,
-                'Failed',
-                e.customerCode || '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                e.message || ''
-            ]);
-        });
+
         const escape = (v) => {
             const str = v == null ? '' : String(v);
             return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
         };
-        let csv = header.join(',') + '\n';
-        rows.forEach(r => { csv += r.map(escape).join(',') + '\n'; });
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
+
+        const rows = [];
+        (this.result.successes || []).forEach(s => {
+            rows.push([s.rowNumber, 'Success', s.customerCode || '', s.customerName || '',
+                       s.recordId || '', s.recordName || '', s.noteDate || '',
+                       s.amount != null ? s.amount : '', '']);
+        });
+        (this.result.errors || []).forEach(e => {
+            rows.push([e.rowNumber, 'Failed', e.customerCode || '', '', '', '', '', '', e.message || '']);
+        });
+
+        let csvContent = 'data:text/csv;charset=utf-8,' + header.join(',') + '\n';
+        rows.forEach(row => {
+            csvContent += row.map(escape).join(',') + '\n';
+        });
+
+        const encodedUri = encodeURI(csvContent);
         const baseName = this.fileName ? this.fileName.replace(/\.csv$/i, '') : 'debit_note_upload';
-        link.download = baseName + '_result.csv';
-        link.style.display = 'none';
-        document.body.appendChild(link);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', baseName + '_result.csv');
         link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
     }
 
     handleBackToSelect() {
