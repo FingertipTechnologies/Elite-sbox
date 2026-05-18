@@ -43,6 +43,10 @@ export default class NewCreditNoteDataUpload extends LightningElement {
         return this.result && this.result.errors && this.result.errors.length > 0;
     }
 
+    get hasSuccesses() {
+        return this.result && this.result.successes && this.result.successes.length > 0;
+    }
+
     handleFileChange(event) {
         this.result = null;
         this.parsedRows = [];
@@ -156,7 +160,8 @@ export default class NewCreditNoteDataUpload extends LightningElement {
                     totalRecords: this.parsedRows.length,
                     successCount: 0,
                     failedCount: this.parsedRows.length,
-                    errors: [{ rowNumber: '-', customerCode: '', message: msg }]
+                    errors: [{ rowNumber: '-', customerCode: '', message: msg }],
+                    successes: []
                 };
                 this.view = 'result';
                 this.showToast('error', msg);
@@ -171,6 +176,60 @@ export default class NewCreditNoteDataUpload extends LightningElement {
         document.body.appendChild(link);
         link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
         document.body.removeChild(link);
+    }
+
+    handleDownloadResult() {
+        if (!this.result) {
+            this.showToast('error', 'No result available to download.');
+            return;
+        }
+        const header = ['Row No', 'Status', 'Customer Code', 'Customer Name', 'Record Id', 'Credit Note No', 'Date', 'Amount', 'Message'];
+        const rows = [];
+        const successes = this.result.successes || [];
+        successes.forEach(s => {
+            rows.push([
+                s.rowNumber,
+                'Success',
+                s.customerCode || '',
+                s.customerName || '',
+                s.recordId || '',
+                s.recordName || '',
+                s.noteDate || '',
+                s.amount != null ? s.amount : '',
+                ''
+            ]);
+        });
+        const errors = this.result.errors || [];
+        errors.forEach(e => {
+            rows.push([
+                e.rowNumber,
+                'Failed',
+                e.customerCode || '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                e.message || ''
+            ]);
+        });
+        const escape = (v) => {
+            const str = v == null ? '' : String(v);
+            return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+        };
+        let csv = header.join(',') + '\n';
+        rows.forEach(r => { csv += r.map(escape).join(',') + '\n'; });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const baseName = this.fileName ? this.fileName.replace(/\.csv$/i, '') : 'credit_note_upload';
+        link.download = baseName + '_result.csv';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     }
 
     handleBackToSelect() {

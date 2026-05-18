@@ -107,6 +107,38 @@
                     </div>
                 </div>
 
+                <template if:true={hasSuccesses}>
+                    <h4 class="slds-text-heading_small slds-m-top_medium slds-m-bottom_x-small">Successful Records</h4>
+                    <div class="preview-table-wrap">
+                        <table class="contacts-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:8%;">Row No</th>
+                                    <th style="width:15%;">Customer Code</th>
+                                    <th style="width:22%;">Customer Name</th>
+                                    <th style="width:18%;">Record Id</th>
+                                    <th style="width:15%;">Debit Note No</th>
+                                    <th style="width:12%;">Date</th>
+                                    <th style="width:10%;">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={result.successes} for:item="suc">
+                                    <tr key={suc.recordId}>
+                                        <td>{suc.rowNumber}</td>
+                                        <td>{suc.customerCode}</td>
+                                        <td>{suc.customerName}</td>
+                                        <td>{suc.recordId}</td>
+                                        <td>{suc.recordName}</td>
+                                        <td>{suc.noteDate}</td>
+                                        <td>{suc.amount}</td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </template>
+
                 <template if:true={hasErrors}>
                     <h4 class="slds-text-heading_small slds-m-top_medium slds-m-bottom_x-small">Failed Rows</h4>
                     <div class="preview-table-wrap">
@@ -132,6 +164,7 @@
                 </template>
 
                 <div class="slds-m-top_medium upload-actions">
+                    <button class="actionButton" onclick={handleDownloadResult}>Download Result File</button>
                     <button class="actionButton" onclick={handleBackToSelect}>Upload Another File</button>
                     <button class="actionButton1" onclick={handleClose}>Close</button>
                 </div>
