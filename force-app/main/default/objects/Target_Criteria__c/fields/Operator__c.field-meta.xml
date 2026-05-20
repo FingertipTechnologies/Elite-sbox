@@ -21,6 +21,31 @@
                 <default>false</default>
                 <label>SUM</label>
             </value>
+            <value>
+                <fullName>COUNT_DISTINCT</fullName>
+                <default>false</default>
+                <label>COUNT_DISTINCT</label>
+            </value>
+            <value>
+                <fullName>DAILY_UNIQUE_AVG</fullName>
+                <default>false</default>
+                <label>DAILY_UNIQUE_AVG</label>
+            </value>
+            <value>
+                <fullName>DAILY_RATIO_AVG</fullName>
+                <default>false</default>
+                <label>DAILY_RATIO_AVG</label>
+            </value>
+            <value>
+                <fullName>FOCUS_PACK_REVENUE</fullName>
+                <default>false</default>
+                <label>FOCUS_PACK_REVENUE</label>
+            </value>
+            <value>
+                <fullName>FOCUS_PACK_ECO</fullName>
+                <default>false</default>
+                <label>FOCUS_PACK_ECO</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>
