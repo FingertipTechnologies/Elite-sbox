@@ -67,7 +67,12 @@ export default class TamCriteriaBuilder extends LightningElement {
 
     operatorOptions = [
         { label: 'SUM', value: 'SUM' },
-        { label: 'COUNT', value: 'COUNT' }
+        { label: 'COUNT', value: 'COUNT' },
+        { label: 'COUNT DISTINCT', value: 'COUNT_DISTINCT' },
+        { label: 'DAILY UNIQUE AVG (TC / PC)', value: 'DAILY_UNIQUE_AVG' },
+        { label: 'DAILY RATIO AVG (Avg TLSD)', value: 'DAILY_RATIO_AVG' },
+        { label: 'FOCUS PACK REVENUE', value: 'FOCUS_PACK_REVENUE' },
+        { label: 'FOCUS PACK ECO', value: 'FOCUS_PACK_ECO' }
     ];
 
     // ===== LIFECYCLE =====
@@ -399,6 +404,14 @@ export default class TamCriteriaBuilder extends LightningElement {
         return this.previewResult ? this.previewResult.error : '';
     }
 
+    get previewNote() {
+        return this.previewResult ? this.previewResult.note : '';
+    }
+
+    get previewHasNote() {
+        return !!this.previewNote;
+    }
+
     // Fetch linked target count before showing delete confirmation
     _fetchLinkedCountAndShowConfirm() {
         this.isLoading = true;
@@ -471,6 +484,11 @@ export default class TamCriteriaBuilder extends LightningElement {
                 if (this.criteria.Category__c == null) this.criteria.Category__c = '';
                 if (this.criteria.Prerequisite_Criteria__c == null) this.criteria.Prerequisite_Criteria__c = '';
                 if (this.criteria.Prerequisite_Min_Percent__c == null) this.criteria.Prerequisite_Min_Percent__c = 90;
+                if (this.criteria.Distinct_Field__c == null) this.criteria.Distinct_Field__c = '';
+                if (this.criteria.Numerator_Field__c == null) this.criteria.Numerator_Field__c = '';
+                if (this.criteria.Denominator_Field__c == null) this.criteria.Denominator_Field__c = '';
+                if (this.criteria.Secondary_Source_Objects__c == null) this.criteria.Secondary_Source_Objects__c = '';
+                this.criteria.Use_Attendance_Divisor__c = this.criteria.Use_Attendance_Divisor__c === true;
 
                 // Populate prerequisite search text
                 this.searchPrerequisite = this.criteria.Prerequisite_Criteria__r?.Name || '';
@@ -569,27 +587,51 @@ export default class TamCriteriaBuilder extends LightningElement {
         if (this.isLoading) return true;
         // Step 1 fields are always required
         if (!this.criteria.Name || !this.criteria.Object__c) return true;
-        // Step 2 fields are required
-        if (!this.criteria.Operator__c) return true;
-        if (this.criteria.Operator__c === 'SUM' && !this.criteria.Field__c) return true;
-        if (!this.criteria.Date_Field__c) return true;
-        if (!this.criteria.User_Field__c) return true;
-        return false;
+        return this.step2Invalid;
     }
 
     get isNextDisabled() {
         if (this.currentStep === 1) return !this.criteria.Name || !this.criteria.Object__c;
-        if (this.currentStep === 2) {
-            if (!this.criteria.Operator__c) return true;
-            if (this.criteria.Operator__c === 'SUM' && !this.criteria.Field__c) return true;
-            if (!this.criteria.Date_Field__c) return true;
-            if (!this.criteria.User_Field__c) return true;
-            return false;
-        }
+        if (this.currentStep === 2) return this.step2Invalid;
+        return false;
+    }
+
+    // Operator-aware validation for the field-mapping step.
+    get step2Invalid() {
+        if (!this.criteria.Operator__c) return true;
+        // Focus-Pack operators need no source/field mapping.
+        if (this.isFocusPack) return false;
+        if (!this.criteria.Date_Field__c) return true;
+        if (!this.criteria.User_Field__c) return true;
+        if (this.isSumOperator && !this.criteria.Field__c) return true;
+        if (this.showDistinctField && !this.criteria.Distinct_Field__c) return true;
+        if (this.showRatioFields && (!this.criteria.Numerator_Field__c || !this.criteria.Denominator_Field__c)) return true;
         return false;
     }
 
     get isCount() { return this.criteria.Operator__c === 'COUNT'; }
+    get isSumOperator() { return this.criteria.Operator__c === 'SUM'; }
+    get isNotSum() { return this.criteria.Operator__c !== 'SUM'; }
+    get isCountDistinct() { return this.criteria.Operator__c === 'COUNT_DISTINCT'; }
+    get isDailyUnique() { return this.criteria.Operator__c === 'DAILY_UNIQUE_AVG'; }
+    get isDailyRatio() { return this.criteria.Operator__c === 'DAILY_RATIO_AVG'; }
+    get isFocusPack() {
+        return this.criteria.Operator__c === 'FOCUS_PACK_REVENUE'
+            || this.criteria.Operator__c === 'FOCUS_PACK_ECO';
+    }
+    get showDistinctField() { return this.isCountDistinct || this.isDailyUnique; }
+    get showRatioFields() { return this.isDailyRatio; }
+    get showAttendanceDivisor() { return this.isDailyUnique || this.isDailyRatio; }
+    get showSecondarySources() { return this.isDailyUnique; }
+    // Source-object/field mapping is irrelevant for Focus-Pack operators
+    // because the engine derives SKUs and orders from the Focus Pack itself.
+    get showSourceMapping() { return !this.isFocusPack; }
+
+    get allFieldOptions() {
+        if (!this.fieldsMetadata) return [];
+        return this.fieldsMetadata.map(f => ({ label: `${f.label} (${f.apiName})`, value: f.apiName }));
+    }
+
     get filterCount() { return this.filters ? this.filters.length : 0; }
     get hasFilters() { return this.filterCount > 0; }
 
@@ -695,7 +737,20 @@ export default class TamCriteriaBuilder extends LightningElement {
 
     handleOperatorChange(e) {
         this.criteria.Operator__c = e.target.value;
-        if (this.isCount) this.criteria.Field__c = null;
+        // Clear inputs that no longer apply to the chosen operator.
+        if (!this.isSumOperator) this.criteria.Field__c = null;
+        if (!this.showDistinctField) this.criteria.Distinct_Field__c = null;
+        if (!this.showRatioFields) {
+            this.criteria.Numerator_Field__c = null;
+            this.criteria.Denominator_Field__c = null;
+        }
+        if (!this.showAttendanceDivisor) this.criteria.Use_Attendance_Divisor__c = false;
+        if (!this.showSecondarySources) this.criteria.Secondary_Source_Objects__c = null;
+    }
+
+    handleCheckbox(e) {
+        const field = e.target.dataset.field;
+        this.criteria[field] = e.target.checked;
     }
 
     handleFilterChange(e) {
@@ -777,6 +832,11 @@ export default class TamCriteriaBuilder extends LightningElement {
             Field__c: this.criteria.Field__c,
             Date_Field__c: this.criteria.Date_Field__c,
             User_Field__c: this.criteria.User_Field__c,
+            Distinct_Field__c: this.criteria.Distinct_Field__c || null,
+            Numerator_Field__c: this.criteria.Numerator_Field__c || null,
+            Denominator_Field__c: this.criteria.Denominator_Field__c || null,
+            Use_Attendance_Divisor__c: this.criteria.Use_Attendance_Divisor__c === true,
+            Secondary_Source_Objects__c: this.criteria.Secondary_Source_Objects__c || null,
             Filters__c: filterJson,
             Filter_Logic__c: this.criteria.Filter_Logic__c,
             Category__c: this.criteria.Category__c || null,
@@ -808,6 +868,8 @@ export default class TamCriteriaBuilder extends LightningElement {
         this.criteria = {
             Id: null, Name: '', Object__c: '', Operator__c: 'SUM',
             Field__c: '', Date_Field__c: '', User_Field__c: '', Filter_Logic__c: '',
+            Distinct_Field__c: '', Numerator_Field__c: '', Denominator_Field__c: '',
+            Use_Attendance_Divisor__c: false, Secondary_Source_Objects__c: '',
             Category__c: '', Incentive_Weight__c: null,
             Prerequisite_Criteria__c: '', Prerequisite_Min_Percent__c: 90
         };

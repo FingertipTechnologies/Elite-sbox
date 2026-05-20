@@ -1,0 +1,107 @@
+<template>
+    <lightning-card title="Secondary Targets" icon-name="standard:goals">
+        <lightning-button slot="actions" label="New Target" icon-name="utility:add"
+            onclick={handleNew} class="slds-m-right_x-small"></lightning-button>
+        <lightning-button slot="actions" label="Recalculate All" icon-name="utility:refresh"
+            variant="brand" onclick={handleRecalcAll}></lightning-button>
+
+        <div class="slds-p-horizontal_medium">
+            <!-- summary tiles -->
+            <div class="slds-grid slds-gutters slds-m-bottom_small slds-wrap">
+                <div class="slds-col slds-size_1-of-3">
+                    <div class="slds-box slds-box_x-small slds-text-align_center">
+                        <div class="slds-text-title">Total</div>
+                        <div class="slds-text-heading_medium">{totalCount}</div>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of-3">
+                    <div class="slds-box slds-box_x-small slds-text-align_center">
+                        <div class="slds-text-title">Active</div>
+                        <div class="slds-text-heading_medium">{activeCount}</div>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of-3">
+                    <div class="slds-box slds-box_x-small slds-text-align_center">
+                        <div class="slds-text-title">Avg % Achievement</div>
+                        <div class="slds-text-heading_medium">{avgAchievement}%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- filters -->
+            <div class="slds-grid slds-gutters slds-grid_vertical-align-end slds-m-bottom_small slds-wrap">
+                <div class="slds-col slds-size_1-of-2">
+                    <lightning-combobox label="Filter by Criteria" value={selectedCriteria}
+                        options={criteriaOptions} onchange={handleCriteriaFilter}></lightning-combobox>
+                </div>
+                <div class="slds-col slds-size_1-of-4 slds-p-bottom_x-small">
+                    <lightning-input type="checkbox" label="Active only"
+                        checked={activeOnly} onchange={handleActiveToggle}></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-4 slds-text-align_right slds-p-bottom_x-small">
+                    <lightning-button label="Refresh" icon-name="utility:refresh"
+                        onclick={handleRefresh}></lightning-button>
+                </div>
+            </div>
+
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </template>
+
+            <template if:true={hasRows}>
+                <lightning-datatable key-field="Id" data={rows} columns={columns}
+                    hide-checkbox-column onrowaction={handleRowAction}></lightning-datatable>
+            </template>
+
+            <template if:false={hasRows}>
+                <div class="slds-illustration slds-illustration_small slds-p-around_large slds-text-align_center">
+                    <p class="slds-text-body_regular">No secondary targets found. Click "New Target" to create one.</p>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+
+    <!-- create / edit modal -->
+    <template if:true={showForm}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={handleCloseForm}>
+                        <lightning-icon icon-name="utility:close" size="small"
+                            variant="inverse"></lightning-icon>
+                    </button>
+                    <h2 class="slds-modal__title slds-hyphenate">{formTitle}</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <lightning-record-edit-form object-api-name={objectApiName}
+                        record-id={editRecordId}
+                        onsuccess={handleFormSuccess} onerror={handleFormError}>
+                        <lightning-messages></lightning-messages>
+                        <div class="slds-grid slds-gutters slds-wrap">
+                            <div class="slds-col slds-size_1-of-2">
+                                <lightning-input-field field-name="User__c" required></lightning-input-field>
+                                <lightning-input-field field-name="Target_Criteria__c" required></lightning-input-field>
+                                <lightning-input-field field-name="Focused_Pack__c"></lightning-input-field>
+                                <lightning-input-field field-name="Sales_Channel__c"></lightning-input-field>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2">
+                                <lightning-input-field field-name="Target_Value__c"></lightning-input-field>
+                                <lightning-input-field field-name="Year__c"></lightning-input-field>
+                                <lightning-input-field field-name="Start_Date__c" required></lightning-input-field>
+                                <lightning-input-field field-name="End_Date__c" required></lightning-input-field>
+                                <lightning-input-field field-name="Is_Active__c"></lightning-input-field>
+                            </div>
+                        </div>
+                        <div class="slds-m-top_medium slds-text-align_right">
+                            <lightning-button label="Cancel" onclick={handleCloseForm}
+                                class="slds-m-right_x-small"></lightning-button>
+                            <lightning-button variant="brand" type="submit" label="Save"></lightning-button>
+                        </div>
+                    </lightning-record-edit-form>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

@@ -407,19 +407,73 @@
                             <lightning-combobox label="Operator" data-field="Operator__c"
                                 value={criteria.Operator__c} options={operatorOptions}
                                 onchange={handleOperatorChange} required></lightning-combobox>
-                            <lightning-combobox label="SUM Field" data-field="Field__c" disabled={isCount}
-                                value={criteria.Field__c} options={numberFieldOptions}
-                                onchange={handleInput}></lightning-combobox>
-                            <lightning-combobox label="Date Field" data-field="Date_Field__c"
-                                value={criteria.Date_Field__c} options={dateFieldOptions}
-                                onchange={handleInput} required></lightning-combobox>
-                            <lightning-combobox label="User Field" data-field="User_Field__c"
-                                value={criteria.User_Field__c} options={userFieldOptions}
-                                onchange={handleInput} required></lightning-combobox>
+                            <template if:true={isSumOperator}>
+                                <lightning-combobox label="SUM Field" data-field="Field__c"
+                                    value={criteria.Field__c} options={numberFieldOptions}
+                                    onchange={handleInput} required></lightning-combobox>
+                            </template>
                         </div>
-                        <p class="tcb-help-text">
-                            Operator, Date Field and User Field are mandatory. SUM Field is mandatory when Operator is SUM.
-                        </p>
+
+                        <template if:true={showSourceMapping}>
+                            <div class="two-col">
+                                <lightning-combobox label="Date Field" data-field="Date_Field__c"
+                                    value={criteria.Date_Field__c} options={dateFieldOptions}
+                                    onchange={handleInput} required></lightning-combobox>
+                                <lightning-combobox label="User Field" data-field="User_Field__c"
+                                    value={criteria.User_Field__c} options={userFieldOptions}
+                                    onchange={handleInput} required></lightning-combobox>
+                            </div>
+
+                            <template if:true={showDistinctField}>
+                                <div class="two-col">
+                                    <lightning-combobox label="Distinct Field (outlet)" data-field="Distinct_Field__c"
+                                        value={criteria.Distinct_Field__c} options={allFieldOptions}
+                                        onchange={handleInput} required></lightning-combobox>
+                                </div>
+                            </template>
+
+                            <template if:true={showRatioFields}>
+                                <div class="two-col">
+                                    <lightning-combobox label="Numerator Field" data-field="Numerator_Field__c"
+                                        value={criteria.Numerator_Field__c} options={numberFieldOptions}
+                                        onchange={handleInput} required></lightning-combobox>
+                                    <lightning-combobox label="Denominator Field" data-field="Denominator_Field__c"
+                                        value={criteria.Denominator_Field__c} options={numberFieldOptions}
+                                        onchange={handleInput} required></lightning-combobox>
+                                </div>
+                            </template>
+
+                            <template if:true={showAttendanceDivisor}>
+                                <div class="two-col">
+                                    <lightning-input type="checkbox" label="Use Attendance Divisor (working days)"
+                                        data-field="Use_Attendance_Divisor__c"
+                                        checked={criteria.Use_Attendance_Divisor__c}
+                                        onchange={handleCheckbox}></lightning-input>
+                                </div>
+                            </template>
+
+                            <template if:true={showSecondarySources}>
+                                <lightning-textarea label="Secondary Source Objects (JSON)"
+                                    data-field="Secondary_Source_Objects__c"
+                                    value={criteria.Secondary_Source_Objects__c}
+                                    onchange={handleInput}
+                                    placeholder='[{"object":"Visit_Form__c","userField":"OwnerId","dateField":"CreatedDate","distinctField":"CustomerId__c"}]'></lightning-textarea>
+                            </template>
+                        </template>
+
+                        <template if:true={isFocusPack}>
+                            <p class="tcb-help-text">
+                                Focus-Pack operators read SKUs and the qualifying quantity from the Focus
+                                Pack linked on each Secondary Target. No source object or field mapping is needed here.
+                            </p>
+                        </template>
+
+                        <template if:true={showSourceMapping}>
+                            <p class="tcb-help-text">
+                                Operator, Date Field and User Field are mandatory. SUM Field is required for SUM,
+                                a Distinct Field for COUNT DISTINCT / DAILY UNIQUE AVG, and Numerator/Denominator for DAILY RATIO AVG.
+                            </p>
+                        </template>
                     </div>
                 </section>
             </template>
@@ -555,6 +609,12 @@
                         </div>
 
                         <pre class="tcb-query-preview slds-m-bottom_medium">{previewQuery}</pre>
+
+                        <template if:true={previewHasNote}>
+                            <div class="slds-box slds-box_x-small slds-m-bottom_small slds-theme_shade">
+                                {previewNote}
+                            </div>
+                        </template>
 
                         <template if:true={previewIsSuccess}>
                             <template if:true={previewHasRows}>
