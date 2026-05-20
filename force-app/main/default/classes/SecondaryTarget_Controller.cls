@@ -80,10 +80,10 @@ public with sharing class SecondaryTarget_Controller {
     @AuraEnabled
     public static List<Map<String, String>> searchUsers(String term) {
         List<Map<String, String>> opts = new List<Map<String, String>>();
-        String like = '%' + (term == null ? '' : String.escapeSingleQuotes(term)) + '%';
+        String pattern = '%' + (term == null ? '' : String.escapeSingleQuotes(term)) + '%';
         for (User u : [
             SELECT Id, Name, Username FROM User
-            WHERE IsActive = true AND Name LIKE :like ORDER BY Name LIMIT 25
+            WHERE IsActive = true AND Name LIKE :pattern ORDER BY Name LIMIT 25
         ]) {
             opts.add(new Map<String, String>{ 'label' => u.Name + ' (' + u.Username + ')', 'value' => u.Id });
         }
