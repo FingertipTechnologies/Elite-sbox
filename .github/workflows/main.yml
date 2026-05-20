@@ -3,7 +3,7 @@ name: Changeonly Deploy to Salesforce
 on:
   push:
     branches:
-      - main
+      - claude/plan-target-incentives-YdaWv
 
 jobs:
   deploy:
