@@ -35,12 +35,11 @@ public class SecondaryTarget_ControllerTest {
             OwnerId = u.Id, Order_Fulfillment_Status__c = 'Not Fulfilled', Order_Date__c = Date.today());
         insert o;
 
+        // Order_Owner_Id__c and Order_Date__c are formula fields from the parent Order.
         insert new List<Order_Item__c>{
             new Order_Item__c(Order__c = o.Id, Product__c = prod.Id, Account__c = acc.Id,
-                Order_Owner_Id__c = String.valueOf(u.Id), Order_Date__c = Date.today(),
                 Order_Type__c = 'Secondary Order', Quantity__c = 1, Total_Amount__c = 700),
             new Order_Item__c(Order__c = o.Id, Product__c = prod.Id, Account__c = acc.Id,
-                Order_Owner_Id__c = String.valueOf(u.Id), Order_Date__c = Date.today(),
                 Order_Type__c = 'Secondary Order', Quantity__c = 1, Total_Amount__c = 300)
         };
 

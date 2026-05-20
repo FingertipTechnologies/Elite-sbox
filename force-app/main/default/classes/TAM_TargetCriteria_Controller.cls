@@ -299,21 +299,22 @@ public with sharing class TAM_TargetCriteria_Controller {
     // so previews can run the engine without persisted Secondary Targets.
     private static Set<Id> discoverPreviewUsers(Target_Criteria__c crit, Date startDate, Date endDate) {
         Set<Id> userIds = new Set<Id>();
-        String soql = 'SELECT ' + crit.User_Field__c + ' uid' +
+        // Raw rows (no GROUP BY) so a formula User Field still works.
+        String soql = 'SELECT ' + crit.User_Field__c +
             ' FROM ' + crit.Object__c +
             ' WHERE ' + crit.Date_Field__c + ' >= :startDate' +
             ' AND ' + crit.Date_Field__c + ' <= :endDate' +
             ' AND ' + crit.User_Field__c + ' != NULL' +
-            ' GROUP BY ' + crit.User_Field__c +
-            ' LIMIT 50';
-        for (AggregateResult ar : Database.query(soql)) {
-            Object raw = ar.get('uid');
+            ' LIMIT 2000';
+        for (SObject row : Database.query(soql)) {
+            Object raw = row.get(crit.User_Field__c);
             if (raw == null) continue;
             try {
                 userIds.add(Id.valueOf(String.valueOf(raw)));
             } catch (Exception ignored) {
                 // skip values that are not valid Ids
             }
+            if (userIds.size() >= 50) break;
         }
         return userIds;
     }

@@ -32,18 +32,19 @@ public class SecondaryAchievementBatchTest {
         );
     }
 
-    private static Order__c makeOrder(Id ownerId, Id accId, String type) {
+    private static Order__c makeOrder(Id ownerId, Id accId, String type, Date orderDate) {
         return new Order__c(
             Order_Type__c = type, Account__c = accId, OwnerId = ownerId,
-            Order_Fulfillment_Status__c = 'Not Fulfilled', Order_Date__c = d1
+            Order_Fulfillment_Status__c = 'Not Fulfilled', Order_Date__c = orderDate
         );
     }
 
-    private static Order_Item__c makeItem(Id orderId, Id userId, Id prodId, Id accId,
-                                          Date orderDate, Decimal qty, Decimal amount, String type) {
+    // Order_Owner_Id__c and Order_Date__c are formula fields derived from the
+    // parent Order, so they are set there (via makeOrder), not on the item.
+    private static Order_Item__c makeItem(Id orderId, Id prodId, Id accId,
+                                          Decimal qty, Decimal amount, String type) {
         return new Order_Item__c(
             Order__c = orderId, Product__c = prodId, Account__c = accId,
-            Order_Owner_Id__c = String.valueOf(userId), Order_Date__c = orderDate,
             Order_Type__c = type, Quantity__c = qty, Total_Amount__c = amount
         );
     }
@@ -64,21 +65,24 @@ public class SecondaryAchievementBatchTest {
         );
     }
 
+    // Day_Started_Date__c is a formula on Day_started_time__c (a DateTime);
+    // use mid-day so the date does not shift across time zones.
     private static Daily_Log__c makeLog(Id userId, Date d) {
-        return new Daily_Log__c(User__c = userId, OwnerId = userId, Day_Started_Date__c = d, Date__c = d);
+        return new Daily_Log__c(
+            User__c = userId, OwnerId = userId,
+            Day_started_time__c = Datetime.newInstance(d.year(), d.month(), d.day(), 12, 0, 0)
+        );
     }
 
     private static Visit_Form__c makeVisit(Id ownerId, Id outletId) {
         return new Visit_Form__c(
-            OwnerId = ownerId, CustomerId__c = String.valueOf(outletId),
+            OwnerId = ownerId, Secondary_Customer__c = outletId,
             Geo_Location__Latitude__s = 17.41, Geo_Location__Longitude__s = 78.43
         );
     }
 
     @TestSetup
     static void setup() {
-        Date sDate = Date.today().addDays(-5);
-        Date eDate = Date.today().addDays(5);
         Date day1 = Date.today();
         Date day2 = Date.today().addDays(1);
         Date day3 = Date.today().addDays(2);
@@ -117,53 +121,61 @@ public class SecondaryAchievementBatchTest {
             new Focused_Pack_Item__c(Focused_Pack__c = fpEco.Id, SKU__c = prodB.Id)
         };
 
-        // Attendance: working days
+        // Attendance working days (via Day_started_time__c)
         insert new List<Daily_Log__c>{
             makeLog(uTc.Id, day1), makeLog(uTc.Id, day2), makeLog(uTc.Id, day3),
             makeLog(uTlsd.Id, day1), makeLog(uTlsd.Id, day2)
         };
 
-        // Orders (one parent per scenario; secondary unless noted)
-        Order__c oRev = makeOrder(uRev.Id, acc1.Id, 'Secondary Order');
-        Order__c oUbo = makeOrder(uUbo.Id, acc1.Id, 'Secondary Order');
-        Order__c oTc = makeOrder(uTc.Id, acc1.Id, 'Secondary Order');
-        Order__c oPc = makeOrder(uPc.Id, acc1.Id, 'Secondary Order');
-        Order__c oTlsd = makeOrder(uTlsd.Id, acc1.Id, 'Secondary Order');
-        Order__c oFpRev = makeOrder(uFpRev.Id, acc1.Id, 'Secondary Order');
-        Order__c oEco1 = makeOrder(uFpEco.Id, acc1.Id, 'Secondary Order');
-        Order__c oEco2 = makeOrder(uFpEco.Id, acc2.Id, 'Secondary Order');
-        Order__c oEco3 = makeOrder(uFpEco.Id, acc2.Id, 'Secondary Order');
-        insert new List<Order__c>{ oRev, oUbo, oTc, oPc, oTlsd, oFpRev, oEco1, oEco2, oEco3 };
+        // Orders — one per (user, date, type) since item date/owner derive from the order.
+        Order__c oRevD1 = makeOrder(uRev.Id, acc1.Id, 'Secondary Order', day1);
+        Order__c oRevD2 = makeOrder(uRev.Id, acc1.Id, 'Secondary Order', day2);
+        Order__c oRevPri = makeOrder(uRev.Id, acc1.Id, 'Primary Order', day1);
+        Order__c oUboD1 = makeOrder(uUbo.Id, acc1.Id, 'Secondary Order', day1);
+        Order__c oUboD2 = makeOrder(uUbo.Id, acc1.Id, 'Secondary Order', day2);
+        Order__c oTcD1 = makeOrder(uTc.Id, acc1.Id, 'Secondary Order', day1);
+        Order__c oPcD1 = makeOrder(uPc.Id, acc1.Id, 'Secondary Order', day1);
+        Order__c oPcD2 = makeOrder(uPc.Id, acc1.Id, 'Secondary Order', day2);
+        Order__c oTlsdD1 = makeOrder(uTlsd.Id, acc1.Id, 'Secondary Order', day1);
+        Order__c oTlsdD2 = makeOrder(uTlsd.Id, acc1.Id, 'Secondary Order', day2);
+        Order__c oFpRev = makeOrder(uFpRev.Id, acc1.Id, 'Secondary Order', day1);
+        Order__c oEco1 = makeOrder(uFpEco.Id, acc1.Id, 'Secondary Order', day1);
+        Order__c oEco2 = makeOrder(uFpEco.Id, acc2.Id, 'Secondary Order', day1);
+        Order__c oEco3 = makeOrder(uFpEco.Id, acc2.Id, 'Secondary Order', day1);
+        insert new List<Order__c>{
+            oRevD1, oRevD2, oRevPri, oUboD1, oUboD2, oTcD1, oPcD1, oPcD2,
+            oTlsdD1, oTlsdD2, oFpRev, oEco1, oEco2, oEco3
+        };
 
         List<Order_Item__c> items = new List<Order_Item__c>();
-        // Revenue: 1000 + 500 secondary, plus 9999 primary (excluded)
-        items.add(makeItem(oRev.Id, uRev.Id, prodC.Id, acc1.Id, day1, 1, 1000, 'Secondary Order'));
-        items.add(makeItem(oRev.Id, uRev.Id, prodC.Id, acc1.Id, day2, 1, 500, 'Secondary Order'));
-        items.add(makeItem(oRev.Id, uRev.Id, prodC.Id, acc1.Id, day1, 1, 9999, 'Primary Order'));
+        // Revenue: 1000 (d1) + 500 (d2) secondary, plus 9999 primary (excluded)
+        items.add(makeItem(oRevD1.Id, prodC.Id, acc1.Id, 1, 1000, 'Secondary Order'));
+        items.add(makeItem(oRevD2.Id, prodC.Id, acc1.Id, 1, 500, 'Secondary Order'));
+        items.add(makeItem(oRevPri.Id, prodC.Id, acc1.Id, 1, 9999, 'Primary Order'));
         // UBO distinct outlets: acc1, acc1, acc2 -> 2
-        items.add(makeItem(oUbo.Id, uUbo.Id, prodC.Id, acc1.Id, day1, 1, 10, 'Secondary Order'));
-        items.add(makeItem(oUbo.Id, uUbo.Id, prodC.Id, acc1.Id, day2, 1, 10, 'Secondary Order'));
-        items.add(makeItem(oUbo.Id, uUbo.Id, prodC.Id, acc2.Id, day1, 1, 10, 'Secondary Order'));
+        items.add(makeItem(oUboD1.Id, prodC.Id, acc1.Id, 1, 10, 'Secondary Order'));
+        items.add(makeItem(oUboD1.Id, prodC.Id, acc2.Id, 1, 10, 'Secondary Order'));
+        items.add(makeItem(oUboD2.Id, prodC.Id, acc1.Id, 1, 10, 'Secondary Order'));
         // TC: orders today acc1, acc2 (visit forms add acc1 dedup + acc3)
-        items.add(makeItem(oTc.Id, uTc.Id, prodC.Id, acc1.Id, day1, 1, 10, 'Secondary Order'));
-        items.add(makeItem(oTc.Id, uTc.Id, prodC.Id, acc2.Id, day1, 1, 10, 'Secondary Order'));
+        items.add(makeItem(oTcD1.Id, prodC.Id, acc1.Id, 1, 10, 'Secondary Order'));
+        items.add(makeItem(oTcD1.Id, prodC.Id, acc2.Id, 1, 10, 'Secondary Order'));
         // PC: day1 acc1+acc2, day2 acc1 -> tuples 3, active days 2 -> 1.5
-        items.add(makeItem(oPc.Id, uPc.Id, prodC.Id, acc1.Id, day1, 1, 10, 'Secondary Order'));
-        items.add(makeItem(oPc.Id, uPc.Id, prodC.Id, acc2.Id, day1, 1, 10, 'Secondary Order'));
-        items.add(makeItem(oPc.Id, uPc.Id, prodC.Id, acc1.Id, day2, 1, 10, 'Secondary Order'));
+        items.add(makeItem(oPcD1.Id, prodC.Id, acc1.Id, 1, 10, 'Secondary Order'));
+        items.add(makeItem(oPcD1.Id, prodC.Id, acc2.Id, 1, 10, 'Secondary Order'));
+        items.add(makeItem(oPcD2.Id, prodC.Id, acc1.Id, 1, 10, 'Secondary Order'));
         // TLSD: day1 amt 100+200 qty 2+4 -> 300/6=50 ; day2 amt 90 qty 3 -> 30 ; /2 days = 40
-        items.add(makeItem(oTlsd.Id, uTlsd.Id, prodC.Id, acc1.Id, day1, 2, 100, 'Secondary Order'));
-        items.add(makeItem(oTlsd.Id, uTlsd.Id, prodC.Id, acc1.Id, day1, 4, 200, 'Secondary Order'));
-        items.add(makeItem(oTlsd.Id, uTlsd.Id, prodC.Id, acc1.Id, day2, 3, 90, 'Secondary Order'));
+        items.add(makeItem(oTlsdD1.Id, prodC.Id, acc1.Id, 2, 100, 'Secondary Order'));
+        items.add(makeItem(oTlsdD1.Id, prodC.Id, acc1.Id, 4, 200, 'Secondary Order'));
+        items.add(makeItem(oTlsdD2.Id, prodC.Id, acc1.Id, 3, 90, 'Secondary Order'));
         // Focus Pack Revenue: prodA 300 + prodB 200 (+ prodC 1000 excluded) = 500
-        items.add(makeItem(oFpRev.Id, uFpRev.Id, prodA.Id, acc1.Id, day1, 1, 300, 'Secondary Order'));
-        items.add(makeItem(oFpRev.Id, uFpRev.Id, prodB.Id, acc1.Id, day1, 1, 200, 'Secondary Order'));
-        items.add(makeItem(oFpRev.Id, uFpRev.Id, prodC.Id, acc1.Id, day1, 1, 1000, 'Secondary Order'));
+        items.add(makeItem(oFpRev.Id, prodA.Id, acc1.Id, 1, 300, 'Secondary Order'));
+        items.add(makeItem(oFpRev.Id, prodB.Id, acc1.Id, 1, 200, 'Secondary Order'));
+        items.add(makeItem(oFpRev.Id, prodC.Id, acc1.Id, 1, 1000, 'Secondary Order'));
         // Focus Pack ECO (min 12): order1 acc1 6+6=12 qualifies; acc2 split across orders 6/6 fails
-        items.add(makeItem(oEco1.Id, uFpEco.Id, prodA.Id, acc1.Id, day1, 6, 60, 'Secondary Order'));
-        items.add(makeItem(oEco1.Id, uFpEco.Id, prodB.Id, acc1.Id, day1, 6, 60, 'Secondary Order'));
-        items.add(makeItem(oEco2.Id, uFpEco.Id, prodA.Id, acc2.Id, day1, 6, 60, 'Secondary Order'));
-        items.add(makeItem(oEco3.Id, uFpEco.Id, prodB.Id, acc2.Id, day1, 6, 60, 'Secondary Order'));
+        items.add(makeItem(oEco1.Id, prodA.Id, acc1.Id, 6, 60, 'Secondary Order'));
+        items.add(makeItem(oEco1.Id, prodB.Id, acc1.Id, 6, 60, 'Secondary Order'));
+        items.add(makeItem(oEco2.Id, prodA.Id, acc2.Id, 6, 60, 'Secondary Order'));
+        items.add(makeItem(oEco3.Id, prodB.Id, acc2.Id, 6, 60, 'Secondary Order'));
         insert items;
 
         // Visit forms for TC (CreatedDate = today)
@@ -202,7 +214,6 @@ public class SecondaryAchievementBatchTest {
         Target_Criteria__c cFpEco = baseCriteria('FP ECO', 'FOCUS_PACK_ECO');
         insert new List<Target_Criteria__c>{ cRev, cUbo, cTc, cPc, cTlsd, cFpRev, cFpEco };
 
-        // Look up focus packs again for target wiring
         Map<String, Id> fp = new Map<String, Id>();
         for (Focused_Pack__c f : [SELECT Id, Name FROM Focused_Pack__c]) fp.put(f.Name, f.Id);
 
@@ -239,7 +250,6 @@ public class SecondaryAchievementBatchTest {
         System.assertEquals(500.00, achievementFor('FP Revenue'), 'Focus pack SKU revenue');
         System.assertEquals(1.00, achievementFor('FP ECO'), 'One outlet met min qty within one order');
 
-        // Verify derived fields on the revenue target
         Secondary_Target__c rev = [
             SELECT Achievement_Percent__c, Pending_Target__c, Working_Days__c, Last_Updated__c, Daily_Achievement__c
             FROM Secondary_Target__c WHERE Target_Criteria__r.Name = 'Sec Revenue' LIMIT 1
@@ -249,7 +259,6 @@ public class SecondaryAchievementBatchTest {
         System.assertEquals(1500.00, rev.Daily_Achievement__c, 'first run increment from 0');
         System.assertNotEquals(null, rev.Last_Updated__c);
 
-        // TC target stores attendance working days as divisor audit
         Secondary_Target__c tc = [
             SELECT Working_Days__c FROM Secondary_Target__c WHERE Target_Criteria__r.Name = 'TC' LIMIT 1
         ];

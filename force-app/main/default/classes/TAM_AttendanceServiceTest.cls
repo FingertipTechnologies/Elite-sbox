@@ -13,6 +13,14 @@ public class TAM_AttendanceServiceTest {
         );
     }
 
+    // Day_Started_Date__c is a formula on Day_started_time__c; set time mid-day.
+    private static Daily_Log__c makeLog(Id userId, Date d) {
+        return new Daily_Log__c(
+            User__c = userId, OwnerId = userId,
+            Day_started_time__c = Datetime.newInstance(d.year(), d.month(), d.day(), 12, 0, 0)
+        );
+    }
+
     @isTest
     static void testWorkingDaysCountsDistinctStartDaysInRange() {
         User u = makeUser('attn');
@@ -27,13 +35,13 @@ public class TAM_AttendanceServiceTest {
         Date outOfRange = Date.today().addDays(-20);
 
         insert new List<Daily_Log__c>{
-            new Daily_Log__c(User__c = u.Id, OwnerId = u.Id, Day_Started_Date__c = inRange1, Date__c = inRange1),
+            makeLog(u.Id, inRange1),
             // duplicate date should not double count
-            new Daily_Log__c(User__c = u.Id, OwnerId = u.Id, Day_Started_Date__c = inRange1, Date__c = inRange1),
-            new Daily_Log__c(User__c = u.Id, OwnerId = u.Id, Day_Started_Date__c = inRange2, Date__c = inRange2),
-            new Daily_Log__c(User__c = u.Id, OwnerId = u.Id, Day_Started_Date__c = Date.today(), Date__c = Date.today()),
+            makeLog(u.Id, inRange1),
+            makeLog(u.Id, inRange2),
+            makeLog(u.Id, Date.today()),
             // outside the period — excluded
-            new Daily_Log__c(User__c = u.Id, OwnerId = u.Id, Day_Started_Date__c = outOfRange, Date__c = outOfRange)
+            makeLog(u.Id, outOfRange)
         };
 
         Test.startTest();

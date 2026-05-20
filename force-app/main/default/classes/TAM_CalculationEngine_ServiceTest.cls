@@ -66,15 +66,13 @@ public class TAM_CalculationEngine_ServiceTest {
             OwnerId = u.Id, Order_Fulfillment_Status__c = 'Not Fulfilled', Order_Date__c = Date.today());
         insert new List<Order__c>{ o1, o2 };
 
+        // Order_Owner_Id__c and Order_Date__c are formula fields from the parent Order.
         insert new List<Order_Item__c>{
             new Order_Item__c(Order__c = o1.Id, Product__c = prodA.Id, Account__c = acc1.Id,
-                Order_Owner_Id__c = String.valueOf(u.Id), Order_Date__c = Date.today(),
                 Order_Type__c = 'Secondary Order', Quantity__c = 6, Total_Amount__c = 60),
             new Order_Item__c(Order__c = o1.Id, Product__c = prodB.Id, Account__c = acc1.Id,
-                Order_Owner_Id__c = String.valueOf(u.Id), Order_Date__c = Date.today(),
                 Order_Type__c = 'Secondary Order', Quantity__c = 6, Total_Amount__c = 60),
             new Order_Item__c(Order__c = o2.Id, Product__c = prodA.Id, Account__c = acc2.Id,
-                Order_Owner_Id__c = String.valueOf(u.Id), Order_Date__c = Date.today(),
                 Order_Type__c = 'Secondary Order', Quantity__c = 6, Total_Amount__c = 60)
         };
 

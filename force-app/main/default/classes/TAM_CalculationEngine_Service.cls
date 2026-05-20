@@ -73,32 +73,45 @@ public without sharing class TAM_CalculationEngine_Service {
     }
 
     // ---- SUM / COUNT / COUNT_DISTINCT ------------------------------------
+    // Raw rows aggregated in Apex so a formula User Field (e.g. Order_Owner_Id__c)
+    // does not need to be GROUP BY-able in SOQL.
     private static Map<Id, Decimal> computePeriodAggregate(
         Target_Criteria__c crit, Set<Id> userIds, Date startDate, Date endDate
     ) {
         Map<Id, Decimal> perUser = new Map<Id, Decimal>();
         Map<String, Id> keyToUser = buildKeyToUser(userIds);
         Set<String> userKeys = keyToUser.keySet();
+        String op = crit.Operator__c;
 
-        String agg;
-        if (crit.Operator__c == 'COUNT') {
-            agg = 'COUNT(Id)';
-        } else if (crit.Operator__c == 'COUNT_DISTINCT') {
-            agg = 'COUNT_DISTINCT(' + crit.Distinct_Field__c + ')';
-        } else {
-            agg = 'SUM(' + crit.Field__c + ')';
+        List<String> selectFields = new List<String>{ crit.User_Field__c };
+        if (op == 'SUM') selectFields.add(crit.Field__c);
+        if (op == 'COUNT_DISTINCT') selectFields.add(crit.Distinct_Field__c);
+
+        String soql = 'SELECT ' + String.join(selectFields, ', ') +
+            ' FROM ' + crit.Object__c + ' WHERE ' + buildBaseWhere(crit, true);
+
+        Map<Id, Decimal> sumByUser = new Map<Id, Decimal>();
+        Map<Id, Set<String>> distinctByUser = new Map<Id, Set<String>>();
+
+        for (SObject row : Database.query(soql)) {
+            Id uid = resolveUserId(row.get(crit.User_Field__c), keyToUser);
+            if (uid == null) continue;
+            if (op == 'SUM') {
+                sumByUser.put(uid, (sumByUser.containsKey(uid) ? sumByUser.get(uid) : 0) + toDecimal(row.get(crit.Field__c)));
+            } else if (op == 'COUNT_DISTINCT') {
+                Object dv = row.get(crit.Distinct_Field__c);
+                if (dv == null) continue;
+                if (!distinctByUser.containsKey(uid)) distinctByUser.put(uid, new Set<String>());
+                distinctByUser.get(uid).add(String.valueOf(dv));
+            } else { // COUNT
+                sumByUser.put(uid, (sumByUser.containsKey(uid) ? sumByUser.get(uid) : 0) + 1);
+            }
         }
 
-        String soql = 'SELECT ' + crit.User_Field__c + ' uid, ' + agg + ' val' +
-            ' FROM ' + crit.Object__c +
-            ' WHERE ' + buildBaseWhere(crit, true) +
-            ' GROUP BY ' + crit.User_Field__c;
-
-        for (AggregateResult ar : Database.query(soql)) {
-            Id uid = resolveUserId(ar.get('uid'), keyToUser);
-            if (uid == null) continue;
-            Decimal v = toDecimal(ar.get('val'));
-            perUser.put(uid, (perUser.containsKey(uid) ? perUser.get(uid) : 0) + v);
+        if (op == 'COUNT_DISTINCT') {
+            for (Id uid : distinctByUser.keySet()) perUser.put(uid, distinctByUser.get(uid).size());
+        } else {
+            perUser.putAll(sumByUser);
         }
         return perUser;
     }
@@ -251,41 +264,47 @@ public without sharing class TAM_CalculationEngine_Service {
 
                 if (isEco) {
                     Decimal minQty = minQtyByPack.containsKey(packId) ? minQtyByPack.get(packId) : 0;
-                    Map<Id, Set<Id>> qualifiedOutlets = new Map<Id, Set<Id>>();
-                    for (AggregateResult ar : [
-                        SELECT Order_Owner_Id__c uid, Account__c outlet, SUM(Quantity__c) q
+                    // Sum pack-SKU quantity per (user, order, outlet) in Apex, then qualify.
+                    Map<String, Decimal> qtyByKey = new Map<String, Decimal>();
+                    Map<String, Id> userByKey = new Map<String, Id>();
+                    Map<String, Id> outletByKey = new Map<String, Id>();
+                    for (Order_Item__c oi : [
+                        SELECT Order_Owner_Id__c, Order__c, Account__c, Quantity__c
                         FROM Order_Item__c
                         WHERE Product__c IN :skuIds
                           AND Order_Type__c = :secondaryType
                           AND Order_Date__c >= :startDate AND Order_Date__c <= :endDate
                           AND Order_Owner_Id__c IN :userKeys
-                        GROUP BY Order_Owner_Id__c, Order__c, Account__c
                     ]) {
-                        Decimal q = toDecimal(ar.get('q'));
-                        if (q < minQty) continue;
-                        Id uid = resolveUserId(ar.get('uid'), keyToUser);
-                        Object outlet = ar.get('outlet');
-                        if (uid == null || outlet == null) continue;
+                        Id uid = resolveUserId(oi.Order_Owner_Id__c, keyToUser);
+                        if (uid == null || oi.Account__c == null) continue;
+                        String key = uid + '|' + oi.Order__c + '|' + oi.Account__c;
+                        qtyByKey.put(key, (qtyByKey.containsKey(key) ? qtyByKey.get(key) : 0) + toDecimal(oi.Quantity__c));
+                        userByKey.put(key, uid);
+                        outletByKey.put(key, oi.Account__c);
+                    }
+                    Map<Id, Set<Id>> qualifiedOutlets = new Map<Id, Set<Id>>();
+                    for (String key : qtyByKey.keySet()) {
+                        if (qtyByKey.get(key) < minQty) continue;
+                        Id uid = userByKey.get(key);
                         if (!qualifiedOutlets.containsKey(uid)) qualifiedOutlets.put(uid, new Set<Id>());
-                        qualifiedOutlets.get(uid).add((Id) outlet);
+                        qualifiedOutlets.get(uid).add(outletByKey.get(key));
                     }
                     for (Id uid : qualifiedOutlets.keySet()) {
                         perUser.put(uid, qualifiedOutlets.get(uid).size());
                     }
                 } else {
-                    for (AggregateResult ar : [
-                        SELECT Order_Owner_Id__c uid, SUM(Total_Amount__c) val
+                    for (Order_Item__c oi : [
+                        SELECT Order_Owner_Id__c, Total_Amount__c
                         FROM Order_Item__c
                         WHERE Product__c IN :skuIds
                           AND Order_Type__c = :secondaryType
                           AND Order_Date__c >= :startDate AND Order_Date__c <= :endDate
                           AND Order_Owner_Id__c IN :userKeys
-                        GROUP BY Order_Owner_Id__c
                     ]) {
-                        Id uid = resolveUserId(ar.get('uid'), keyToUser);
+                        Id uid = resolveUserId(oi.Order_Owner_Id__c, keyToUser);
                         if (uid == null) continue;
-                        Decimal v = toDecimal(ar.get('val'));
-                        perUser.put(uid, v);
+                        perUser.put(uid, (perUser.containsKey(uid) ? perUser.get(uid) : 0) + toDecimal(oi.Total_Amount__c));
                     }
                 }
             }
