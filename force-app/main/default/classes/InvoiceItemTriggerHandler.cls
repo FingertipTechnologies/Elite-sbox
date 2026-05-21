@@ -127,11 +127,50 @@ public without sharing class InvoiceItemTriggerHandler {
     */
     public static void mapInvoiceItemOwner(List<Invoice_Item__c> newInvoiceItems)
     {
+        // Copy header-derived fields first so Bill_to_Party__c is available as the
+        // Product_Mapping key below.
         for(Invoice_Item__c item : newInvoiceItems) {
-            if(item.Invoice_OwnerId__c != null) item.OwnerId = item.Invoice_OwnerId__c;
-            if(item.Invoice_Customer_Name__c != null) item.Bill_to_party_name__c = item.Invoice_Customer_Name__c; 
-            if(item.Invoice_SAP_Customer_Code__c != null) item.Bill_to_Party__c = item.Invoice_SAP_Customer_Code__c; 
-            if(item.Invoice_Ship_to_party_Name__c != null) item.Ship_to_party_name__c = item.Invoice_Ship_to_party_Name__c; 
+            if(item.Invoice_Customer_Name__c != null) item.Bill_to_party_name__c = item.Invoice_Customer_Name__c;
+            if(item.Invoice_SAP_Customer_Code__c != null) item.Bill_to_Party__c = item.Invoice_SAP_Customer_Code__c;
+            if(item.Invoice_Ship_to_party_Name__c != null) item.Ship_to_party_name__c = item.Invoice_Ship_to_party_Name__c;
+        }
+
+        // Build the customer + plant -> lowest-hierarchy executive map for items
+        // that have no SF Order linked.
+        Set<String> customerExecuivePair = new Set<String>();
+        for(Invoice_Item__c item : newInvoiceItems) {
+            if(item.Order__c == null && item.Bill_To_Party__c != null && item.Plant__c != null) {
+                customerExecuivePair.add(item.Bill_To_Party__c + '_' + item.Plant__c);
+            }
+        }
+
+        Map<String, Product_Mapping__c> pairWithLowestHierarchy = new Map<String, Product_Mapping__c>();
+        if(!customerExecuivePair.isEmpty()) {
+            for (Product_Mapping__c pm : [
+                SELECT Id, Customer_Delivery_Plant_Pair__c, Hierarchy_Number__c, Exectuive__c
+                FROM Product_Mapping__c
+                WHERE Customer_Delivery_Plant_Pair__c IN :customerExecuivePair
+                AND Exectuive__c != null AND Customer__c != null AND is_Executive_Active__c = true
+                LIMIT 50000
+            ]) {
+                String key = pm.Customer_Delivery_Plant_Pair__c;
+                Product_Mapping__c existing = pairWithLowestHierarchy.get(key);
+                if (existing == null || pm.Hierarchy_Number__c < existing.Hierarchy_Number__c) {
+                    pairWithLowestHierarchy.put(key, pm);
+                }
+            }
+        }
+
+        for(Invoice_Item__c item : newInvoiceItems) {
+            if(item.Order__c != null && item.Is_Order_Owner_Active__c == true && item.Order_Owner_Id__c != null) {
+                item.OwnerId = item.Order_Owner_Id__c;
+            }
+            else if(item.Order__c == null && item.Bill_To_Party__c != null && item.Plant__c != null) {
+                Product_Mapping__c lowestMapping = pairWithLowestHierarchy.get(item.Bill_To_Party__c + '_' + item.Plant__c);
+                if (lowestMapping != null && String.isNotBlank(lowestMapping.Exectuive__c)) {
+                    item.OwnerId = lowestMapping.Exectuive__c;
+                }
+            }
         }
     }
     public static void handleAfterInsert(List<Invoice_Item__c> newInvoiceItems) {
