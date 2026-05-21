@@ -149,7 +149,7 @@ export default class NewDebitNoteDataUpload extends LightningElement {
                 } else {
                     this.showToast('warning', `${res.successCount} succeeded, ${res.failedCount} failed.`);
                 }
-                this.dispatchEvent(new CustomEvent('uploadcomplete', { detail: res }));
+                //this.dispatchEvent(new CustomEvent('uploadcomplete', { detail: res }));
             })
             .catch(error => {
                 this.isUploading = false;
@@ -208,12 +208,9 @@ export default class NewDebitNoteDataUpload extends LightningElement {
             csvBody += row.map(escape).join(',') + '\n';
         });
 
-        const encodedUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvBody);
-        const baseName = this.fileName ? this.fileName.replace(/\.csv$/i, '') : 'debit_note_upload';
-        const link = document.createElement('a');
-        link.setAttribute('href', encodedUri);
-        link.setAttribute('download', baseName + '_result.csv');
-        link.click();
+       // ✅ This works in Experience Cloud Locker Service
+        const encodedUri = 'data:text/csv;charset=utf-8,' + encodeURI(csvBody);
+        window.open(encodedUri);
     }
 
     handleBackToSelect() {

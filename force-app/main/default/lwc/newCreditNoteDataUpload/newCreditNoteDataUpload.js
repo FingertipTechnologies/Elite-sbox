@@ -149,7 +149,7 @@ export default class NewCreditNoteDataUpload extends LightningElement {
                 } else {
                     this.showToast('warning', `${res.successCount} succeeded, ${res.failedCount} failed.`);
                 }
-                this.dispatchEvent(new CustomEvent('uploadcomplete', { detail: res }));
+                //this.dispatchEvent(new CustomEvent('uploadcomplete', { detail: res }));
             })
             .catch(error => {
                 this.isUploading = false;
@@ -184,7 +184,8 @@ export default class NewCreditNoteDataUpload extends LightningElement {
             return;
         }
 
-        const header = ['Row No', 'Status', 'Customer Code', 'Customer Name', 'Record Id', 'Credit Note No', 'Credit Date', 'Amount', 'Reason', 'Description', 'Message'];
+        const header = ['Row No', 'Status', 'Customer Code', 'Customer Name', 'Record Id', 
+                        'Credit Note No', 'Credit Date', 'Amount', 'Reason', 'Description', 'Message'];
 
         const escape = (v) => {
             const str = v == null ? '' : String(v);
@@ -194,28 +195,24 @@ export default class NewCreditNoteDataUpload extends LightningElement {
         const rows = [];
         (this.result.successes || []).forEach(s => {
             rows.push([s.rowNumber, 'Success', s.customerCode || '', s.customerName || '',
-                       s.recordId || '', s.recordName || '', s.noteDate || '',
-                       s.amount != null ? s.amount : '', '', '', '']);
+                    s.recordId || '', s.recordName || '', s.noteDate || '',
+                    s.amount != null ? s.amount : '', '', '', '']);
         });
         (this.result.errors || []).forEach(e => {
             rows.push([e.rowNumber, 'Failed', e.customerCode || '', '', '', '',
-                       e.noteDate || '', e.amount || '', e.reason || '', e.description || '',
-                       e.message || '']);
+                    e.noteDate || '', e.amount || '', e.reason || '', e.description || '',
+                    e.message || '']);
         });
 
-        let csvBody = header.join(',') + '\n';
+        let csvContent = header.join(',') + '\n';
         rows.forEach(row => {
-            csvBody += row.map(escape).join(',') + '\n';
+            csvContent += row.map(escape).join(',') + '\n';
         });
 
-        const encodedUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvBody);
-        const baseName = this.fileName ? this.fileName.replace(/\.csv$/i, '') : 'credit_note_upload';
-        const link = document.createElement('a');
-        link.setAttribute('href', encodedUri);
-        link.setAttribute('download', baseName + '_result.csv');
-        link.click();
+        // ✅ This works in Experience Cloud Locker Service
+        const encodedUri = 'data:text/csv;charset=utf-8,' + encodeURI(csvContent);
+        window.open(encodedUri);
     }
-
     handleBackToSelect() {
         this.parsedRows = [];
         this.result = null;

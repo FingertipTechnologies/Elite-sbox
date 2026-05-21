@@ -61,7 +61,7 @@
                             </lightning-combobox>
                         </div>
                         <div class="slds-col slds-size_1-of-3 slds-p-around_small">
-                            <lightning-input type="number" label="Amount" value={amount}
+                            <lightning-input type="number" label="Amount (₹)" value={amount}
                                 onchange={handleAmountChange} required></lightning-input>
                         </div>
                         <div class="slds-col slds-size_1-of-1 slds-p-around_small">
@@ -88,9 +88,9 @@
                         <button class="actionButton" style="margin-top:30px; width:auto; padding:0 12px; white-space:nowrap;" onclick={handleNewDebitNote}>
                             New Secondary Debit Note
                         </button>
-                        <!--<button class="actionButton" style="margin-top:30px; width:auto; padding:0 12px; white-space:nowrap;" onclick={handleShowUpload}>
+                        <button class="actionButton" style="margin-top:30px; width:auto; padding:0 12px; white-space:nowrap;" onclick={handleShowUpload}>
                             Upload Debit Notes
-                        </button>-->
+                        </button>
                         <button class="actionButton" onclick={downloadDebitNotesAsCSV}
                             style="background-color: #28a745; color: white; margin-top:30px; align-items: center; padding: 6px 12px; border-radius: 4px; border: none;">
                             <span style="align-items: center;">
@@ -124,7 +124,7 @@
                             <th style="width:20%;">Customer Name</th>
                             <th style="width:15%;">Reason</th>
                             <th style="width:10%;">Date</th>
-                            <th style="width:10%;">Amount</th>
+                            <th style="width:10%;">Amount (₹)</th>
                             <th style="width:25%;">Description</th>
                         </tr>
                     </thead>
