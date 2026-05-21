@@ -45,7 +45,9 @@ public class SecondaryAchievementBatchTest {
                                           Decimal qty, Decimal amount, String type) {
         return new Order_Item__c(
             Order__c = orderId, Product__c = prodId, Account__c = accId,
-            Order_Type__c = type, Quantity__c = qty, Total_Amount__c = amount
+            Order_Type__c = type, Quantity__c = qty,
+            // Total_Amount__c = gross; Non_Taxable_Order_Value__c = pre-tax (BRD 3.3.5)
+            Total_Amount__c = amount, Non_Taxable_Order_Value__c = amount
         );
     }
 
@@ -204,15 +206,22 @@ public class SecondaryAchievementBatchTest {
         cPc.Filters__c = SECONDARY_FILTER;
         cPc.Use_Attendance_Divisor__c = false;
 
-        Target_Criteria__c cTlsd = baseCriteria('Avg TLSD', 'DAILY_RATIO_AVG');
-        cTlsd.Numerator_Field__c = 'Total_Amount__c';
-        cTlsd.Denominator_Field__c = 'Quantity__c';
+        // Average TLSD (BRD 3.3.4): lines per order per day, averaged over working days.
+        Target_Criteria__c cTlsd = baseCriteria('Avg TLSD', 'DAILY_LINES_PER_ORDER');
+        cTlsd.Distinct_Field__c = 'Order__c';
         cTlsd.Filters__c = SECONDARY_FILTER;
         cTlsd.Use_Attendance_Divisor__c = true;
 
+        // Generic daily ratio (sum/sum) — keeps that operator covered.
+        Target_Criteria__c cTlsdRatio = baseCriteria('TLSD Ratio', 'DAILY_RATIO_AVG');
+        cTlsdRatio.Numerator_Field__c = 'Total_Amount__c';
+        cTlsdRatio.Denominator_Field__c = 'Quantity__c';
+        cTlsdRatio.Filters__c = SECONDARY_FILTER;
+        cTlsdRatio.Use_Attendance_Divisor__c = true;
+
         Target_Criteria__c cFpRev = baseCriteria('FP Revenue', 'FOCUS_PACK_REVENUE');
         Target_Criteria__c cFpEco = baseCriteria('FP ECO', 'FOCUS_PACK_ECO');
-        insert new List<Target_Criteria__c>{ cRev, cUbo, cTc, cPc, cTlsd, cFpRev, cFpEco };
+        insert new List<Target_Criteria__c>{ cRev, cUbo, cTc, cPc, cTlsd, cTlsdRatio, cFpRev, cFpEco };
 
         Map<String, Id> fp = new Map<String, Id>();
         for (Focused_Pack__c f : [SELECT Id, Name FROM Focused_Pack__c]) fp.put(f.Name, f.Id);
@@ -222,7 +231,8 @@ public class SecondaryAchievementBatchTest {
             makeTarget(uUbo.Id, cUbo.Id, 5, null),
             makeTarget(uTc.Id, cTc.Id, 2, null),
             makeTarget(uPc.Id, cPc.Id, 3, null),
-            makeTarget(uTlsd.Id, cTlsd.Id, 50, null),
+            makeTarget(uTlsd.Id, cTlsd.Id, 5, null),
+            makeTarget(uTlsd.Id, cTlsdRatio.Id, 50, null),
             makeTarget(uFpRev.Id, cFpRev.Id, 1000, fp.get('FP Rev')),
             makeTarget(uFpEco.Id, cFpEco.Id, 2, fp.get('FP Eco'))
         };
@@ -246,8 +256,9 @@ public class SecondaryAchievementBatchTest {
         System.assertEquals(2.00, achievementFor('UBO'), 'Distinct outlets');
         System.assertEquals(1.00, achievementFor('TC'), 'TC = 3 deduped tuples / 3 working days');
         System.assertEquals(1.50, achievementFor('PC'), 'PC = 3 tuples / 2 active days');
-        System.assertEquals(40.00, achievementFor('Avg TLSD'), 'Day-wise ratio avg (50+30)/2');
-        System.assertEquals(500.00, achievementFor('FP Revenue'), 'Focus pack SKU revenue');
+        System.assertEquals(1.50, achievementFor('Avg TLSD'), 'TLSD = (2/1 day1 + 1/1 day2) / 2 working days');
+        System.assertEquals(40.00, achievementFor('TLSD Ratio'), 'Day-wise sum/sum avg (50+30)/2');
+        System.assertEquals(500.00, achievementFor('FP Revenue'), 'Focus pack pre-tax SKU revenue');
         System.assertEquals(1.00, achievementFor('FP ECO'), 'One outlet met min qty within one order');
 
         Secondary_Target__c rev = [

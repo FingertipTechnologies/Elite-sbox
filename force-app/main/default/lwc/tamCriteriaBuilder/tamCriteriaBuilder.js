@@ -70,7 +70,8 @@ export default class TamCriteriaBuilder extends LightningElement {
         { label: 'COUNT', value: 'COUNT' },
         { label: 'COUNT DISTINCT', value: 'COUNT_DISTINCT' },
         { label: 'DAILY UNIQUE AVG (TC / PC)', value: 'DAILY_UNIQUE_AVG' },
-        { label: 'DAILY RATIO AVG (Avg TLSD)', value: 'DAILY_RATIO_AVG' },
+        { label: 'DAILY RATIO AVG (sum ÷ sum)', value: 'DAILY_RATIO_AVG' },
+        { label: 'DAILY LINES PER ORDER (Avg TLSD)', value: 'DAILY_LINES_PER_ORDER' },
         { label: 'FOCUS PACK REVENUE', value: 'FOCUS_PACK_REVENUE' },
         { label: 'FOCUS PACK ECO', value: 'FOCUS_PACK_ECO' }
     ];
@@ -605,6 +606,7 @@ export default class TamCriteriaBuilder extends LightningElement {
         if (!this.criteria.User_Field__c) return true;
         if (this.isSumOperator && !this.criteria.Field__c) return true;
         if (this.showDistinctField && !this.criteria.Distinct_Field__c) return true;
+        if (this.showOrderField && !this.criteria.Distinct_Field__c) return true;
         if (this.showRatioFields && (!this.criteria.Numerator_Field__c || !this.criteria.Denominator_Field__c)) return true;
         return false;
     }
@@ -615,13 +617,17 @@ export default class TamCriteriaBuilder extends LightningElement {
     get isCountDistinct() { return this.criteria.Operator__c === 'COUNT_DISTINCT'; }
     get isDailyUnique() { return this.criteria.Operator__c === 'DAILY_UNIQUE_AVG'; }
     get isDailyRatio() { return this.criteria.Operator__c === 'DAILY_RATIO_AVG'; }
+    get isDailyLinesPerOrder() { return this.criteria.Operator__c === 'DAILY_LINES_PER_ORDER'; }
+    get isFocusPackRevenue() { return this.criteria.Operator__c === 'FOCUS_PACK_REVENUE'; }
     get isFocusPack() {
         return this.criteria.Operator__c === 'FOCUS_PACK_REVENUE'
             || this.criteria.Operator__c === 'FOCUS_PACK_ECO';
     }
     get showDistinctField() { return this.isCountDistinct || this.isDailyUnique; }
+    get showOrderField() { return this.isDailyLinesPerOrder; }
     get showRatioFields() { return this.isDailyRatio; }
-    get showAttendanceDivisor() { return this.isDailyUnique || this.isDailyRatio; }
+    get showFocusValueField() { return this.isFocusPackRevenue; }
+    get showAttendanceDivisor() { return this.isDailyUnique || this.isDailyRatio || this.isDailyLinesPerOrder; }
     get showSecondarySources() { return this.isDailyUnique; }
     // Source-object/field mapping is irrelevant for Focus-Pack operators
     // because the engine derives SKUs and orders from the Focus Pack itself.
@@ -738,8 +744,9 @@ export default class TamCriteriaBuilder extends LightningElement {
     handleOperatorChange(e) {
         this.criteria.Operator__c = e.target.value;
         // Clear inputs that no longer apply to the chosen operator.
-        if (!this.isSumOperator) this.criteria.Field__c = null;
-        if (!this.showDistinctField) this.criteria.Distinct_Field__c = null;
+        // Field__c is the SUM field, and (optionally) the Focus-Pack revenue field.
+        if (!this.isSumOperator && !this.showFocusValueField) this.criteria.Field__c = null;
+        if (!this.showDistinctField && !this.showOrderField) this.criteria.Distinct_Field__c = null;
         if (!this.showRatioFields) {
             this.criteria.Numerator_Field__c = null;
             this.criteria.Denominator_Field__c = null;

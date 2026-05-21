@@ -67,6 +67,18 @@ public with sharing class SecondaryTarget_Controller {
     }
 
     @AuraEnabled(cacheable=true)
+    public static List<Map<String, String>> getChannelOptions() {
+        List<Map<String, String>> opts = new List<Map<String, String>>();
+        Schema.DescribeFieldResult dfr = Secondary_Target__c.Sales_Channel__c.getDescribe();
+        for (Schema.PicklistEntry e : dfr.getPicklistValues()) {
+            if (e.isActive()) {
+                opts.add(new Map<String, String>{ 'label' => e.getLabel(), 'value' => e.getValue() });
+            }
+        }
+        return opts;
+    }
+
+    @AuraEnabled(cacheable=true)
     public static List<Map<String, String>> getFocusedPackOptions() {
         List<Map<String, String>> opts = new List<Map<String, String>>();
         for (Focused_Pack__c fp : [

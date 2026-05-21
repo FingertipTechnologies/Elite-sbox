@@ -78,6 +78,7 @@ public class SecondaryTarget_ControllerTest {
 
         System.assert(!SecondaryTarget_Controller.getCriteriaOptions().isEmpty(), 'criteria options present');
         SecondaryTarget_Controller.getFocusedPackOptions();
+        SecondaryTarget_Controller.getChannelOptions();
         System.assert(!SecondaryTarget_Controller.searchUsers('T').isEmpty(), 'user search returns rows');
         Test.stopTest();
     }

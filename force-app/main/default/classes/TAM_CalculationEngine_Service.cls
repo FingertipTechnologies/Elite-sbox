@@ -7,8 +7,9 @@
  *   COUNT_DISTINCT       - distinct outlets in period per user (UBO / ECO).
  *   DAILY_UNIQUE_AVG     - distinct (day, outlet) tuples / divisor (TC, PC),
  *                          deduped across the unioned secondary source objects.
- *   DAILY_RATIO_AVG      - average of daily numerator/denominator ratios (Avg TLSD).
- *   FOCUS_PACK_REVENUE   - secondary revenue of Focus-Pack SKUs.
+ *   DAILY_RATIO_AVG      - average of daily SUM(numerator)/SUM(denominator) ratios.
+ *   DAILY_LINES_PER_ORDER- average daily (line rows / distinct orders) = Avg TLSD.
+ *   FOCUS_PACK_REVENUE   - pre-tax secondary revenue of Focus-Pack SKUs.
  *   FOCUS_PACK_ECO       - distinct outlets where one order met the pack min qty.
  *
  * Daily averages divide by attendance working days when Use_Attendance_Divisor__c
@@ -68,6 +69,8 @@ public without sharing class TAM_CalculationEngine_Service {
             return computeDailyUniqueAvg(crit, userIds, startDate, endDate, workingDaysByUser);
         } else if (op == 'DAILY_RATIO_AVG') {
             return computeDailyRatioAvg(crit, userIds, startDate, endDate, workingDaysByUser);
+        } else if (op == 'DAILY_LINES_PER_ORDER') {
+            return computeDailyLinesPerOrder(crit, userIds, startDate, endDate, workingDaysByUser);
         }
         return computePeriodAggregate(crit, userIds, startDate, endDate);
     }
@@ -211,6 +214,59 @@ public without sharing class TAM_CalculationEngine_Service {
         return perUser;
     }
 
+    // ---- DAILY_LINES_PER_ORDER (Average TLSD, BRD 3.3.4) -----------------
+    // Per day: TLSD = (line-item rows that day) / (distinct orders that day).
+    // Achievement = average of daily TLSD across the divisor (working/active days).
+    private static Map<Id, Decimal> computeDailyLinesPerOrder(
+        Target_Criteria__c crit, Set<Id> userIds, Date startDate, Date endDate,
+        Map<Id, Integer> workingDaysByUser
+    ) {
+        Map<String, Id> keyToUser = buildKeyToUser(userIds);
+        Set<String> userKeys = keyToUser.keySet();
+        // Distinct_Field__c holds the order-grouping field (e.g. Order__c).
+        String orderField = crit.Distinct_Field__c;
+
+        String soql = 'SELECT ' + crit.User_Field__c + ', ' + crit.Date_Field__c + ', ' + orderField +
+            ' FROM ' + crit.Object__c + ' WHERE ' + buildBaseWhere(crit, true);
+
+        Map<Id, Map<Date, Integer>> linesByUserDay = new Map<Id, Map<Date, Integer>>();
+        Map<Id, Map<Date, Set<String>>> ordersByUserDay = new Map<Id, Map<Date, Set<String>>>();
+
+        for (SObject row : Database.query(soql)) {
+            Id uid = resolveUserId(row.get(crit.User_Field__c), keyToUser);
+            if (uid == null) continue;
+            Date d = toDate(row.get(crit.Date_Field__c));
+            if (d == null) continue;
+            Object ord = row.get(orderField);
+            if (ord == null) continue;
+
+            if (!linesByUserDay.containsKey(uid)) {
+                linesByUserDay.put(uid, new Map<Date, Integer>());
+                ordersByUserDay.put(uid, new Map<Date, Set<String>>());
+            }
+            Map<Date, Integer> lMap = linesByUserDay.get(uid);
+            Map<Date, Set<String>> oMap = ordersByUserDay.get(uid);
+            lMap.put(d, (lMap.containsKey(d) ? lMap.get(d) : 0) + 1);
+            if (!oMap.containsKey(d)) oMap.put(d, new Set<String>());
+            oMap.get(d).add(String.valueOf(ord));
+        }
+
+        Map<Id, Decimal> perUser = new Map<Id, Decimal>();
+        for (Id uid : linesByUserDay.keySet()) {
+            Map<Date, Integer> lMap = linesByUserDay.get(uid);
+            Map<Date, Set<String>> oMap = ordersByUserDay.get(uid);
+            Decimal ratioSum = 0;
+            for (Date d : lMap.keySet()) {
+                Integer orders = oMap.get(d).size();
+                Decimal lines = lMap.get(d);
+                if (orders > 0) ratioSum += lines / orders;
+            }
+            Integer divisor = resolveDivisor(crit, uid, lMap.keySet(), workingDaysByUser);
+            perUser.put(uid, divisor > 0 ? (ratioSum / divisor).setScale(2, System.RoundingMode.HALF_UP) : 0);
+        }
+        return perUser;
+    }
+
     // ---- FOCUS_PACK_REVENUE / FOCUS_PACK_ECO -----------------------------
     private static Map<Id, Decimal> computeFocusPack(
         Target_Criteria__c crit, List<Secondary_Target__c> targets, Date startDate, Date endDate
@@ -294,17 +350,20 @@ public without sharing class TAM_CalculationEngine_Service {
                         perUser.put(uid, qualifiedOutlets.get(uid).size());
                     }
                 } else {
-                    for (Order_Item__c oi : [
-                        SELECT Order_Owner_Id__c, Total_Amount__c
-                        FROM Order_Item__c
-                        WHERE Product__c IN :skuIds
-                          AND Order_Type__c = :secondaryType
-                          AND Order_Date__c >= :startDate AND Order_Date__c <= :endDate
-                          AND Order_Owner_Id__c IN :userKeys
-                    ]) {
-                        Id uid = resolveUserId(oi.Order_Owner_Id__c, keyToUser);
+                    // Revenue excludes tax (BRD 3.3.5): default to the pre-tax order
+                    // value, allowing an override via the criteria's Field.
+                    String valueField = String.isNotBlank(crit.Field__c)
+                        ? crit.Field__c : 'Non_Taxable_Order_Value__c';
+                    String revSoql = 'SELECT Order_Owner_Id__c, ' + valueField +
+                        ' FROM Order_Item__c' +
+                        ' WHERE Product__c IN :skuIds' +
+                        ' AND Order_Type__c = :secondaryType' +
+                        ' AND Order_Date__c >= :startDate AND Order_Date__c <= :endDate' +
+                        ' AND Order_Owner_Id__c IN :userKeys';
+                    for (SObject oi : Database.query(revSoql)) {
+                        Id uid = resolveUserId(oi.get('Order_Owner_Id__c'), keyToUser);
                         if (uid == null) continue;
-                        perUser.put(uid, (perUser.containsKey(uid) ? perUser.get(uid) : 0) + toDecimal(oi.Total_Amount__c));
+                        perUser.put(uid, (perUser.containsKey(uid) ? perUser.get(uid) : 0) + toDecimal(oi.get(valueField)));
                     }
                 }
             }

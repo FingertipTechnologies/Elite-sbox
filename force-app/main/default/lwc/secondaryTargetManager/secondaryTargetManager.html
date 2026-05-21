@@ -74,31 +74,67 @@
                     <h2 class="slds-modal__title slds-hyphenate">{formTitle}</h2>
                 </header>
                 <div class="slds-modal__content slds-p-around_medium">
-                    <lightning-record-edit-form object-api-name={objectApiName}
-                        record-id={editRecordId}
-                        onsuccess={handleFormSuccess} onerror={handleFormError}>
-                        <lightning-messages></lightning-messages>
-                        <div class="slds-grid slds-gutters slds-wrap">
-                            <div class="slds-col slds-size_1-of-2">
-                                <lightning-input-field field-name="User__c" required></lightning-input-field>
-                                <lightning-input-field field-name="Target_Criteria__c" required></lightning-input-field>
-                                <lightning-input-field field-name="Focused_Pack__c"></lightning-input-field>
-                                <lightning-input-field field-name="Sales_Channel__c"></lightning-input-field>
+                    <div class="slds-grid slds-gutters slds-wrap">
+                        <div class="slds-col slds-size_1-of-2">
+                            <!-- User typeahead -->
+                            <div class="slds-form-element slds-m-bottom_x-small slds-is-relative">
+                                <label class="slds-form-element__label">User</label>
+                                <lightning-input variant="label-hidden" data-field="userLabel"
+                                    value={form.userLabel} onchange={handleUserSearch}
+                                    placeholder="Type to search active users"></lightning-input>
+                                <template if:true={showUserResults}>
+                                    <ul class="slds-dropdown slds-dropdown_fluid slds-dropdown_length-5" role="listbox">
+                                        <template for:each={userResults} for:item="u">
+                                            <li key={u.value} class="slds-listbox__item" role="presentation">
+                                                <div class="slds-media slds-listbox__option slds-listbox__option_plain"
+                                                    data-value={u.value} data-label={u.label}
+                                                    onclick={handleSelectUser}>
+                                                    {u.label}
+                                                </div>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </template>
                             </div>
-                            <div class="slds-col slds-size_1-of-2">
-                                <lightning-input-field field-name="Target_Value__c"></lightning-input-field>
-                                <lightning-input-field field-name="Year__c"></lightning-input-field>
-                                <lightning-input-field field-name="Start_Date__c" required></lightning-input-field>
-                                <lightning-input-field field-name="End_Date__c" required></lightning-input-field>
-                                <lightning-input-field field-name="Is_Active__c"></lightning-input-field>
-                            </div>
+
+                            <lightning-combobox label="Target Criteria" value={form.Target_Criteria__c}
+                                options={formCriteriaOptions} onchange={handleCriteriaChange}
+                                required class="slds-m-bottom_x-small"></lightning-combobox>
+
+                            <template if:true={isFocusPackCriteria}>
+                                <lightning-combobox label="Focus Pack" data-field="Focused_Pack__c"
+                                    value={form.Focused_Pack__c} options={focusPackOptions}
+                                    onchange={handleFormField} required
+                                    field-level-help="Required for Focus-Pack criteria: the pack whose SKUs and minimum quantity drive this target."
+                                    class="slds-m-bottom_x-small"></lightning-combobox>
+                            </template>
+
+                            <lightning-combobox label="Sales Channel" data-field="Sales_Channel__c"
+                                value={form.Sales_Channel__c} options={channelOptions}
+                                onchange={handleFormField} class="slds-m-bottom_x-small"></lightning-combobox>
                         </div>
-                        <div class="slds-m-top_medium slds-text-align_right">
-                            <lightning-button label="Cancel" onclick={handleCloseForm}
-                                class="slds-m-right_x-small"></lightning-button>
-                            <lightning-button variant="brand" type="submit" label="Save"></lightning-button>
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input type="number" label="Target Value" data-field="Target_Value__c"
+                                value={form.Target_Value__c} onchange={handleFormField}
+                                class="slds-m-bottom_x-small"></lightning-input>
+                            <lightning-input type="number" label="Year" data-field="Year__c"
+                                value={form.Year__c} onchange={handleFormField}
+                                class="slds-m-bottom_x-small"></lightning-input>
+                            <lightning-input type="date" label="Start Date" data-field="Start_Date__c"
+                                value={form.Start_Date__c} onchange={handleFormField}
+                                required class="slds-m-bottom_x-small"></lightning-input>
+                            <lightning-input type="date" label="End Date" data-field="End_Date__c"
+                                value={form.End_Date__c} onchange={handleFormField}
+                                required class="slds-m-bottom_x-small"></lightning-input>
+                            <lightning-input type="checkbox" label="Is Active" data-field="Is_Active__c"
+                                checked={form.Is_Active__c} onchange={handleFormField}></lightning-input>
                         </div>
-                    </lightning-record-edit-form>
+                    </div>
+                    <div class="slds-m-top_medium slds-text-align_right">
+                        <lightning-button label="Cancel" onclick={handleCloseForm}
+                            class="slds-m-right_x-small"></lightning-button>
+                        <lightning-button variant="brand" label="Save" onclick={handleSaveForm}></lightning-button>
+                    </div>
                 </div>
             </div>
         </section>

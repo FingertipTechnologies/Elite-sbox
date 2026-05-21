@@ -432,6 +432,19 @@
                                 </div>
                             </template>
 
+                            <template if:true={showOrderField}>
+                                <div class="two-col">
+                                    <lightning-combobox label="Order Field (to count distinct orders/day)"
+                                        data-field="Distinct_Field__c"
+                                        value={criteria.Distinct_Field__c} options={allFieldOptions}
+                                        onchange={handleInput} required></lightning-combobox>
+                                </div>
+                                <p class="tcb-help-text">
+                                    Average TLSD = (line-item rows ÷ distinct orders) per day, averaged over the divisor.
+                                    Pick the field that identifies the order (e.g. Order).
+                                </p>
+                            </template>
+
                             <template if:true={showRatioFields}>
                                 <div class="two-col">
                                     <lightning-combobox label="Numerator Field" data-field="Numerator_Field__c"
@@ -464,8 +477,21 @@
                         <template if:true={isFocusPack}>
                             <p class="tcb-help-text">
                                 Focus-Pack operators read SKUs and the qualifying quantity from the Focus
-                                Pack linked on each Secondary Target. No source object or field mapping is needed here.
+                                Pack chosen on each Secondary Target. The pack is selected per target in the
+                                Secondary Target Manager, not here.
                             </p>
+                            <template if:true={showFocusValueField}>
+                                <div class="two-col">
+                                    <lightning-combobox label="Revenue Field (defaults to pre-tax order value)"
+                                        data-field="Field__c"
+                                        value={criteria.Field__c} options={numberFieldOptions}
+                                        onchange={handleInput}></lightning-combobox>
+                                </div>
+                                <p class="tcb-help-text">
+                                    Leave blank to use Non_Taxable_Order_Value__c (revenue excludes tax, BRD 3.3.5).
+                                    Selecting a field requires choosing Order Item as the Object in Step 1.
+                                </p>
+                            </template>
                         </template>
 
                         <template if:true={showSourceMapping}>

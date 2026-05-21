@@ -37,6 +37,11 @@
                 <label>DAILY_RATIO_AVG</label>
             </value>
             <value>
+                <fullName>DAILY_LINES_PER_ORDER</fullName>
+                <default>false</default>
+                <label>DAILY_LINES_PER_ORDER</label>
+            </value>
+            <value>
                 <fullName>FOCUS_PACK_REVENUE</fullName>
                 <default>false</default>
                 <label>FOCUS_PACK_REVENUE</label>
