@@ -619,6 +619,7 @@ export default class TamCriteriaBuilder extends LightningElement {
     get isDailyRatio() { return this.criteria.Operator__c === 'DAILY_RATIO_AVG'; }
     get isDailyLinesPerOrder() { return this.criteria.Operator__c === 'DAILY_LINES_PER_ORDER'; }
     get isFocusPackRevenue() { return this.criteria.Operator__c === 'FOCUS_PACK_REVENUE'; }
+    get isFocusPackEco() { return this.criteria.Operator__c === 'FOCUS_PACK_ECO'; }
     get isFocusPack() {
         return this.criteria.Operator__c === 'FOCUS_PACK_REVENUE'
             || this.criteria.Operator__c === 'FOCUS_PACK_ECO';
@@ -627,6 +628,7 @@ export default class TamCriteriaBuilder extends LightningElement {
     get showOrderField() { return this.isDailyLinesPerOrder; }
     get showRatioFields() { return this.isDailyRatio; }
     get showFocusValueField() { return this.isFocusPackRevenue; }
+    get showFocusQtyField() { return this.isFocusPackEco; }
     get showAttendanceDivisor() { return this.isDailyUnique || this.isDailyRatio || this.isDailyLinesPerOrder; }
     get showSecondarySources() { return this.isDailyUnique; }
     // Source-object/field mapping is irrelevant for Focus-Pack operators
@@ -744,8 +746,8 @@ export default class TamCriteriaBuilder extends LightningElement {
     handleOperatorChange(e) {
         this.criteria.Operator__c = e.target.value;
         // Clear inputs that no longer apply to the chosen operator.
-        // Field__c is the SUM field, and (optionally) the Focus-Pack revenue field.
-        if (!this.isSumOperator && !this.showFocusValueField) this.criteria.Field__c = null;
+        // Field__c is the SUM field, the Focus-Pack revenue field, or the Focus-Pack ECO quantity field.
+        if (!this.isSumOperator && !this.showFocusValueField && !this.showFocusQtyField) this.criteria.Field__c = null;
         if (!this.showDistinctField && !this.showOrderField) this.criteria.Distinct_Field__c = null;
         if (!this.showRatioFields) {
             this.criteria.Numerator_Field__c = null;

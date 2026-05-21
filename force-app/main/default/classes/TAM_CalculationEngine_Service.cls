@@ -320,24 +320,26 @@ public without sharing class TAM_CalculationEngine_Service {
 
                 if (isEco) {
                     Decimal minQty = minQtyByPack.containsKey(packId) ? minQtyByPack.get(packId) : 0;
+                    // Quantity field is configurable via the criteria Field (default Quantity__c).
+                    String qtyField = String.isNotBlank(crit.Field__c) ? crit.Field__c : 'Quantity__c';
+                    String ecoSoql = 'SELECT Order_Owner_Id__c, Order__c, Account__c, ' + qtyField +
+                        ' FROM Order_Item__c' +
+                        ' WHERE Product__c IN :skuIds' +
+                        ' AND Order_Type__c = :secondaryType' +
+                        ' AND Order_Date__c >= :startDate AND Order_Date__c <= :endDate' +
+                        ' AND Order_Owner_Id__c IN :userKeys';
                     // Sum pack-SKU quantity per (user, order, outlet) in Apex, then qualify.
                     Map<String, Decimal> qtyByKey = new Map<String, Decimal>();
                     Map<String, Id> userByKey = new Map<String, Id>();
                     Map<String, Id> outletByKey = new Map<String, Id>();
-                    for (Order_Item__c oi : [
-                        SELECT Order_Owner_Id__c, Order__c, Account__c, Quantity__c
-                        FROM Order_Item__c
-                        WHERE Product__c IN :skuIds
-                          AND Order_Type__c = :secondaryType
-                          AND Order_Date__c >= :startDate AND Order_Date__c <= :endDate
-                          AND Order_Owner_Id__c IN :userKeys
-                    ]) {
-                        Id uid = resolveUserId(oi.Order_Owner_Id__c, keyToUser);
-                        if (uid == null || oi.Account__c == null) continue;
-                        String key = uid + '|' + oi.Order__c + '|' + oi.Account__c;
-                        qtyByKey.put(key, (qtyByKey.containsKey(key) ? qtyByKey.get(key) : 0) + toDecimal(oi.Quantity__c));
+                    for (SObject oi : Database.query(ecoSoql)) {
+                        Id uid = resolveUserId(oi.get('Order_Owner_Id__c'), keyToUser);
+                        Object outlet = oi.get('Account__c');
+                        if (uid == null || outlet == null) continue;
+                        String key = uid + '|' + oi.get('Order__c') + '|' + outlet;
+                        qtyByKey.put(key, (qtyByKey.containsKey(key) ? qtyByKey.get(key) : 0) + toDecimal(oi.get(qtyField)));
                         userByKey.put(key, uid);
-                        outletByKey.put(key, oi.Account__c);
+                        outletByKey.put(key, (Id) outlet);
                     }
                     Map<Id, Set<Id>> qualifiedOutlets = new Map<Id, Set<Id>>();
                     for (String key : qtyByKey.keySet()) {
