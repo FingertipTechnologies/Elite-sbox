@@ -46,8 +46,9 @@ public class SecondaryAchievementBatchTest {
         return new Order_Item__c(
             Order__c = orderId, Product__c = prodId, Account__c = accId,
             Order_Type__c = type, Quantity__c = qty,
-            // Total_Amount__c = gross; Non_Taxable_Order_Value__c = pre-tax (BRD 3.3.5)
-            Total_Amount__c = amount, Non_Taxable_Order_Value__c = amount
+            // Non_Taxable_Order_Value__c is a formula (Total_Amount - Tax_Amount);
+            // zero tax makes the pre-tax value equal the amount (BRD 3.3.5).
+            Total_Amount__c = amount, Tax_Amount__c = 0
         );
     }
 
