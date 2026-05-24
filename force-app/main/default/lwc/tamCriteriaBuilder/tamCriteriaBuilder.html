@@ -478,7 +478,9 @@
                             <p class="tcb-help-text">
                                 Focus-Pack operators read SKUs and the qualifying quantity from the Focus
                                 Pack chosen on each Secondary Target. The pack is selected per target in the
-                                Secondary Target Manager, not here.
+                                Secondary Target Manager, not here. Add your secondary-order condition
+                                (e.g. Customer_Order_Type__c = 'Secondary Order') in the Filters step —
+                                pick Order Item as the Object in Step 1 so the fields are available.
                             </p>
                             <template if:true={showFocusValueField}>
                                 <div class="two-col">
@@ -490,6 +492,18 @@
                                 <p class="tcb-help-text">
                                     Leave blank to use Non_Taxable_Order_Value__c (revenue excludes tax, BRD 3.3.5).
                                     Selecting a field requires choosing Order Item as the Object in Step 1.
+                                </p>
+                            </template>
+                            <template if:true={showFocusQtyField}>
+                                <div class="two-col">
+                                    <lightning-combobox label="Quantity Field (defaults to Quantity)"
+                                        data-field="Field__c"
+                                        value={criteria.Field__c} options={numberFieldOptions}
+                                        onchange={handleInput}></lightning-combobox>
+                                </div>
+                                <p class="tcb-help-text">
+                                    Field summed per order for the minimum-quantity ECO check (BRD 3.4.5).
+                                    Set to the ordered quantity field (e.g. Each Qty). Choose Order Item as the Object in Step 1 to list fields.
                                 </p>
                             </template>
                         </template>

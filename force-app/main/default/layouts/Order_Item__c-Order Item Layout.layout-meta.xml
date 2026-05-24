@@ -211,6 +211,10 @@
         <fields>NAME</fields>
         <relatedList>Secondary_Invoice_Item__c.Order_Item__c</relatedList>
     </relatedLists>
+    <relatedLists>
+        <fields>NAME</fields>
+        <relatedList>Invoice_item__c.Order_Item__c</relatedList>
+    </relatedLists>
     <showEmailCheckbox>false</showEmailCheckbox>
     <showHighlightsPanel>false</showHighlightsPanel>
     <showInteractionLogPanel>false</showInteractionLogPanel>

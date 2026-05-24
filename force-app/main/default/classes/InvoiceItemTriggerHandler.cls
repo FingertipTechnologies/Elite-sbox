@@ -173,6 +173,39 @@ public without sharing class InvoiceItemTriggerHandler {
             }
         }
     }
+    // Links each Invoice Item to the Order Item it fulfills, using the same
+    // SKU/product-name + Order match as handleAfterInsert. On duplicate matches the
+    // first Order Item found wins.
+    public static void linkOrderItems(List<Invoice_Item__c> newInvoiceItems) {
+        Set<Id> orderIds = new Set<Id>();
+        for (Invoice_Item__c item : newInvoiceItems) {
+            if (item.Order__c != null && item.SKU_Name__c != null) {
+                orderIds.add(item.Order__c);
+            }
+        }
+        if (orderIds.isEmpty()) return;
+
+        Map<String, Id> productOrderToItemId = new Map<String, Id>();
+        for (Order_Item__c oi : [
+            SELECT Id, Order__c, Product__r.Name
+            FROM Order_Item__c
+            WHERE Order__c IN :orderIds
+        ]) {
+            if (oi.Product__r.Name == null) continue;
+            String key = oi.Product__r.Name + '_' + oi.Order__c;
+            if (!productOrderToItemId.containsKey(key)) {
+                productOrderToItemId.put(key, oi.Id);
+            }
+        }
+
+        for (Invoice_Item__c item : newInvoiceItems) {
+            if (item.Order__c != null && item.SKU_Name__c != null) {
+                Id matchId = productOrderToItemId.get(item.SKU_Name__c + '_' + item.Order__c);
+                if (matchId != null) item.Order_Item__c = matchId;
+            }
+        }
+    }
+
     public static void handleAfterInsert(List<Invoice_Item__c> newInvoiceItems) {
         // Step 1: Collect Order + Product wise delivered quantities from new Invoice Items
         Map<String, Decimal> orderProductToDeliveredQty = new Map<String, Decimal>();

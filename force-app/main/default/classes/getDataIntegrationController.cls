@@ -60,11 +60,25 @@ global class getDataIntegrationController {
                             ));
                             continue;
                         }
+                        
+                        if (obj.billToParty == null || obj.billToParty == '') {
+                            logList.add(buildLog(
+                                'Bill to Party Missing',
+                                'Invoice No: ' + obj.invoiceNumber,
+                                obj.invoiceNumber,
+                                'Error'
+                            ));
+                            continue;
+                        }
+                        
                         so.Invoice_Date__c = date.valueof(obj.invoiceDate);
                         so.Invoice_No__c = obj.invoiceNumber;
-                        so.SAP_Order_ID__c = obj.SAPOrderId;
-                        //Link Order
-                        if(obj.sfOrderId != null && obj.sfOrderId != '') so.SF_Order__r = new Order__c(Order_Id_Text__c = obj.sfOrderId);
+
+                        //Link Order //Commentted - 21/05/2026 by Durga Prasad - Order Header Sf Order Id && SAP OrderId
+                        //Removed As Per Elite Team Requirement
+                        //so.SAP_Order_ID__c = obj.SAPOrderId;
+                        //if(obj.sfOrderId != null && obj.sfOrderId != '') so.SF_Order__r = new Order__c(Order_Id_Text__c = obj.sfOrderId);
+                        
                         //Link Account to Invoice  
                         if(obj.billToParty != null) so.Store__r = new Account(SAP_Customer_Code__c = obj.billToParty);
                         //Link Ship to party to Invoice  
@@ -83,6 +97,17 @@ global class getDataIntegrationController {
                                 {
                                     logList.add(buildLog(
                                         'Invoice Item - Parent Invoice No Missing',
+                                        'SKU Code: ' + ad.material+',Serial No'+ad.serialNumber,
+                                        ad.invoiceNumber,
+                                        'Error'
+                                    ));
+                                    continue;
+                                }
+                                
+                                if(ad.uom == null || ad.uom == '')
+                                {
+                                    logList.add(buildLog(
+                                        'Invoice Item - UOM Missing',
                                         'SKU Code: ' + ad.material+',Serial No'+ad.serialNumber,
                                         ad.invoiceNumber,
                                         'Error'
@@ -130,6 +155,7 @@ global class getDataIntegrationController {
                                 Invoice_item__c invItem = new Invoice_item__c();
                                 invItem.Invoice__r = new Invoice__c(Invoice_No__c = ad.invoiceNumber); 
                                 invItem.Bill_Number__c = ad.invoiceNumber;
+                                invItem.Bill_To_Party__c = obj.billToParty;
                                 invItem.EID__c = ad.invoiceNumber+'_'+ad.serialNumber;
                                 invItem.SKU__r = new Product__c(SKU_Code__c = ad.material); 
                                 invItem.SKU_Code_From_API__c = ad.material; 
@@ -137,7 +163,7 @@ global class getDataIntegrationController {
                                 invItem.UOM__c = ad.uom; 
                                 //When the UOM is matched with the Invoice item UOM it is Each 
                                 //other wise it is not EA
-                                if(prod.UOM__c == ad.uom){
+                                if(prod.UOM__c == (ad.uom != null ? ad.uom.trim() : '')){
                                     invItem.Qyt_in_Each__c = ad.quantity; 
                                     invItem.Price_per_unit__c = (ad.pricePerUnit).setScale(4, RoundingMode.HALF_UP);
                                     invItem.Qyt__c = ad.quantity / prod.Uom_Conversion__c; 
@@ -162,7 +188,7 @@ global class getDataIntegrationController {
                                 //Extra paramets                             
                                 invItem.SAP_Order_Id__c = obj.SAPOrderId; 
                                 // Set Order__r from obj.sfOrderId if present
-                                if(obj.sfOrderId != null && obj.sfOrderId != '') invItem.Order__r = new Order__c(Order_Id_Text__c = obj.sfOrderId);
+                                if(ad.sfOrderId != null && ad.sfOrderId != '') invItem.Order__r = new Order__c(Order_Id_Text__c = ad.sfOrderId);
 
                                 invItem.Company_Code__c = obj.companyCode;
                                 invItem.Plant__c  = obj.delivaryPlant;
@@ -373,5 +399,7 @@ global class getDataIntegrationController {
         Public string batchExpiry;
         Public string serialNumber;
         Public string SAP_OrderId;
+        Public string sfOrderId;
+        
     } 
 }

@@ -45,7 +45,7 @@ public class SecondaryAchievementBatchTest {
                                           Decimal qty, Decimal amount, String type) {
         return new Order_Item__c(
             Order__c = orderId, Product__c = prodId, Account__c = accId,
-            Order_Type__c = type, Quantity__c = qty,
+            Order_Type__c = type, Quantity__c = qty, Each_Qyt__c = qty,
             // Non_Taxable_Order_Value__c is a formula (Total_Amount - Tax_Amount);
             // zero tax makes the pre-tax value equal the amount (BRD 3.3.5).
             Total_Amount__c = amount, Tax_Amount__c = 0
@@ -221,7 +221,10 @@ public class SecondaryAchievementBatchTest {
         cTlsdRatio.Use_Attendance_Divisor__c = true;
 
         Target_Criteria__c cFpRev = baseCriteria('FP Revenue', 'FOCUS_PACK_REVENUE');
+        cFpRev.Filters__c = SECONDARY_FILTER; // secondary scoping comes from Filters now
         Target_Criteria__c cFpEco = baseCriteria('FP ECO', 'FOCUS_PACK_ECO');
+        cFpEco.Field__c = 'Each_Qyt__c'; // configurable ECO quantity field
+        cFpEco.Filters__c = SECONDARY_FILTER;
         insert new List<Target_Criteria__c>{ cRev, cUbo, cTc, cPc, cTlsd, cTlsdRatio, cFpRev, cFpEco };
 
         Map<String, Id> fp = new Map<String, Id>();
