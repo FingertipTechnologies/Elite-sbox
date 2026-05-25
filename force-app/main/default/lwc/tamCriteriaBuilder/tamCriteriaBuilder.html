@@ -475,12 +475,23 @@
                         </template>
 
                         <template if:true={isFocusPack}>
+                            <div class="two-col">
+                                <lightning-combobox label="Date Field (defaults to Order Date)"
+                                    data-field="Date_Field__c"
+                                    value={criteria.Date_Field__c} options={dateFieldOptions}
+                                    onchange={handleInput}></lightning-combobox>
+                                <lightning-combobox label="User Field (defaults to Order Owner Id)"
+                                    data-field="User_Field__c"
+                                    value={criteria.User_Field__c} options={userFieldOptions}
+                                    onchange={handleInput}></lightning-combobox>
+                            </div>
                             <p class="tcb-help-text">
                                 Focus-Pack operators read SKUs and the qualifying quantity from the Focus
                                 Pack chosen on each Secondary Target. The pack is selected per target in the
                                 Secondary Target Manager, not here. Add your secondary-order condition
                                 (e.g. Customer_Order_Type__c = 'Secondary Order') in the Filters step —
                                 pick Order Item as the Object in Step 1 so the fields are available.
+                                Date and User fields default to Order_Date__c and Order_Owner_Id__c if left blank.
                             </p>
                             <template if:true={showFocusValueField}>
                                 <div class="two-col">

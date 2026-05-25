@@ -314,11 +314,15 @@ public without sharing class TAM_CalculationEngine_Service {
             if (!skuIds.isEmpty() && !userIds.isEmpty()) {
                 Map<String, Id> keyToUser = buildKeyToUser(userIds);
                 Set<String> userKeys = keyToUser.keySet();
+                // Date and User fields fall back to denormalized Order_Item__c formulas
+                // when the criteria leaves them blank.
+                String dateField = String.isNotBlank(crit.Date_Field__c) ? crit.Date_Field__c : 'Order_Date__c';
+                String userField = String.isNotBlank(crit.User_Field__c) ? crit.User_Field__c : 'Order_Owner_Id__c';
                 // Secondary-order scoping comes from the criteria Filters (e.g.
                 // Customer_Order_Type__c = 'Secondary Order'), not a hardcoded field.
                 String baseWhere = 'Product__c IN :skuIds' +
-                    ' AND Order_Date__c >= :startDate AND Order_Date__c <= :endDate' +
-                    ' AND Order_Owner_Id__c IN :userKeys';
+                    ' AND ' + dateField + ' >= :startDate AND ' + dateField + ' <= :endDate' +
+                    ' AND ' + userField + ' IN :userKeys';
                 String extraFilter = TAM_FilterEngine_Service.buildWhereClause(crit.Filters__c, crit.Filter_Logic__c);
                 if (String.isNotBlank(extraFilter)) baseWhere += ' AND ' + extraFilter;
 
@@ -329,14 +333,14 @@ public without sharing class TAM_CalculationEngine_Service {
                     // Outlet field is configurable via the criteria Distinct Field; supports a
                     // parent-relationship path (e.g. Order__r.Account__c) when the line has no Account.
                     String outletField = String.isNotBlank(crit.Distinct_Field__c) ? crit.Distinct_Field__c : 'Account__c';
-                    String ecoSoql = 'SELECT Order_Owner_Id__c, Order__c, ' + outletField + ', ' + qtyField +
+                    String ecoSoql = 'SELECT ' + userField + ', Order__c, ' + outletField + ', ' + qtyField +
                         ' FROM Order_Item__c WHERE ' + baseWhere;
                     // Sum pack-SKU quantity per (user, order, outlet) in Apex, then qualify.
                     Map<String, Decimal> qtyByKey = new Map<String, Decimal>();
                     Map<String, Id> userByKey = new Map<String, Id>();
                     Map<String, String> outletByKey = new Map<String, String>();
                     for (SObject oi : Database.query(ecoSoql)) {
-                        Id uid = resolveUserId(oi.get('Order_Owner_Id__c'), keyToUser);
+                        Id uid = resolveUserId(getFieldValue(oi, userField), keyToUser);
                         Object outlet = getFieldValue(oi, outletField);
                         if (uid == null || outlet == null) continue;
                         String key = uid + '|' + oi.get('Order__c') + '|' + outlet;
@@ -359,10 +363,10 @@ public without sharing class TAM_CalculationEngine_Service {
                     // value, allowing an override via the criteria's Field.
                     String valueField = String.isNotBlank(crit.Field__c)
                         ? crit.Field__c : 'Non_Taxable_Order_Value__c';
-                    String revSoql = 'SELECT Order_Owner_Id__c, ' + valueField +
+                    String revSoql = 'SELECT ' + userField + ', ' + valueField +
                         ' FROM Order_Item__c WHERE ' + baseWhere;
                     for (SObject oi : Database.query(revSoql)) {
-                        Id uid = resolveUserId(oi.get('Order_Owner_Id__c'), keyToUser);
+                        Id uid = resolveUserId(getFieldValue(oi, userField), keyToUser);
                         if (uid == null) continue;
                         perUser.put(uid, (perUser.containsKey(uid) ? perUser.get(uid) : 0) + toDecimal(getFieldValue(oi, valueField)));
                     }
