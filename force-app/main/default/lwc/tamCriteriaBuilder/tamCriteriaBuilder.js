@@ -629,6 +629,7 @@ export default class TamCriteriaBuilder extends LightningElement {
     get showRatioFields() { return this.isDailyRatio; }
     get showFocusValueField() { return this.isFocusPackRevenue; }
     get showFocusQtyField() { return this.isFocusPackEco; }
+    get showFocusOutletField() { return this.isFocusPackEco; }
     get showAttendanceDivisor() { return this.isDailyUnique || this.isDailyRatio || this.isDailyLinesPerOrder; }
     get showSecondarySources() { return this.isDailyUnique; }
     // Source-object/field mapping is irrelevant for Focus-Pack operators
@@ -748,7 +749,7 @@ export default class TamCriteriaBuilder extends LightningElement {
         // Clear inputs that no longer apply to the chosen operator.
         // Field__c is the SUM field, the Focus-Pack revenue field, or the Focus-Pack ECO quantity field.
         if (!this.isSumOperator && !this.showFocusValueField && !this.showFocusQtyField) this.criteria.Field__c = null;
-        if (!this.showDistinctField && !this.showOrderField) this.criteria.Distinct_Field__c = null;
+        if (!this.showDistinctField && !this.showOrderField && !this.showFocusOutletField) this.criteria.Distinct_Field__c = null;
         if (!this.showRatioFields) {
             this.criteria.Numerator_Field__c = null;
             this.criteria.Denominator_Field__c = null;

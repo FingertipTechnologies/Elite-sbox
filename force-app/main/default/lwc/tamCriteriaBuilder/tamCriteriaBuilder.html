@@ -506,6 +506,19 @@
                                     Set to the ordered quantity field (e.g. Each Qty). Choose Order Item as the Object in Step 1 to list fields.
                                 </p>
                             </template>
+                            <template if:true={showFocusOutletField}>
+                                <div class="two-col">
+                                    <lightning-input type="text" label="Outlet Field (defaults to Account)"
+                                        data-field="Distinct_Field__c"
+                                        value={criteria.Distinct_Field__c}
+                                        onchange={handleInput}
+                                        placeholder="Account__c or Order__r.Account__c"></lightning-input>
+                                </div>
+                                <p class="tcb-help-text">
+                                    Field that identifies the outlet. Use Account__c when populated on the line, or
+                                    a parent-relationship path like Order__r.Account__c if the outlet lives on the parent order.
+                                </p>
+                            </template>
                         </template>
 
                         <template if:true={showSourceMapping}>
