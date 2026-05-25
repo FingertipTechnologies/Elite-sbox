@@ -508,15 +508,14 @@
                             </template>
                             <template if:true={showFocusOutletField}>
                                 <div class="two-col">
-                                    <lightning-input type="text" label="Outlet Field (defaults to Account)"
+                                    <lightning-combobox label="Outlet Field (defaults to Account)"
                                         data-field="Distinct_Field__c"
-                                        value={criteria.Distinct_Field__c}
-                                        onchange={handleInput}
-                                        placeholder="Account__c or Order__r.Account__c"></lightning-input>
+                                        value={criteria.Distinct_Field__c} options={allFieldOptions}
+                                        onchange={handleInput}></lightning-combobox>
                                 </div>
                                 <p class="tcb-help-text">
-                                    Field that identifies the outlet. Use Account__c when populated on the line, or
-                                    a parent-relationship path like Order__r.Account__c if the outlet lives on the parent order.
+                                    Pick the field that identifies the outlet. If Account is empty on the line,
+                                    pick "Order > Account" (the parent's Account) instead. Choose Order Item as the Object in Step 1 so the list is populated.
                                 </p>
                             </template>
                         </template>
