@@ -2,6 +2,7 @@ import { LightningElement, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getSlabs from '@salesforce/apex/SecondaryPBIS_Controller.getSlabs';
 import saveSlab from '@salesforce/apex/SecondaryPBIS_Controller.saveSlab';
+import saveSlabs from '@salesforce/apex/SecondaryPBIS_Controller.saveSlabs';
 import deleteSlab from '@salesforce/apex/SecondaryPBIS_Controller.deleteSlab';
 import getCriteriaOptions from '@salesforce/apex/SecondaryPBIS_Controller.getCriteriaOptions';
 import getChannelOptions from '@salesforce/apex/SecondaryPBIS_Controller.getChannelOptions';
@@ -63,6 +64,15 @@ export default class SecondaryPbisSlabs extends LightningElement {
     @track showForm = false;
     @track form = { ...EMPTY_FORM };
 
+    // bulk-add modal state
+    @track showBulk = false;
+    @track bulkHeader = {
+        Target_Criteria__c: '', Sales_Channel__c: '',
+        Focused_Pack__c: '', Compare_On__c: 'Percent'
+    };
+    @track bulkRows = [];
+    bulkRowSeq = 0;
+
     connectedCallback() {
         this.loadCriteria();
         this.loadChannels();
@@ -75,6 +85,10 @@ export default class SecondaryPbisSlabs extends LightningElement {
     get formCriteriaOptions() { return this.criteriaOptions.filter(o => o.value); }
     get selectedOperator() { return this.operatorById[this.form.Target_Criteria__c] || ''; }
     get isFocusPackCriteria() { return this.selectedOperator.indexOf('FOCUS_PACK') === 0; }
+
+    get bulkOperator() { return this.operatorById[this.bulkHeader.Target_Criteria__c] || ''; }
+    get isBulkFocusPack() { return this.bulkOperator.indexOf('FOCUS_PACK') === 0; }
+    get hasBulkRows() { return this.bulkRows && this.bulkRows.length > 0; }
 
     loadCriteria() {
         getCriteriaOptions()
@@ -133,6 +147,99 @@ export default class SecondaryPbisSlabs extends LightningElement {
     }
 
     handleCloseForm() { this.showForm = false; }
+
+    // ===== Bulk Add =====
+    handleBulkOpen() {
+        this.bulkHeader = {
+            Target_Criteria__c: '', Sales_Channel__c: '',
+            Focused_Pack__c: '', Compare_On__c: 'Percent'
+        };
+        this.bulkRows = [this.makeBulkRow()];
+        this.showBulk = true;
+    }
+
+    handleBulkClose() { this.showBulk = false; }
+
+    makeBulkRow() {
+        this.bulkRowSeq += 1;
+        return {
+            id: this.bulkRowSeq,
+            Achievement_From__c: null,
+            Achievement_To__c: null,
+            Incentive_Amount__c: null,
+            Active__c: true
+        };
+    }
+
+    handleBulkHeaderField(e) {
+        const field = e.target.dataset.field;
+        const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+        this.bulkHeader = { ...this.bulkHeader, [field]: val };
+    }
+
+    handleBulkCriteriaChange(e) {
+        const val = e.detail.value;
+        const next = { ...this.bulkHeader, Target_Criteria__c: val };
+        if ((this.operatorById[val] || '').indexOf('FOCUS_PACK') !== 0) {
+            next.Focused_Pack__c = '';
+        }
+        this.bulkHeader = next;
+    }
+
+    handleBulkRowField(e) {
+        const rowId = Number(e.target.dataset.id);
+        const field = e.target.dataset.field;
+        const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+        this.bulkRows = this.bulkRows.map(r => r.id === rowId ? { ...r, [field]: val } : r);
+    }
+
+    handleBulkAddRow() {
+        this.bulkRows = [...this.bulkRows, this.makeBulkRow()];
+    }
+
+    handleBulkRemoveRow(e) {
+        const rowId = Number(e.currentTarget.dataset.id);
+        this.bulkRows = this.bulkRows.filter(r => r.id !== rowId);
+    }
+
+    handleBulkSave() {
+        const h = this.bulkHeader;
+        if (!h.Target_Criteria__c) { this.toast('Validation', 'Pick a Target Criteria.', 'error'); return; }
+        if (!h.Compare_On__c) { this.toast('Validation', 'Pick Compare On.', 'error'); return; }
+        if (!this.bulkRows.length) { this.toast('Validation', 'Add at least one row.', 'error'); return; }
+
+        const recs = [];
+        for (let i = 0; i < this.bulkRows.length; i++) {
+            const r = this.bulkRows[i];
+            if (r.Achievement_From__c === null || r.Achievement_From__c === '') {
+                this.toast('Validation', `Row ${i + 1}: set Achievement From.`, 'error'); return;
+            }
+            if (r.Incentive_Amount__c === null || r.Incentive_Amount__c === '') {
+                this.toast('Validation', `Row ${i + 1}: set Incentive Amount.`, 'error'); return;
+            }
+            recs.push({
+                sobjectType: 'Incentive_Slab__c',
+                Target_Criteria__c: h.Target_Criteria__c,
+                Sales_Channel__c: h.Sales_Channel__c || null,
+                Focused_Pack__c: this.isBulkFocusPack ? (h.Focused_Pack__c || null) : null,
+                Compare_On__c: h.Compare_On__c,
+                Achievement_From__c: r.Achievement_From__c,
+                Achievement_To__c: (r.Achievement_To__c === '' ? null : r.Achievement_To__c),
+                Incentive_Amount__c: r.Incentive_Amount__c,
+                Active__c: r.Active__c === true
+            });
+        }
+
+        this.isLoading = true;
+        saveSlabs({ slabs: recs })
+            .then(count => {
+                this.showBulk = false;
+                this.toast('Success', `Saved ${count} slab${count === 1 ? '' : 's'}.`, 'success');
+                this.loadRows();
+            })
+            .catch(e => this.toast('Error', this.msg(e), 'error'))
+            .finally(() => { this.isLoading = false; });
+    }
 
     handleField(e) {
         const field = e.target.dataset.field;

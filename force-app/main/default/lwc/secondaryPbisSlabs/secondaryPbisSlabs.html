@@ -1,7 +1,9 @@
 <template>
     <lightning-card title="Secondary PBIS Slabs" icon-name="standard:incident_priority">
         <lightning-button slot="actions" label="New Slab" icon-name="utility:add"
-            onclick={handleNew}></lightning-button>
+            onclick={handleNew} class="slds-m-right_x-small"></lightning-button>
+        <lightning-button slot="actions" label="Bulk Add" icon-name="utility:rows"
+            variant="brand" onclick={handleBulkOpen}></lightning-button>
 
         <div class="slds-p-horizontal_medium">
             <div class="slds-grid slds-gutters slds-grid_vertical-align-end slds-m-bottom_small slds-wrap">
@@ -89,6 +91,109 @@
                         <lightning-button label="Cancel" onclick={handleCloseForm}
                             class="slds-m-right_x-small"></lightning-button>
                         <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <template if:true={showBulk}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={handleBulkClose}>
+                        <lightning-icon icon-name="utility:close" size="small"
+                            variant="inverse"></lightning-icon>
+                    </button>
+                    <h2 class="slds-modal__title slds-hyphenate">Bulk Add Incentive Slabs</h2>
+                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                        Pick criterion / channel / compare once, then add as many tier bands as you need.
+                    </p>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <div class="slds-grid slds-gutters slds-wrap">
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-combobox label="Target Criteria" value={bulkHeader.Target_Criteria__c}
+                                options={formCriteriaOptions} onchange={handleBulkCriteriaChange}
+                                required class="slds-m-bottom_x-small"></lightning-combobox>
+                            <lightning-combobox label="Sales Channel (blank = all)"
+                                data-field="Sales_Channel__c" value={bulkHeader.Sales_Channel__c}
+                                options={channelOptions} onchange={handleBulkHeaderField}
+                                class="slds-m-bottom_x-small"></lightning-combobox>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-combobox label="Compare On" data-field="Compare_On__c"
+                                value={bulkHeader.Compare_On__c} options={compareOptions}
+                                onchange={handleBulkHeaderField} required
+                                class="slds-m-bottom_x-small"></lightning-combobox>
+                            <template if:true={isBulkFocusPack}>
+                                <lightning-combobox label="Focus Pack (blank = all packs)"
+                                    data-field="Focused_Pack__c" value={bulkHeader.Focused_Pack__c}
+                                    options={packOptions} onchange={handleBulkHeaderField}></lightning-combobox>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="slds-m-top_medium">
+                        <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                            <thead>
+                                <tr class="slds-text-title_caps">
+                                    <th>From (inclusive)</th>
+                                    <th>To (blank = unbounded)</th>
+                                    <th>Incentive Amount</th>
+                                    <th style="width:5rem;">Active</th>
+                                    <th style="width:5rem;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={bulkRows} for:item="row" for:index="i">
+                                    <tr key={row.id}>
+                                        <td>
+                                            <lightning-input type="number" variant="label-hidden" step="0.01"
+                                                data-id={row.id} data-field="Achievement_From__c"
+                                                value={row.Achievement_From__c}
+                                                onchange={handleBulkRowField}></lightning-input>
+                                        </td>
+                                        <td>
+                                            <lightning-input type="number" variant="label-hidden" step="0.01"
+                                                data-id={row.id} data-field="Achievement_To__c"
+                                                value={row.Achievement_To__c}
+                                                onchange={handleBulkRowField}></lightning-input>
+                                        </td>
+                                        <td>
+                                            <lightning-input type="number" variant="label-hidden" step="0.01"
+                                                data-id={row.id} data-field="Incentive_Amount__c"
+                                                value={row.Incentive_Amount__c}
+                                                onchange={handleBulkRowField}></lightning-input>
+                                        </td>
+                                        <td class="slds-text-align_center">
+                                            <lightning-input type="checkbox" variant="label-hidden"
+                                                data-id={row.id} data-field="Active__c"
+                                                checked={row.Active__c}
+                                                onchange={handleBulkRowField}></lightning-input>
+                                        </td>
+                                        <td class="slds-text-align_center">
+                                            <lightning-button-icon icon-name="utility:delete"
+                                                alternative-text="Remove row" variant="bare"
+                                                data-id={row.id}
+                                                onclick={handleBulkRemoveRow}></lightning-button-icon>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                        <div class="slds-m-top_x-small">
+                            <lightning-button label="Add Row" icon-name="utility:add"
+                                onclick={handleBulkAddRow}></lightning-button>
+                        </div>
+                    </div>
+
+                    <div class="slds-m-top_medium slds-text-align_right">
+                        <lightning-button label="Cancel" onclick={handleBulkClose}
+                            class="slds-m-right_x-small"></lightning-button>
+                        <lightning-button variant="brand" label="Save All" onclick={handleBulkSave}></lightning-button>
                     </div>
                 </div>
             </div>

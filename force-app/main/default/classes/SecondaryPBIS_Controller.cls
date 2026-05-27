@@ -44,6 +44,16 @@ public with sharing class SecondaryPBIS_Controller {
         delete [SELECT Id FROM Incentive_Slab__c WHERE Id = :slabId LIMIT 1];
     }
 
+    /** Bulk insert — used by the "Bulk Add Slabs" form. Rejects an empty list. */
+    @AuraEnabled
+    public static Integer saveSlabs(List<Incentive_Slab__c> slabs) {
+        if (slabs == null || slabs.isEmpty()) {
+            throw new AuraHandledException('No slabs to save.');
+        }
+        insert slabs;
+        return slabs.size();
+    }
+
     // ===== Option providers (delegate to existing SecondaryTarget_Controller) =====
 
     @AuraEnabled(cacheable=true)

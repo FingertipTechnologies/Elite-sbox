@@ -100,6 +100,30 @@ public class SecondaryPBIS_ControllerTest {
     }
 
     @isTest
+    static void testBulkSave() {
+        Target_Criteria__c crit = [SELECT Id FROM Target_Criteria__c LIMIT 1];
+        List<Incentive_Slab__c> recs = new List<Incentive_Slab__c>{
+            new Incentive_Slab__c(Target_Criteria__c = crit.Id, Compare_On__c = 'Percent',
+                Achievement_From__c = 0, Achievement_To__c = 99.99,
+                Incentive_Amount__c = 750, Active__c = true),
+            new Incentive_Slab__c(Target_Criteria__c = crit.Id, Compare_On__c = 'Percent',
+                Achievement_From__c = 100, Achievement_To__c = 105,
+                Incentive_Amount__c = 1000, Active__c = true)
+        };
+        Boolean threwEmpty = false;
+        Test.startTest();
+        Integer count = SecondaryPBIS_Controller.saveSlabs(recs);
+        try {
+            SecondaryPBIS_Controller.saveSlabs(new List<Incentive_Slab__c>());
+        } catch (AuraHandledException e) {
+            threwEmpty = true;
+        }
+        Test.stopTest();
+        System.assertEquals(2, count);
+        System.assert(threwEmpty, 'empty list should throw');
+    }
+
+    @isTest
     static void testRunMonthValidation() {
         Boolean threw = false;
         try {
