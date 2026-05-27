@@ -62,8 +62,6 @@ public without sharing class SecondaryPBIS_Service {
                 Compare_On__c = match.Compare_On__c,
                 Credit_Amount__c = match.Incentive_Amount__c,
                 Credit_Date__c = today,
-                Incentive_Start_Date__c = monthStart,
-                Incentive_End_Date__c = monthEnd,
                 Computed_At__c = now
             ));
         }
