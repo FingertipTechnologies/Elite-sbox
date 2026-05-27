@@ -9446,6 +9446,46 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
+        <editable>true</editable>
+        <field>Scheme_Product_Group_Item__c.Product__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Scheme_Product_Group__c.Description__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Scheme_Product_Group__c.Group_Purpose__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Scheme_Product_Group__c.Is_Active__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Scheme_Product_Group__c.MRP__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Scheme_Product_Group__c.Member_Count__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Scheme_Product_Group__c.Net_Weight__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Scheme_Product_Group__c.Sales_Channel__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
         <editable>false</editable>
         <field>Scheme__c.Applicable_for__c</field>
         <readable>true</readable>
@@ -12628,6 +12668,12 @@
         <layout>Scheme_Enrollment__c-Scheme Enrollment Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
+        <layout>Scheme_Product_Group_Item__c-Scheme Product Group Item Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>Scheme_Product_Group__c-Scheme Product Group Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
         <layout>Scheme__c-Scheme Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
@@ -13872,6 +13918,10 @@
     </tabVisibilities>
     <tabVisibilities>
         <tab>Sales_Strategy__c</tab>
+        <visibility>Hidden</visibility>
+    </tabVisibilities>
+    <tabVisibilities>
+        <tab>Scheme_Product_Group__c</tab>
         <visibility>Hidden</visibility>
     </tabVisibilities>
     <tabVisibilities>
