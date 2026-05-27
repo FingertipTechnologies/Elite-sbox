@@ -1,0 +1,218 @@
+<template>
+    <lightning-card title="Secondary PBIS Slabs" icon-name="standard:incident_priority">
+        <lightning-button slot="actions" label="New Slab" icon-name="utility:add"
+            onclick={handleNew} class="slds-m-right_x-small"></lightning-button>
+        <lightning-button slot="actions" label="Bulk Add" icon-name="utility:rows"
+            variant="brand" onclick={handleBulkOpen}></lightning-button>
+
+        <div class="slds-p-horizontal_medium">
+            <div class="slds-grid slds-gutters slds-grid_vertical-align-end slds-m-bottom_small slds-wrap">
+                <div class="slds-col slds-size_1-of-3">
+                    <lightning-combobox label="Filter by Criteria" value={selectedCriteria}
+                        options={criteriaOptions} onchange={handleCriteriaFilter}></lightning-combobox>
+                </div>
+                <div class="slds-col slds-size_1-of-3">
+                    <lightning-combobox label="Filter by Channel" value={selectedChannel}
+                        options={channelFilterOptions} onchange={handleChannelFilter}></lightning-combobox>
+                </div>
+                <div class="slds-col slds-size_1-of-6 slds-p-bottom_x-small">
+                    <lightning-input type="checkbox" label="Active only"
+                        checked={activeOnly} onchange={handleActiveToggle}></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-6 slds-text-align_right slds-p-bottom_x-small">
+                    <lightning-button label="Refresh" icon-name="utility:refresh"
+                        onclick={handleRefresh}></lightning-button>
+                </div>
+            </div>
+
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </template>
+
+            <template if:true={hasRows}>
+                <lightning-datatable key-field="Id" data={rows} columns={columns}
+                    hide-checkbox-column onrowaction={handleRowAction}></lightning-datatable>
+            </template>
+            <template if:false={hasRows}>
+                <div class="slds-p-around_large slds-text-align_center">
+                    <p class="slds-text-body_regular">No slabs match the current filters. Click "New Slab" to add one.</p>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+
+    <template if:true={showForm}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={handleCloseForm}>
+                        <lightning-icon icon-name="utility:close" size="small"
+                            variant="inverse"></lightning-icon>
+                    </button>
+                    <h2 class="slds-modal__title slds-hyphenate">{formTitle}</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <div class="slds-grid slds-gutters slds-wrap">
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-combobox label="Target Criteria" value={form.Target_Criteria__c}
+                                options={formCriteriaOptions} onchange={handleCriteriaChange}
+                                required class="slds-m-bottom_x-small"></lightning-combobox>
+                            <lightning-combobox label="Sales Channel (blank = all)" data-field="Sales_Channel__c"
+                                value={form.Sales_Channel__c} options={channelOptions}
+                                onchange={handleField} class="slds-m-bottom_x-small"></lightning-combobox>
+                            <template if:true={isFocusPackCriteria}>
+                                <lightning-combobox label="Focus Pack (blank = applies to any pack)"
+                                    data-field="Focused_Pack__c" value={form.Focused_Pack__c}
+                                    options={packOptions} onchange={handleField}
+                                    class="slds-m-bottom_x-small"></lightning-combobox>
+                            </template>
+                            <lightning-combobox label="Compare On" data-field="Compare_On__c"
+                                value={form.Compare_On__c} options={compareOptions}
+                                onchange={handleField} required></lightning-combobox>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input type="number" label="Achievement From (inclusive)"
+                                step="0.01" data-field="Achievement_From__c"
+                                value={form.Achievement_From__c} onchange={handleField}
+                                required class="slds-m-bottom_x-small"></lightning-input>
+                            <lightning-input type="number" label="Achievement To (blank = unbounded)"
+                                step="0.01" data-field="Achievement_To__c"
+                                value={form.Achievement_To__c} onchange={handleField}
+                                class="slds-m-bottom_x-small"></lightning-input>
+                            <lightning-input type="number" label="Incentive Amount" step="0.01"
+                                data-field="Incentive_Amount__c" value={form.Incentive_Amount__c}
+                                onchange={handleField} required class="slds-m-bottom_x-small"></lightning-input>
+                            <lightning-input type="checkbox" label="Active" data-field="Active__c"
+                                checked={form.Active__c} onchange={handleField}></lightning-input>
+                        </div>
+                    </div>
+                    <div class="slds-m-top_medium slds-text-align_right">
+                        <lightning-button label="Cancel" onclick={handleCloseForm}
+                            class="slds-m-right_x-small"></lightning-button>
+                        <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <template if:true={showBulk}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={handleBulkClose}>
+                        <lightning-icon icon-name="utility:close" size="small"
+                            variant="inverse"></lightning-icon>
+                    </button>
+                    <h2 class="slds-modal__title slds-hyphenate">Bulk Add Incentive Slabs</h2>
+                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                        Add one row per slab. Use Clone to duplicate a row and edit only what differs.
+                    </p>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <div class="slds-scrollable_x">
+                        <table class="slds-table slds-table_bordered slds-table_cell-buffer" style="min-width:1100px;">
+                            <thead>
+                                <tr class="slds-text-title_caps">
+                                    <th style="width:18%;">Target Criteria *</th>
+                                    <th style="width:12%;">Channel</th>
+                                    <th style="width:14%;">Focus Pack</th>
+                                    <th style="width:11%;">Compare On *</th>
+                                    <th style="width:9%;">From *</th>
+                                    <th style="width:9%;">To</th>
+                                    <th style="width:11%;">Amount *</th>
+                                    <th style="width:5rem;">Active</th>
+                                    <th style="width:7rem;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={bulkRows} for:item="row">
+                                    <tr key={row.id}>
+                                        <td>
+                                            <lightning-combobox variant="label-hidden"
+                                                data-id={row.id} value={row.Target_Criteria__c}
+                                                options={formCriteriaOptions}
+                                                onchange={handleBulkRowCriteriaChange}></lightning-combobox>
+                                        </td>
+                                        <td>
+                                            <lightning-combobox variant="label-hidden"
+                                                data-id={row.id} data-field="Sales_Channel__c"
+                                                value={row.Sales_Channel__c}
+                                                options={rowChannelOptions}
+                                                onchange={handleBulkRowField}></lightning-combobox>
+                                        </td>
+                                        <td>
+                                            <lightning-combobox variant="label-hidden"
+                                                data-id={row.id} data-field="Focused_Pack__c"
+                                                value={row.Focused_Pack__c}
+                                                options={rowPackOptions}
+                                                disabled={row.packDisabled}
+                                                onchange={handleBulkRowField}></lightning-combobox>
+                                        </td>
+                                        <td>
+                                            <lightning-combobox variant="label-hidden"
+                                                data-id={row.id} data-field="Compare_On__c"
+                                                value={row.Compare_On__c} options={compareOptions}
+                                                onchange={handleBulkRowField}></lightning-combobox>
+                                        </td>
+                                        <td>
+                                            <lightning-input type="number" variant="label-hidden" step="0.01"
+                                                data-id={row.id} data-field="Achievement_From__c"
+                                                value={row.Achievement_From__c}
+                                                onchange={handleBulkRowField}></lightning-input>
+                                        </td>
+                                        <td>
+                                            <lightning-input type="number" variant="label-hidden" step="0.01"
+                                                data-id={row.id} data-field="Achievement_To__c"
+                                                value={row.Achievement_To__c}
+                                                onchange={handleBulkRowField}></lightning-input>
+                                        </td>
+                                        <td>
+                                            <lightning-input type="number" variant="label-hidden" step="0.01"
+                                                data-id={row.id} data-field="Incentive_Amount__c"
+                                                value={row.Incentive_Amount__c}
+                                                onchange={handleBulkRowField}></lightning-input>
+                                        </td>
+                                        <td class="slds-text-align_center">
+                                            <lightning-input type="checkbox" variant="label-hidden"
+                                                data-id={row.id} data-field="Active__c"
+                                                checked={row.Active__c}
+                                                onchange={handleBulkRowField}></lightning-input>
+                                        </td>
+                                        <td class="slds-text-align_center">
+                                            <lightning-button-icon icon-name="utility:copy"
+                                                alternative-text="Clone row" variant="bare"
+                                                title="Clone row"
+                                                data-id={row.id}
+                                                onclick={handleBulkCloneRow}
+                                                class="slds-m-right_x-small"></lightning-button-icon>
+                                            <lightning-button-icon icon-name="utility:delete"
+                                                alternative-text="Remove row" variant="bare"
+                                                title="Remove row"
+                                                data-id={row.id}
+                                                onclick={handleBulkRemoveRow}></lightning-button-icon>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="slds-m-top_x-small">
+                        <lightning-button label="Add Row" icon-name="utility:add"
+                            onclick={handleBulkAddRow}></lightning-button>
+                    </div>
+
+                    <div class="slds-m-top_medium slds-text-align_right">
+                        <lightning-button label="Cancel" onclick={handleBulkClose}
+                            class="slds-m-right_x-small"></lightning-button>
+                        <lightning-button variant="brand" label="Save All" onclick={handleBulkSave}></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

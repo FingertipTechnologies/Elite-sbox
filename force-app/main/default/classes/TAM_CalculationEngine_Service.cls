@@ -95,12 +95,12 @@ public without sharing class TAM_CalculationEngine_Service {
         Map<Id, Set<String>> distinctByUser = new Map<Id, Set<String>>();
 
         for (SObject row : Database.query(soql)) {
-            Id uid = resolveUserId(row.get(crit.User_Field__c), keyToUser);
+            Id uid = resolveUserId(getFieldValue(row, crit.User_Field__c), keyToUser);
             if (uid == null) continue;
             if (op == 'SUM') {
-                sumByUser.put(uid, (sumByUser.containsKey(uid) ? sumByUser.get(uid) : 0) + toDecimal(row.get(crit.Field__c)));
+                sumByUser.put(uid, (sumByUser.containsKey(uid) ? sumByUser.get(uid) : 0) + toDecimal(getFieldValue(row, crit.Field__c)));
             } else if (op == 'COUNT_DISTINCT') {
-                Object dv = row.get(crit.Distinct_Field__c);
+                Object dv = getFieldValue(row, crit.Distinct_Field__c);
                 if (dv == null) continue;
                 if (!distinctByUser.containsKey(uid)) distinctByUser.put(uid, new Set<String>());
                 distinctByUser.get(uid).add(String.valueOf(dv));
@@ -140,10 +140,10 @@ public without sharing class TAM_CalculationEngine_Service {
                 ' WHERE ' + buildSourceWhere(s, true);
 
             for (SObject row : Database.query(soql)) {
-                Id uid = resolveUserId(row.get(s.userField), keyToUser);
+                Id uid = resolveUserId(getFieldValue(row, s.userField), keyToUser);
                 if (uid == null) continue;
-                Date d = toDate(row.get(s.dateField));
-                Object outlet = row.get(s.distinctField);
+                Date d = toDate(getFieldValue(row, s.dateField));
+                Object outlet = getFieldValue(row, s.distinctField);
                 if (d == null || outlet == null) continue;
                 if (!userTuples.containsKey(uid)) {
                     userTuples.put(uid, new Set<String>());
@@ -181,12 +181,12 @@ public without sharing class TAM_CalculationEngine_Service {
         Map<Id, Map<Date, Decimal>> denByUserDay = new Map<Id, Map<Date, Decimal>>();
 
         for (SObject row : Database.query(soql)) {
-            Id uid = resolveUserId(row.get(crit.User_Field__c), keyToUser);
+            Id uid = resolveUserId(getFieldValue(row, crit.User_Field__c), keyToUser);
             if (uid == null) continue;
-            Date d = toDate(row.get(crit.Date_Field__c));
+            Date d = toDate(getFieldValue(row, crit.Date_Field__c));
             if (d == null) continue;
-            Decimal num = toDecimal(row.get(crit.Numerator_Field__c));
-            Decimal den = toDecimal(row.get(crit.Denominator_Field__c));
+            Decimal num = toDecimal(getFieldValue(row, crit.Numerator_Field__c));
+            Decimal den = toDecimal(getFieldValue(row, crit.Denominator_Field__c));
             if (!numByUserDay.containsKey(uid)) {
                 numByUserDay.put(uid, new Map<Date, Decimal>());
                 denByUserDay.put(uid, new Map<Date, Decimal>());
@@ -231,11 +231,11 @@ public without sharing class TAM_CalculationEngine_Service {
         Map<Id, Map<Date, Set<String>>> ordersByUserDay = new Map<Id, Map<Date, Set<String>>>();
 
         for (SObject row : Database.query(soql)) {
-            Id uid = resolveUserId(row.get(crit.User_Field__c), keyToUser);
+            Id uid = resolveUserId(getFieldValue(row, crit.User_Field__c), keyToUser);
             if (uid == null) continue;
-            Date d = toDate(row.get(crit.Date_Field__c));
+            Date d = toDate(getFieldValue(row, crit.Date_Field__c));
             if (d == null) continue;
-            Object ord = row.get(orderField);
+            Object ord = getFieldValue(row, orderField);
             if (ord == null) continue;
 
             if (!linesByUserDay.containsKey(uid)) {
@@ -314,11 +314,15 @@ public without sharing class TAM_CalculationEngine_Service {
             if (!skuIds.isEmpty() && !userIds.isEmpty()) {
                 Map<String, Id> keyToUser = buildKeyToUser(userIds);
                 Set<String> userKeys = keyToUser.keySet();
+                // Date and User fields fall back to denormalized Order_Item__c formulas
+                // when the criteria leaves them blank.
+                String dateField = String.isNotBlank(crit.Date_Field__c) ? crit.Date_Field__c : 'Order_Date__c';
+                String userField = String.isNotBlank(crit.User_Field__c) ? crit.User_Field__c : 'Order_Owner_Id__c';
                 // Secondary-order scoping comes from the criteria Filters (e.g.
                 // Customer_Order_Type__c = 'Secondary Order'), not a hardcoded field.
                 String baseWhere = 'Product__c IN :skuIds' +
-                    ' AND Order_Date__c >= :startDate AND Order_Date__c <= :endDate' +
-                    ' AND Order_Owner_Id__c IN :userKeys';
+                    ' AND ' + dateField + ' >= :startDate AND ' + dateField + ' <= :endDate' +
+                    ' AND ' + userField + ' IN :userKeys';
                 String extraFilter = TAM_FilterEngine_Service.buildWhereClause(crit.Filters__c, crit.Filter_Logic__c);
                 if (String.isNotBlank(extraFilter)) baseWhere += ' AND ' + extraFilter;
 
@@ -326,26 +330,29 @@ public without sharing class TAM_CalculationEngine_Service {
                     Decimal minQty = minQtyByPack.containsKey(packId) ? minQtyByPack.get(packId) : 0;
                     // Quantity field is configurable via the criteria Field (default Quantity__c).
                     String qtyField = String.isNotBlank(crit.Field__c) ? crit.Field__c : 'Quantity__c';
-                    String ecoSoql = 'SELECT Order_Owner_Id__c, Order__c, Account__c, ' + qtyField +
+                    // Outlet field is configurable via the criteria Distinct Field; supports a
+                    // parent-relationship path (e.g. Order__r.Account__c) when the line has no Account.
+                    String outletField = String.isNotBlank(crit.Distinct_Field__c) ? crit.Distinct_Field__c : 'Account__c';
+                    String ecoSoql = 'SELECT ' + userField + ', Order__c, ' + outletField + ', ' + qtyField +
                         ' FROM Order_Item__c WHERE ' + baseWhere;
                     // Sum pack-SKU quantity per (user, order, outlet) in Apex, then qualify.
                     Map<String, Decimal> qtyByKey = new Map<String, Decimal>();
                     Map<String, Id> userByKey = new Map<String, Id>();
-                    Map<String, Id> outletByKey = new Map<String, Id>();
+                    Map<String, String> outletByKey = new Map<String, String>();
                     for (SObject oi : Database.query(ecoSoql)) {
-                        Id uid = resolveUserId(oi.get('Order_Owner_Id__c'), keyToUser);
-                        Object outlet = oi.get('Account__c');
+                        Id uid = resolveUserId(getFieldValue(oi, userField), keyToUser);
+                        Object outlet = getFieldValue(oi, outletField);
                         if (uid == null || outlet == null) continue;
                         String key = uid + '|' + oi.get('Order__c') + '|' + outlet;
-                        qtyByKey.put(key, (qtyByKey.containsKey(key) ? qtyByKey.get(key) : 0) + toDecimal(oi.get(qtyField)));
+                        qtyByKey.put(key, (qtyByKey.containsKey(key) ? qtyByKey.get(key) : 0) + toDecimal(getFieldValue(oi, qtyField)));
                         userByKey.put(key, uid);
-                        outletByKey.put(key, (Id) outlet);
+                        outletByKey.put(key, String.valueOf(outlet));
                     }
-                    Map<Id, Set<Id>> qualifiedOutlets = new Map<Id, Set<Id>>();
+                    Map<Id, Set<String>> qualifiedOutlets = new Map<Id, Set<String>>();
                     for (String key : qtyByKey.keySet()) {
                         if (qtyByKey.get(key) < minQty) continue;
                         Id uid = userByKey.get(key);
-                        if (!qualifiedOutlets.containsKey(uid)) qualifiedOutlets.put(uid, new Set<Id>());
+                        if (!qualifiedOutlets.containsKey(uid)) qualifiedOutlets.put(uid, new Set<String>());
                         qualifiedOutlets.get(uid).add(outletByKey.get(key));
                     }
                     for (Id uid : qualifiedOutlets.keySet()) {
@@ -356,12 +363,12 @@ public without sharing class TAM_CalculationEngine_Service {
                     // value, allowing an override via the criteria's Field.
                     String valueField = String.isNotBlank(crit.Field__c)
                         ? crit.Field__c : 'Non_Taxable_Order_Value__c';
-                    String revSoql = 'SELECT Order_Owner_Id__c, ' + valueField +
+                    String revSoql = 'SELECT ' + userField + ', ' + valueField +
                         ' FROM Order_Item__c WHERE ' + baseWhere;
                     for (SObject oi : Database.query(revSoql)) {
-                        Id uid = resolveUserId(oi.get('Order_Owner_Id__c'), keyToUser);
+                        Id uid = resolveUserId(getFieldValue(oi, userField), keyToUser);
                         if (uid == null) continue;
-                        perUser.put(uid, (perUser.containsKey(uid) ? perUser.get(uid) : 0) + toDecimal(oi.get(valueField)));
+                        perUser.put(uid, (perUser.containsKey(uid) ? perUser.get(uid) : 0) + toDecimal(getFieldValue(oi, valueField)));
                     }
                 }
             }
@@ -418,6 +425,20 @@ public without sharing class TAM_CalculationEngine_Service {
         if (o instanceof Long) return (Long) o;
         if (o instanceof Double) return Decimal.valueOf((Double) o);
         return Decimal.valueOf(String.valueOf(o));
+    }
+
+    // Reads a field from an SObject, supporting dot-relationship paths
+    // such as Order__r.Account__c so the outlet can live on the parent order.
+    private static Object getFieldValue(SObject row, String field) {
+        if (row == null || String.isBlank(field)) return null;
+        if (!field.contains('.')) return row.get(field);
+        SObject curr = row;
+        List<String> parts = field.split('\\.');
+        for (Integer i = 0; i < parts.size() - 1; i++) {
+            if (curr == null) return null;
+            curr = curr.getSObject(parts[i]);
+        }
+        return curr == null ? null : curr.get(parts[parts.size() - 1]);
     }
 
     private static Date toDate(Object raw) {
