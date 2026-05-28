@@ -79,63 +79,37 @@
     flex-shrink: 0;
 }
 
-.stepper {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex: 1;
-    padding: 0 1rem;
-    min-width: 0;
-    flex-wrap: wrap;
-}
+.top-bar__spacer { flex: 1; min-width: 0; }
 
-.step-chip {
-    display: inline-flex;
+.empty-card {
+    padding: 1.5rem 1.25rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: var(--neutral-100);
-    color: var(--neutral-400);
-    font-size: 0.75rem;
-    font-weight: 600;
-    border: 1px solid var(--neutral-200);
+    gap: 0.4rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f6faff 100%);
+    border: 1px dashed var(--neutral-200);
+    border-radius: var(--radius-sm);
 }
-.step-chip .step-num {
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    background: var(--white);
-    color: var(--neutral-400);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.7rem;
-    border: 1px solid var(--neutral-200);
-}
-.step-chip--active {
-    background: var(--brand-light);
-    color: var(--brand-dark);
-    border-color: var(--brand-primary);
-}
-.step-chip--active .step-num {
+.empty-card__icon {
     background: var(--brand-primary);
+    padding: 0.6rem;
+    border-radius: 50%;
     color: var(--white);
-    border-color: var(--brand-primary);
+    margin-bottom: 0.25rem;
 }
-.step-chip--done {
-    background: var(--success-light);
-    color: var(--success);
-    border-color: var(--success);
+.empty-card__title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--brand-dark);
+    margin: 0;
 }
-.step-chip--done .step-num {
-    background: var(--success);
-    color: var(--white);
-    border-color: var(--success);
-}
-.step-sep {
-    width: 18px;
-    height: 1px;
-    background: var(--neutral-200);
+.empty-card__sub {
+    font-size: 0.78rem;
+    color: var(--neutral-400);
+    margin: 0;
+    max-width: 360px;
 }
 
 .top-bar__actions {
@@ -317,7 +291,7 @@
     .top-bar { flex-wrap: wrap; }
     .top-bar__brand { border-radius: var(--radius) var(--radius) 0 0; min-width: 100%; }
     .top-bar__divider { display: none; }
-    .stepper { padding: 0.5rem; }
+    .top-bar__spacer { display: none; }
     .top-bar__actions { padding: 0.5rem 0.75rem 0.75rem; width: 100%; justify-content: flex-end; }
     .grid-2col { grid-template-columns: 1fr; }
 }

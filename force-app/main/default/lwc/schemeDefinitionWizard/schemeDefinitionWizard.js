@@ -4,6 +4,7 @@ import getPicklists from '@salesforce/apex/SchemeDefinitionController.getPicklis
 import loadScheme from '@salesforce/apex/SchemeDefinitionController.loadScheme';
 import searchProductGroups from '@salesforce/apex/SchemeDefinitionController.searchProductGroups';
 import saveSchemeWithSlabs from '@salesforce/apex/SchemeDefinitionController.saveSchemeWithSlabs';
+import getSkusForChannel from '@salesforce/apex/SchemeProductGroupController.getSkusForChannel';
 
 const TYPE_FREE_QTY     = 'Free Quantity';
 const TYPE_QPS          = 'QPS';
@@ -14,8 +15,11 @@ const TYPE_CATEGORY     = 'Category_Value';
 const GROUP_TYPES    = new Set([TYPE_FREE_QTY, TYPE_QPS, TYPE_FOC_GIVEAWAY]);
 const CATEGORY_TYPES = new Set([TYPE_CATEGORY]);
 
+const PLUM_TOKEN = 'plum';
+
 let _uidSeq = 0;
 const nextUid = () => `slab-${++_uidSeq}`;
+const normalize = v => (v == null ? '' : String(v).toLowerCase().replace(/[\s_-]/g, ''));
 
 const FALLBACK_SCHEME_TYPES = [
     { label: 'Free Quantity', value: TYPE_FREE_QTY },
@@ -28,7 +32,6 @@ const FALLBACK_SCHEME_TYPES = [
 export default class SchemeDefinitionWizard extends LightningElement {
     @api recordId;
 
-    @track currentStep = 1;
     @track master = {
         name: '',
         schemeType: '',
@@ -43,13 +46,14 @@ export default class SchemeDefinitionWizard extends LightningElement {
         productCategory: ''
     };
     @track slabs = [];
-    @track freeQtyMode = 'cycle';
     @track productGroupResults = [];
+    @track focProductOptions = [];
 
     @track isLoadingPicklists = false;
     @track isHydrating = false;
     @track isSaving = false;
     @track isSearchingGroups = false;
+    @track isLoadingFocSkus = false;
 
     salesChannelOptions = [];
     schemeTypeOptionsRaw = [];
@@ -57,6 +61,7 @@ export default class SchemeDefinitionWizard extends LightningElement {
 
     _searchDebounce;
     _searchTerm = '';
+    _focCacheByChannel = {};
 
     connectedCallback() {
         this.loadPicklists();
@@ -69,9 +74,9 @@ export default class SchemeDefinitionWizard extends LightningElement {
         this.isLoadingPicklists = true;
         try {
             const data = await getPicklists();
-            this.salesChannelOptions     = data.salesChannels || [];
-            this.schemeTypeOptionsRaw    = data.schemeTypes || [];
-            this.productCategoryOptions  = data.productCategories || [];
+            this.salesChannelOptions    = data.salesChannels || [];
+            this.schemeTypeOptionsRaw   = data.schemeTypes || [];
+            this.productCategoryOptions = data.productCategories || [];
         } catch (error) {
             this.toast('Error', this.reduceError(error), 'error');
         } finally {
@@ -110,9 +115,8 @@ export default class SchemeDefinitionWizard extends LightningElement {
                 benefitPercent: s.benefitPercent,
                 focProductId: s.focProductId
             }));
-            if (this.master.schemeType === TYPE_FREE_QTY) {
-                const allMaxNull = incoming.length === 1 && incoming[0].qtyMax == null;
-                this.freeQtyMode = allMaxNull ? 'cycle' : 'band';
+            if (this.master.salesChannel && this.master.schemeType === TYPE_FOC_GIVEAWAY) {
+                this.loadFocProducts(this.master.salesChannel);
             }
         } catch (error) {
             this.toast('Error', this.reduceError(error), 'error');
@@ -124,25 +128,15 @@ export default class SchemeDefinitionWizard extends LightningElement {
     get isEditMode() { return !!this.recordId; }
     get pageTitle()  { return this.isEditMode ? 'Edit Scheme' : 'New Scheme'; }
 
-    get showStep1() { return this.currentStep === 1; }
-    get showStep2() { return this.currentStep === 2; }
-    get showStep3() { return this.currentStep === 3; }
-
-    get step1Class() { return this.stepChipClass(1); }
-    get step2Class() { return this.stepChipClass(2); }
-    get step3Class() { return this.stepChipClass(3); }
-
-    stepChipClass(n) {
-        if (n === this.currentStep) return 'step-chip step-chip--active';
-        if (n < this.currentStep)   return 'step-chip step-chip--done';
-        return 'step-chip';
-    }
-
     get schemeTypeOptions() {
         const list = this.schemeTypeOptionsRaw && this.schemeTypeOptionsRaw.length
             ? this.schemeTypeOptionsRaw
             : FALLBACK_SCHEME_TYPES;
         return list;
+    }
+
+    get hasMasterMinimums() {
+        return !!(this.master.schemeType && this.master.salesChannel);
     }
 
     get step2Mode() {
@@ -152,75 +146,48 @@ export default class SchemeDefinitionWizard extends LightningElement {
         return 'none';
     }
 
-    get showGroupPicker()    { return this.step2Mode === 'group'; }
-    get showCategoryPicker() { return this.step2Mode === 'category'; }
-    get showNoLinkageHint()  { return this.step2Mode === 'none'; }
+    get showGroupPicker()    { return this.hasMasterMinimums && this.step2Mode === 'group'; }
+    get showCategoryPicker() { return this.hasMasterMinimums && this.step2Mode === 'category'; }
+    get showNoLinkageHint()  { return this.hasMasterMinimums && this.step2Mode === 'none'; }
+    get showLinkagePlaceholder() { return !this.hasMasterMinimums; }
+    get showSlabsPlaceholder()   { return !this.hasMasterMinimums; }
+    get showSlabsTable()         { return this.hasMasterMinimums; }
 
     get expectedGroupPurpose() {
         return this.master.schemeType === TYPE_FOC_GIVEAWAY ? 'FOCQualifier' : 'PriceDivision';
     }
 
-    get isFreeQty()     { return this.master.schemeType === TYPE_FREE_QTY; }
-    get isQps()         { return this.master.schemeType === TYPE_QPS; }
-    get isFoc()         { return this.master.schemeType === TYPE_FOC_GIVEAWAY; }
-    get isOrderValue()  { return this.master.schemeType === TYPE_ORDER_VALUE; }
+    get isFreeQty()       { return this.master.schemeType === TYPE_FREE_QTY; }
+    get isQps()           { return this.master.schemeType === TYPE_QPS; }
+    get isFoc()           { return this.master.schemeType === TYPE_FOC_GIVEAWAY; }
+    get isOrderValue()    { return this.master.schemeType === TYPE_ORDER_VALUE; }
     get isCategoryValue() { return this.master.schemeType === TYPE_CATEGORY; }
-
-    get isFreeQtyCycle() { return this.isFreeQty && this.freeQtyMode === 'cycle'; }
-    get isFreeQtyBand()  { return this.isFreeQty && this.freeQtyMode === 'band'; }
-
-    get freeQtyModeOptions() {
-        return [
-            { label: 'Cycle (X + Y repeats)', value: 'cycle' },
-            { label: 'Bands (one-shot ranges)', value: 'band' }
-        ];
-    }
-
-    get canAddSlabRow() {
-        if (this.isFreeQtyCycle) return false;
-        if (this.isFoc)          return false;
-        return true;
-    }
-
-    get canRemoveSlabRow() {
-        return this.canAddSlabRow && this.slabs.length > 1;
-    }
 
     get displaySlabs() {
         return this.slabs.map((s, i) => ({
             ...s,
             sNo: i + 1,
-            showRemove: this.canRemoveSlabRow
+            showRemove: this.slabs.length > 1
         }));
     }
 
-    get currentStepIsValid() {
-        if (this.currentStep === 1) return this.isStep1Valid;
-        if (this.currentStep === 2) return this.isStep2Valid;
-        if (this.currentStep === 3) return this.isStep3Valid;
-        return false;
-    }
-
-    get isStep1Valid() {
+    get isMasterValid() {
         const m = this.master;
         if (!m.name || !m.schemeType || !m.salesChannel || !m.startDate || !m.endDate) return false;
         return m.endDate >= m.startDate;
     }
 
-    get isStep2Valid() {
+    get isLinkageValid() {
         if (this.step2Mode === 'group')    return !!this.linkage.productGroupId;
         if (this.step2Mode === 'category') return !!this.linkage.productCategory;
         return true;
     }
 
-    get isStep3Valid() {
+    get areSlabsValid() {
         if (!this.slabs.length) return false;
         for (const s of this.slabs) {
             if (this.isFreeQty) {
                 if (s.qtyMin == null || s.qtyMin === '' || s.freeQty == null || s.freeQty === '') return false;
-                if (this.isFreeQtyBand && (s.qtyMax === '' || s.qtyMax == null)) {
-                    if (this.slabs.indexOf(s) !== this.slabs.length - 1) return false;
-                }
             } else if (this.isQps) {
                 if (s.qtyMin == null || s.qtyMin === '' || s.benefitPerEa == null || s.benefitPerEa === '') return false;
             } else if (this.isFoc) {
@@ -233,75 +200,108 @@ export default class SchemeDefinitionWizard extends LightningElement {
         return true;
     }
 
-    get isNextDisabled() {
-        return this.currentStep >= 3 || !this.currentStepIsValid || this.isSaving;
-    }
-
-    get isBackDisabled() {
-        return this.currentStep <= 1 || this.isSaving;
-    }
-
     get isSaveDisabled() {
-        return this.isSaving || !this.isStep1Valid || !this.isStep2Valid || !this.isStep3Valid;
+        return this.isSaving || !this.hasMasterMinimums || !this.isMasterValid || !this.isLinkageValid || !this.areSlabsValid;
     }
-
-    get showNextButton() { return this.currentStep < 3; }
-    get showSaveButton() { return this.currentStep === 3; }
 
     get inlineMessage() {
-        if (this.currentStep === 1 && !this.isStep1Valid) {
+        if (!this.isMasterValid) {
             if (this.master.endDate && this.master.startDate && this.master.endDate < this.master.startDate) {
                 return { cls: 'chip chip--red',  text: 'End Date must be on/after Start Date.' };
             }
-            return { cls: 'chip chip--info', text: 'Fill all required master fields to continue.' };
+            return { cls: 'chip chip--info', text: 'Fill all required master fields.' };
         }
-        if (this.currentStep === 2 && !this.isStep2Valid) {
+        if (!this.isLinkageValid) {
             return { cls: 'chip chip--info', text: this.step2Mode === 'group'
                 ? 'Select a Scheme Product Group to continue.'
                 : 'Select a Product Category to continue.' };
         }
-        if (this.currentStep === 3 && !this.isStep3Valid) {
+        if (!this.areSlabsValid) {
             return { cls: 'chip chip--info', text: 'Fill every slab row to enable Save.' };
         }
-        return { cls: 'chip chip--green', text: 'Ready.' };
+        return { cls: 'chip chip--green', text: 'Ready to save.' };
     }
 
     handleMasterChange(event) {
         const field = event.target.dataset.field;
         const value = event.detail ? event.detail.value : event.target.value;
+        const prevType = this.master.schemeType;
+        const prevChannel = this.master.salesChannel;
         this.master = { ...this.master, [field]: value };
 
         if (field === 'schemeType') {
-            this.linkage = { productGroupId: '', productGroupName: '', productCategory: '' };
+            const newLinkage = {
+                productGroupId: '',
+                productGroupName: '',
+                productCategory: this.defaultCategoryFor(value)
+            };
+            this.linkage = newLinkage;
             this.productGroupResults = [];
-            this.freeQtyMode = 'cycle';
-            this.slabs = this.seedSlabsForType(value, this.freeQtyMode);
+            this.slabs = this.seedSlabsForType(value);
+            if (value === TYPE_FOC_GIVEAWAY && this.master.salesChannel) {
+                this.loadFocProducts(this.master.salesChannel);
+            }
+            if (value !== prevType && (this.isOrderValue || this.isCategoryValue || this.isFreeQty || this.isQps)) {
+                this.focProductOptions = [];
+            }
         } else if (field === 'salesChannel') {
             this.linkage = { ...this.linkage, productGroupId: '', productGroupName: '' };
             this.productGroupResults = [];
+            this.clearFocFromSlabs();
+            if (value && this.master.schemeType === TYPE_FOC_GIVEAWAY) {
+                this.loadFocProducts(value);
+            } else {
+                this.focProductOptions = [];
+            }
         }
     }
 
-    handleFreeQtyModeChange(event) {
-        const next = event.detail.value;
-        if (next === this.freeQtyMode) return;
-        this.freeQtyMode = next;
-        this.slabs = this.seedSlabsForType(this.master.schemeType, next);
+    defaultCategoryFor(schemeType) {
+        if (schemeType !== TYPE_CATEGORY) return '';
+        const match = (this.productCategoryOptions || []).find(o => normalize(o.value) === PLUM_TOKEN);
+        return match ? match.value : '';
     }
 
-    seedSlabsForType(type, mode) {
+    clearFocFromSlabs() {
+        if (!this.slabs.length) return;
+        this.slabs = this.slabs.map(s => ({ ...s, focProductId: '' }));
+    }
+
+    async loadFocProducts(channel) {
+        if (!channel) {
+            this.focProductOptions = [];
+            return;
+        }
+        if (this._focCacheByChannel[channel]) {
+            this.focProductOptions = this._focCacheByChannel[channel];
+            return;
+        }
+        this.isLoadingFocSkus = true;
+        try {
+            const rows = await getSkusForChannel({ salesChannel: channel });
+            const opts = (rows || []).map(r => ({
+                label: r.skuCode ? `${r.name} (${r.skuCode})` : r.name,
+                value: r.id
+            }));
+            this._focCacheByChannel[channel] = opts;
+            this.focProductOptions = opts;
+        } catch (error) {
+            this.toast('Error', this.reduceError(error), 'error');
+        } finally {
+            this.isLoadingFocSkus = false;
+        }
+    }
+
+    seedSlabsForType(type) {
         if (!type) return [];
         if (type === TYPE_FREE_QTY) {
-            if (mode === 'cycle') {
-                return [this.makeSlab({ qtyMin: null, qtyMax: null, freeQty: null })];
-            }
             return [this.makeSlab({ qtyMin: null, qtyMax: null, freeQty: null })];
         }
         if (type === TYPE_QPS) {
-            return [this.makeSlab({ qtyMin: null, benefitPerEa: null })];
+            return [this.makeSlab({ qtyMin: null, qtyMax: null, benefitPerEa: null })];
         }
         if (type === TYPE_FOC_GIVEAWAY) {
-            return [this.makeSlab({ qtyMin: null, freeQty: null, focProductId: '' })];
+            return [this.makeSlab({ qtyMin: null, qtyMax: null, freeQty: null, focProductId: '' })];
         }
         if (type === TYPE_ORDER_VALUE || type === TYPE_CATEGORY) {
             return [this.makeSlab({ valueMin: null, valueMax: null, benefitPercent: null })];
@@ -321,7 +321,6 @@ export default class SchemeDefinitionWizard extends LightningElement {
     }
 
     handleAddSlab() {
-        if (!this.canAddSlabRow) return;
         this.slabs = [...this.slabs, this.makeSlab({})];
     }
 
@@ -344,7 +343,7 @@ export default class SchemeDefinitionWizard extends LightningElement {
 
     handleFocProductChange(event) {
         const uid = event.target.dataset.uid;
-        const value = event.detail ? event.detail.recordId : null;
+        const value = event.detail ? event.detail.value : event.target.value;
         this.slabs = this.slabs.map(s => s._uid === uid ? { ...s, focProductId: value || '' } : s);
     }
 
@@ -395,18 +394,6 @@ export default class SchemeDefinitionWizard extends LightningElement {
 
     handleCategoryChange(event) {
         this.linkage = { ...this.linkage, productCategory: event.detail.value };
-    }
-
-    handleNext() {
-        if (!this.currentStepIsValid) return;
-        if (this.currentStep === 1 && this.step2Mode === 'group' && !this.productGroupResults.length) {
-            this.runProductGroupSearch();
-        }
-        this.currentStep = Math.min(3, this.currentStep + 1);
-    }
-
-    handleBack() {
-        this.currentStep = Math.max(1, this.currentStep - 1);
     }
 
     handleCancel() {
