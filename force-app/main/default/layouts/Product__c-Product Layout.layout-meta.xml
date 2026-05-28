@@ -221,6 +221,10 @@
         <fields>NAME</fields>
         <relatedList>Scheme_Product_Group_Item__c.Product__c</relatedList>
     </relatedLists>
+    <relatedLists>
+        <fields>NAME</fields>
+        <relatedList>Scheme_Slab__c.FOC_Product__c</relatedList>
+    </relatedLists>
     <showEmailCheckbox>false</showEmailCheckbox>
     <showHighlightsPanel>false</showHighlightsPanel>
     <showInteractionLogPanel>false</showInteractionLogPanel>

@@ -91,10 +91,6 @@
     </layoutSections>
     <relatedLists>
         <fields>NAME</fields>
-        <relatedList>Scheme__c.Mapping__c</relatedList>
-    </relatedLists>
-    <relatedLists>
-        <fields>NAME</fields>
         <relatedList>Buy_Product__c.Mapping__c</relatedList>
     </relatedLists>
     <showEmailCheckbox>false</showEmailCheckbox>

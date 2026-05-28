@@ -3,7 +3,7 @@
     <fullName>Product_Category__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
     <externalId>false</externalId>
-    <label>Product Category</label>
+    <label>Not in Use</label>
     <referenceTo>Product_Category__c</referenceTo>
     <relationshipLabel>Schemes</relationshipLabel>
     <relationshipName>Schemes</relationshipName>
