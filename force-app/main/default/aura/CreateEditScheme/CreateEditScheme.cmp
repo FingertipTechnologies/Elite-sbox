@@ -6,9 +6,8 @@
     <aura:attribute name="isSchemeTrue" type="boolean" default="false"/>
     
     <aura:if isTrue="{!v.isSchemeTrue}">
-        <c:schemeDataPage recordId="{!v.recordId}"
-                          onClickAction = "{!c.onClickAction}"
-                          header="{!v.heading}"
-                          />
+        <c:schemeDefinitionWizard recordId="{!v.recordId}"
+                                  oncomplete="{!c.onWizardComplete}"
+                                  oncancel="{!c.onWizardCancel}"/>
     </aura:if>
 </aura:component>

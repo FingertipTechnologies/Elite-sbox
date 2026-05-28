@@ -1,0 +1,404 @@
+<template>
+    <div class="wizard-wrapper">
+
+        <!-- Top bar: brand + title + actions -->
+        <div class="top-bar">
+            <div class="top-bar__brand">
+                <div class="top-bar__title-wrap">
+                    <p class="top-bar__eyebrow">Scheme Definition</p>
+                    <p class="top-bar__title">{pageTitle}</p>
+                </div>
+            </div>
+            <div class="top-bar__divider"></div>
+
+            <div class="stepper">
+                <div class={step1Class}><span class="step-num">1</span><span class="step-label">Master</span></div>
+                <div class="step-sep"></div>
+                <div class={step2Class}><span class="step-num">2</span><span class="step-label">Linkage</span></div>
+                <div class="step-sep"></div>
+                <div class={step3Class}><span class="step-num">3</span><span class="step-label">Slabs</span></div>
+            </div>
+
+            <div class="top-bar__actions">
+                <lightning-button
+                    label="Cancel"
+                    variant="neutral"
+                    onclick={handleCancel}
+                    disabled={isSaving}>
+                </lightning-button>
+                <lightning-button
+                    label="Back"
+                    variant="neutral"
+                    onclick={handleBack}
+                    disabled={isBackDisabled}>
+                </lightning-button>
+                <template if:true={showNextButton}>
+                    <lightning-button
+                        label="Next"
+                        variant="brand"
+                        onclick={handleNext}
+                        disabled={isNextDisabled}>
+                    </lightning-button>
+                </template>
+                <template if:true={showSaveButton}>
+                    <lightning-button
+                        label="Save"
+                        variant="brand"
+                        onclick={handleSave}
+                        disabled={isSaveDisabled}>
+                    </lightning-button>
+                </template>
+            </div>
+        </div>
+
+        <!-- Loading veil -->
+        <template if:true={isHydrating}>
+            <div class="card hydrating">
+                <lightning-spinner alternative-text="Loading..." size="small"></lightning-spinner>
+                <span>Loading scheme…</span>
+            </div>
+        </template>
+
+        <!-- ============ STEP 1 — MASTER ============ -->
+        <template if:true={showStep1}>
+            <div class="card step-card">
+                <h2 class="card__title">Master Details</h2>
+                <div class="grid-2col">
+                    <div>
+                        <lightning-input
+                            label="Scheme Name"
+                            data-field="name"
+                            value={master.name}
+                            max-length="255"
+                            required
+                            onchange={handleMasterChange}>
+                        </lightning-input>
+                    </div>
+                    <div>
+                        <lightning-combobox
+                            label="Sales Channel"
+                            data-field="salesChannel"
+                            value={master.salesChannel}
+                            options={salesChannelOptions}
+                            placeholder="Select…"
+                            required
+                            onchange={handleMasterChange}>
+                        </lightning-combobox>
+                    </div>
+                </div>
+
+                <div class="grid-1col">
+                    <lightning-radio-group
+                        label="Scheme Type"
+                        data-field="schemeType"
+                        value={master.schemeType}
+                        options={schemeTypeOptions}
+                        type="radio"
+                        required
+                        onchange={handleMasterChange}>
+                    </lightning-radio-group>
+                </div>
+
+                <div class="grid-2col">
+                    <div>
+                        <lightning-input
+                            label="Scheme Start Date"
+                            type="date"
+                            data-field="startDate"
+                            value={master.startDate}
+                            required
+                            onchange={handleMasterChange}>
+                        </lightning-input>
+                    </div>
+                    <div>
+                        <lightning-input
+                            label="Scheme End Date"
+                            type="date"
+                            data-field="endDate"
+                            value={master.endDate}
+                            required
+                            onchange={handleMasterChange}>
+                        </lightning-input>
+                    </div>
+                </div>
+
+                <div class="grid-1col">
+                    <lightning-textarea
+                        label="Description"
+                        data-field="description"
+                        value={master.description}
+                        onchange={handleMasterChange}>
+                    </lightning-textarea>
+                </div>
+            </div>
+        </template>
+
+        <!-- ============ STEP 2 — LINKAGE ============ -->
+        <template if:true={showStep2}>
+            <div class="card step-card">
+                <h2 class="card__title">Link Product Group / Category</h2>
+
+                <template if:true={showGroupPicker}>
+                    <p class="hint">
+                        Showing active Scheme Product Groups for channel
+                        <strong>{master.salesChannel}</strong> with purpose
+                        <strong>{expectedGroupPurpose}</strong>.
+                    </p>
+
+                    <template if:true={linkage.productGroupId}>
+                        <div class="selected-row">
+                            <div class="selected-pill-box">
+                                <lightning-icon icon-name="utility:success" size="x-small" variant="success"></lightning-icon>
+                                <span>{linkage.productGroupName}</span>
+                            </div>
+                            <lightning-button
+                                label="Change"
+                                variant="neutral"
+                                onclick={handleClearGroup}>
+                            </lightning-button>
+                        </div>
+                    </template>
+
+                    <template if:false={linkage.productGroupId}>
+                        <div class="search-row">
+                            <lightning-input
+                                type="search"
+                                label="Search Scheme Product Groups"
+                                placeholder="Type to search by name…"
+                                onchange={handleProductGroupSearchInput}>
+                            </lightning-input>
+                            <template if:true={isSearchingGroups}>
+                                <lightning-spinner alternative-text="Searching…" size="small"></lightning-spinner>
+                            </template>
+                        </div>
+                        <div class="result-list">
+                            <template for:each={productGroupResults} for:item="row">
+                                <div key={row.id}
+                                     data-id={row.id}
+                                     class="result-item"
+                                     onclick={handleProductGroupPick}>
+                                    <div class="result-item__name">{row.name}</div>
+                                    <div class="result-item__meta">{row.salesChannel} · {row.groupPurpose}</div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </template>
+
+                <template if:true={showCategoryPicker}>
+                    <p class="hint">Select the product category whose GSV drives the slab.</p>
+                    <lightning-combobox
+                        label="Scheme Product Category"
+                        value={linkage.productCategory}
+                        options={productCategoryOptions}
+                        placeholder="Select category…"
+                        required
+                        onchange={handleCategoryChange}>
+                    </lightning-combobox>
+                </template>
+
+                <template if:true={showNoLinkageHint}>
+                    <div class="info-box">
+                        <lightning-icon icon-name="utility:info" size="small" variant="inverse"></lightning-icon>
+                        <div>
+                            <p class="info-box__title">No product linkage required.</p>
+                            <p class="info-box__sub">Order Value schemes apply to the order's overall GSV.</p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <!-- ============ STEP 3 — SLABS ============ -->
+        <template if:true={showStep3}>
+            <div class="card step-card">
+                <h2 class="card__title">Slab Definition</h2>
+
+                <template if:true={isFreeQty}>
+                    <div class="mode-row">
+                        <lightning-radio-group
+                            label="Free Quantity Mode"
+                            value={freeQtyMode}
+                            options={freeQtyModeOptions}
+                            type="radio"
+                            variant="label-hidden"
+                            onchange={handleFreeQtyModeChange}>
+                        </lightning-radio-group>
+                    </div>
+                </template>
+
+                <!-- Free Quantity table -->
+                <template if:true={isFreeQty}>
+                    <table class="slab-table">
+                        <thead>
+                            <tr>
+                                <th class="col-sno">#</th>
+                                <th>Buy Qty (X)</th>
+                                <th>Max Qty <span class="hint-inline">(blank = cycle / open-top)</span></th>
+                                <th>Free Qty (Y)</th>
+                                <th class="col-action"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={displaySlabs} for:item="s">
+                                <tr key={s._uid} class="slab-row">
+                                    <td class="col-sno">{s.sNo}</td>
+                                    <td><lightning-input variant="label-hidden" label="Buy" type="number" data-uid={s._uid} data-field="qtyMin" value={s.qtyMin} onchange={handleSlabFieldChange}></lightning-input></td>
+                                    <td><lightning-input variant="label-hidden" label="Max" type="number" data-uid={s._uid} data-field="qtyMax" value={s.qtyMax} onchange={handleSlabFieldChange}></lightning-input></td>
+                                    <td><lightning-input variant="label-hidden" label="Free" type="number" data-uid={s._uid} data-field="freeQty" value={s.freeQty} onchange={handleSlabFieldChange}></lightning-input></td>
+                                    <td class="col-action">
+                                        <template if:true={s.showRemove}>
+                                            <lightning-button-icon icon-name="utility:delete" alternative-text="Remove" data-uid={s._uid} onclick={handleRemoveSlab}></lightning-button-icon>
+                                        </template>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </template>
+
+                <!-- QPS table -->
+                <template if:true={isQps}>
+                    <table class="slab-table">
+                        <thead>
+                            <tr>
+                                <th class="col-sno">#</th>
+                                <th>Qualifying Cases</th>
+                                <th>Benefit ₹/Case</th>
+                                <th class="col-action"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={displaySlabs} for:item="s">
+                                <tr key={s._uid} class="slab-row">
+                                    <td class="col-sno">{s.sNo}</td>
+                                    <td><lightning-input variant="label-hidden" label="Cases" type="number" data-uid={s._uid} data-field="qtyMin" value={s.qtyMin} onchange={handleSlabFieldChange}></lightning-input></td>
+                                    <td><lightning-input variant="label-hidden" label="Per Case" type="number" data-uid={s._uid} data-field="benefitPerEa" value={s.benefitPerEa} onchange={handleSlabFieldChange}></lightning-input></td>
+                                    <td class="col-action">
+                                        <template if:true={s.showRemove}>
+                                            <lightning-button-icon icon-name="utility:delete" alternative-text="Remove" data-uid={s._uid} onclick={handleRemoveSlab}></lightning-button-icon>
+                                        </template>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </template>
+
+                <!-- FOC table -->
+                <template if:true={isFoc}>
+                    <table class="slab-table">
+                        <thead>
+                            <tr>
+                                <th class="col-sno">#</th>
+                                <th>Min Qualifying Qty</th>
+                                <th>FOC Product</th>
+                                <th>Free Qty / Ratio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={displaySlabs} for:item="s">
+                                <tr key={s._uid} class="slab-row">
+                                    <td class="col-sno">{s.sNo}</td>
+                                    <td><lightning-input variant="label-hidden" label="Min" type="number" data-uid={s._uid} data-field="qtyMin" value={s.qtyMin} onchange={handleSlabFieldChange}></lightning-input></td>
+                                    <td>
+                                        <lightning-record-picker
+                                            label="FOC Product"
+                                            variant="label-hidden"
+                                            placeholder="Search Products…"
+                                            object-api-name="Product__c"
+                                            data-uid={s._uid}
+                                            value={s.focProductId}
+                                            onchange={handleFocProductChange}>
+                                        </lightning-record-picker>
+                                    </td>
+                                    <td><lightning-input variant="label-hidden" label="Free Qty" type="number" data-uid={s._uid} data-field="freeQty" value={s.freeQty} onchange={handleSlabFieldChange}></lightning-input></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </template>
+
+                <!-- Order Value / Category Value table -->
+                <template if:true={isOrderValue}>
+                    <table class="slab-table">
+                        <thead>
+                            <tr>
+                                <th class="col-sno">#</th>
+                                <th>Slab From (₹)</th>
+                                <th>Slab To (₹) <span class="hint-inline">(blank = unbounded)</span></th>
+                                <th>Discount %</th>
+                                <th class="col-action"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={displaySlabs} for:item="s">
+                                <tr key={s._uid} class="slab-row">
+                                    <td class="col-sno">{s.sNo}</td>
+                                    <td><lightning-input variant="label-hidden" label="From" type="number" data-uid={s._uid} data-field="valueMin" value={s.valueMin} onchange={handleSlabFieldChange}></lightning-input></td>
+                                    <td><lightning-input variant="label-hidden" label="To" type="number" data-uid={s._uid} data-field="valueMax" value={s.valueMax} onchange={handleSlabFieldChange}></lightning-input></td>
+                                    <td><lightning-input variant="label-hidden" label="%" type="number" formatter="percent-fixed" step="0.01" data-uid={s._uid} data-field="benefitPercent" value={s.benefitPercent} onchange={handleSlabFieldChange}></lightning-input></td>
+                                    <td class="col-action">
+                                        <template if:true={s.showRemove}>
+                                            <lightning-button-icon icon-name="utility:delete" alternative-text="Remove" data-uid={s._uid} onclick={handleRemoveSlab}></lightning-button-icon>
+                                        </template>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </template>
+
+                <template if:true={isCategoryValue}>
+                    <table class="slab-table">
+                        <thead>
+                            <tr>
+                                <th class="col-sno">#</th>
+                                <th>Slab From (₹)</th>
+                                <th>Slab To (₹) <span class="hint-inline">(blank = unbounded)</span></th>
+                                <th>Discount %</th>
+                                <th class="col-action"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={displaySlabs} for:item="s">
+                                <tr key={s._uid} class="slab-row">
+                                    <td class="col-sno">{s.sNo}</td>
+                                    <td><lightning-input variant="label-hidden" label="From" type="number" data-uid={s._uid} data-field="valueMin" value={s.valueMin} onchange={handleSlabFieldChange}></lightning-input></td>
+                                    <td><lightning-input variant="label-hidden" label="To" type="number" data-uid={s._uid} data-field="valueMax" value={s.valueMax} onchange={handleSlabFieldChange}></lightning-input></td>
+                                    <td><lightning-input variant="label-hidden" label="%" type="number" formatter="percent-fixed" step="0.01" data-uid={s._uid} data-field="benefitPercent" value={s.benefitPercent} onchange={handleSlabFieldChange}></lightning-input></td>
+                                    <td class="col-action">
+                                        <template if:true={s.showRemove}>
+                                            <lightning-button-icon icon-name="utility:delete" alternative-text="Remove" data-uid={s._uid} onclick={handleRemoveSlab}></lightning-button-icon>
+                                        </template>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </template>
+
+                <template if:true={canAddSlabRow}>
+                    <div class="table-actions">
+                        <lightning-button
+                            label="Add Slab"
+                            icon-name="utility:add"
+                            variant="neutral"
+                            onclick={handleAddSlab}>
+                        </lightning-button>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <!-- Footer chip -->
+        <div class="chip-wrap">
+            <span class={inlineMessage.cls}>{inlineMessage.text}</span>
+        </div>
+
+        <template if:true={isSaving}>
+            <lightning-spinner alternative-text="Saving…" size="medium"></lightning-spinner>
+        </template>
+
+    </div>
+</template>
