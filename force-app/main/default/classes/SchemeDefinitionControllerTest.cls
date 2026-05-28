@@ -206,6 +206,41 @@ private class SchemeDefinitionControllerTest {
     }
 
     @isTest
+    static void saveSchemeWithSlabs_rollbackOnOverlappingQtyRangesQps() {
+        Scheme_Product_Group__c g = makeGroup('QPS Overlap', 'PriceDivision');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_QPS, g.Id);
+        SchemeDefinitionController.SlabDto s1 = slab(); s1.qtyMin = 3;  s1.qtyMax = 10; s1.benefitPerEa = 40;
+        SchemeDefinitionController.SlabDto s2 = slab(); s2.qtyMin = 8;  s2.qtyMax = 20; s2.benefitPerEa = 80;
+
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s1, s2 }, null);
+        } catch (AuraHandledException ex) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected qty overlap error');
+    }
+
+    @isTest
+    static void saveSchemeWithSlabs_qpsPersistsMaxQty() {
+        Scheme_Product_Group__c g = makeGroup('QPS Max', 'PriceDivision');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_QPS, g.Id);
+        SchemeDefinitionController.SlabDto s1 = slab(); s1.qtyMin = 3; s1.qtyMax = 4;  s1.benefitPerEa = 40;
+        SchemeDefinitionController.SlabDto s2 = slab(); s2.qtyMin = 5; s2.qtyMax = 10; s2.benefitPerEa = 80;
+
+        Test.startTest();
+        Id id = SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s1, s2 }, null);
+        Test.stopTest();
+
+        List<Scheme_Slab__c> slabs = [SELECT Qualifying_Qty_Min__c, Qualifying_Qty_Max__c FROM Scheme_Slab__c WHERE Scheme__c = :id ORDER BY Slab_Sequence__c];
+        System.assertEquals(2, slabs.size());
+        System.assertEquals(4, slabs[0].Qualifying_Qty_Max__c);
+        System.assertEquals(10, slabs[1].Qualifying_Qty_Max__c);
+    }
+
+    @isTest
     static void saveSchemeWithSlabs_rollbackOnOverlappingValueRanges() {
         SchemeDefinitionController.MasterDto m = masterFor(TYPE_ORDER_VALUE, null);
         SchemeDefinitionController.SlabDto s1 = slab(); s1.valueMin = 5000;  s1.valueMax = 20000; s1.benefitPercent = 5;

@@ -295,10 +295,16 @@ public with sharing class SchemeDefinitionController {
             } else if (schemeType == TYPE_QPS) {
                 if (d.qtyMin == null) throw new AuraHandledException(label + ': Qualifying Cases is required.');
                 if (d.benefitPerEa == null) throw new AuraHandledException(label + ': Benefit per Case is required.');
+                if (d.qtyMax != null && d.qtyMax < d.qtyMin) {
+                    throw new AuraHandledException(label + ': Max Qty must be >= Min Qty.');
+                }
             } else if (schemeType == TYPE_FOC_GIVEAWAY) {
                 if (d.qtyMin == null) throw new AuraHandledException(label + ': Min Qualifying Qty is required.');
                 if (d.focProductId == null) throw new AuraHandledException(label + ': FOC Product is required.');
                 if (d.freeQty == null) throw new AuraHandledException(label + ': Free Qty is required.');
+                if (d.qtyMax != null && d.qtyMax < d.qtyMin) {
+                    throw new AuraHandledException(label + ': Max Qty must be >= Min Qty.');
+                }
             } else if (schemeType == TYPE_ORDER_VALUE || schemeType == TYPE_CATEGORY) {
                 if (d.valueMin == null) throw new AuraHandledException(label + ': Slab From is required.');
                 if (d.benefitPercent == null) throw new AuraHandledException(label + ': Discount % is required.');
@@ -316,34 +322,10 @@ public with sharing class SchemeDefinitionController {
             }
         }
 
-        if (schemeType == TYPE_FREE_QTY) {
-            Integer nullMaxCount = 0;
-            for (SlabDto d : slabs) {
-                if (d.qtyMax == null) nullMaxCount++;
-            }
-            Boolean isCycle = (slabs.size() == 1 && nullMaxCount == 1);
-            if (!isCycle) {
-                if (nullMaxCount > 1) {
-                    throw new AuraHandledException('Only the top Free Quantity band may leave Max blank.');
-                }
-                assertNoQtyOverlap(slabs);
-            }
-        } else if (schemeType == TYPE_QPS || schemeType == TYPE_FOC_GIVEAWAY) {
-            assertUniqueQtyMin(slabs);
+        if (schemeType == TYPE_FREE_QTY || schemeType == TYPE_QPS || schemeType == TYPE_FOC_GIVEAWAY) {
+            assertNoQtyOverlap(slabs);
         } else if (schemeType == TYPE_ORDER_VALUE || schemeType == TYPE_CATEGORY) {
             assertNoValueOverlap(slabs);
-        }
-    }
-
-    private static void assertUniqueQtyMin(List<SlabDto> slabs) {
-        Set<Decimal> seen = new Set<Decimal>();
-        for (SlabDto d : slabs) {
-            if (d.qtyMin != null) {
-                if (seen.contains(d.qtyMin)) {
-                    throw new AuraHandledException('Duplicate qualifying quantity ' + d.qtyMin + '.');
-                }
-                seen.add(d.qtyMin);
-            }
         }
     }
 
@@ -355,7 +337,7 @@ public with sharing class SchemeDefinitionController {
             Decimal nextMin = sorted[i + 1].qtyMin;
             if (currMax == null || nextMin == null) continue;
             if (currMax >= nextMin) {
-                throw new AuraHandledException('Free Quantity bands overlap at ' + nextMin + '.');
+                throw new AuraHandledException('Slab quantity ranges overlap at ' + nextMin + '.');
             }
         }
     }
@@ -404,9 +386,11 @@ public with sharing class SchemeDefinitionController {
             sl.Free_Qty__c           = d.freeQty;
         } else if (schemeType == TYPE_QPS) {
             sl.Qualifying_Qty_Min__c    = d.qtyMin;
+            sl.Qualifying_Qty_Max__c    = d.qtyMax;
             sl.Benefit_Amount_Per_EA__c = d.benefitPerEa;
         } else if (schemeType == TYPE_FOC_GIVEAWAY) {
             sl.Qualifying_Qty_Min__c = d.qtyMin;
+            sl.Qualifying_Qty_Max__c = d.qtyMax;
             sl.Free_Qty__c           = d.freeQty;
             sl.FOC_Product__c        = d.focProductId;
         } else if (schemeType == TYPE_ORDER_VALUE || schemeType == TYPE_CATEGORY) {
