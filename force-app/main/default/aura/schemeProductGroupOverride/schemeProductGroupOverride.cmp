@@ -1,0 +1,9 @@
+<aura:component implements="lightning:hasPageReference,force:hasSObjectName,lightning:actionOverride,force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickActionWithoutHeader,lightning:isUrlAddressable" access="global">
+    <aura:attribute name="openPopup" type="Boolean" default="false"/>
+    <aura:attribute name="recordId" type="Id"/>
+    <lightning:navigation aura:id="navService"/>
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <aura:if isTrue="{!v.openPopup}">
+        <c:schemeProductGroupBuilder recordId="{!v.recordId}" onsaved="{!c.onSaved}" oncancel="{!c.onCancel}"/>
+    </aura:if>
+</aura:component>

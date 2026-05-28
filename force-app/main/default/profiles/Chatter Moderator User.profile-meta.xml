@@ -1001,6 +1001,10 @@
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>SchemeProductGroupController</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>SecondaryAchievementBatch</apexClass>
         <enabled>false</enabled>
     </classAccesses>
@@ -9447,7 +9451,22 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>Scheme_Product_Group_Item__c.MRP__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Scheme_Product_Group_Item__c.Net_Weight__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>Scheme_Product_Group_Item__c.Product__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Scheme_Product_Group_Item__c.SKU_Code__c</field>
         <readable>false</readable>
     </fieldPermissions>
     <fieldPermissions>
