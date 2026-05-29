@@ -312,4 +312,137 @@ private class SchemeDefinitionControllerTest {
         Test.stopTest();
         System.assert(threw, 'expected at-least-one-slab error');
     }
+
+    @isTest
+    static void saveSchemeWithSlabs_rollbackOnDuplicateOpenTopFreeQty() {
+        Scheme_Product_Group__c g = makeGroup('FQ DupOpenTop', 'PriceDivision');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_FREE_QTY, g.Id);
+        SchemeDefinitionController.SlabDto s1 = slab(); s1.qtyMin = 11; s1.qtyMax = null; s1.freeQty = 1;
+        SchemeDefinitionController.SlabDto s2 = slab(); s2.qtyMin = 11; s2.qtyMax = null; s2.freeQty = 2;
+
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s1, s2 }, null);
+        } catch (AuraHandledException ex) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected duplicate open-top rejection');
+    }
+
+    @isTest
+    static void saveSchemeWithSlabs_rollbackOnDuplicateMinQpsClosedBands() {
+        Scheme_Product_Group__c g = makeGroup('QPS DupMin', 'PriceDivision');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_QPS, g.Id);
+        SchemeDefinitionController.SlabDto s1 = slab(); s1.qtyMin = 3; s1.qtyMax = 10; s1.benefitPerEa = 40;
+        SchemeDefinitionController.SlabDto s2 = slab(); s2.qtyMin = 3; s2.qtyMax = 12; s2.benefitPerEa = 80;
+
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s1, s2 }, null);
+        } catch (AuraHandledException ex) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected duplicate Min Qty rejection');
+    }
+
+    @isTest
+    static void saveSchemeWithSlabs_rejectsPastStartDateOnInsert() {
+        Scheme_Product_Group__c g = makeGroup('PastStart', 'PriceDivision');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_QPS, g.Id);
+        m.startDate = Date.today().addDays(-1);
+        m.endDate   = Date.today().addDays(10);
+        SchemeDefinitionController.SlabDto s = slab(); s.qtyMin = 3; s.benefitPerEa = 40;
+
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+        } catch (AuraHandledException ex) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected past start date rejection');
+    }
+
+    @isTest
+    static void saveSchemeWithSlabs_rejectsPastEndDateOnInsert() {
+        Scheme_Product_Group__c g = makeGroup('PastEnd', 'PriceDivision');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_QPS, g.Id);
+        m.startDate = Date.today().addDays(-30);
+        m.endDate   = Date.today().addDays(-1);
+        SchemeDefinitionController.SlabDto s = slab(); s.qtyMin = 3; s.benefitPerEa = 40;
+
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+        } catch (AuraHandledException ex) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected past end date rejection');
+    }
+
+    @isTest
+    static void saveSchemeWithSlabs_allowsUnchangedPastStartDateOnUpdate() {
+        Scheme_Product_Group__c g = makeGroup('PastStartUpdate', 'PriceDivision');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_QPS, g.Id);
+        SchemeDefinitionController.SlabDto s = slab(); s.qtyMin = 3; s.benefitPerEa = 40;
+        Id id = SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+
+        update new Scheme__c(Id = id, Scheme_Start_Date__c = Date.today().addDays(-5));
+
+        SchemeDefinitionController.MasterDto m2 = masterFor(TYPE_QPS, g.Id);
+        m2.startDate = Date.today().addDays(-5);
+        m2.endDate   = Date.today().addDays(30);
+        SchemeDefinitionController.SlabDto s2 = slab(); s2.qtyMin = 3; s2.benefitPerEa = 50;
+
+        Test.startTest();
+        Id id2 = SchemeDefinitionController.saveSchemeWithSlabs(m2, new List<SchemeDefinitionController.SlabDto>{ s2 }, id);
+        Test.stopTest();
+
+        System.assertEquals(id, id2);
+    }
+
+    @isTest
+    static void saveSchemeWithSlabs_rejectsLoweringStartDateBelowToday() {
+        Scheme_Product_Group__c g = makeGroup('LowerStart', 'PriceDivision');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_QPS, g.Id);
+        SchemeDefinitionController.SlabDto s = slab(); s.qtyMin = 3; s.benefitPerEa = 40;
+        Id id = SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+
+        SchemeDefinitionController.MasterDto m2 = masterFor(TYPE_QPS, g.Id);
+        m2.startDate = Date.today().addDays(-2);
+        m2.endDate   = Date.today().addDays(30);
+        SchemeDefinitionController.SlabDto s2 = slab(); s2.qtyMin = 3; s2.benefitPerEa = 50;
+
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            SchemeDefinitionController.saveSchemeWithSlabs(m2, new List<SchemeDefinitionController.SlabDto>{ s2 }, id);
+        } catch (AuraHandledException ex) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected past start date rejection on update');
+    }
+
+    @isTest
+    static void saveSchemeWithSlabs_persistsIsActiveToggle() {
+        Scheme_Product_Group__c g = makeGroup('Active Toggle', 'PriceDivision');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_QPS, g.Id);
+        m.isActive = false;
+        SchemeDefinitionController.SlabDto s = slab(); s.qtyMin = 3; s.benefitPerEa = 40;
+
+        Test.startTest();
+        Id id = SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+        Test.stopTest();
+
+        Scheme__c saved = [SELECT IsActive__c FROM Scheme__c WHERE Id = :id];
+        System.assertEquals(false, saved.IsActive__c);
+    }
 }

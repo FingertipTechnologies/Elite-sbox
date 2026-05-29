@@ -38,8 +38,10 @@ export default class SchemeDefinitionWizard extends LightningElement {
         salesChannel: '',
         startDate: '',
         endDate: '',
-        description: ''
+        description: '',
+        isActive: true
     };
+    @track savedStartDate = '';
     @track linkage = {
         productGroupId: '',
         productGroupName: '',
@@ -96,8 +98,10 @@ export default class SchemeDefinitionWizard extends LightningElement {
                 salesChannel: m.salesChannel || '',
                 startDate: m.startDate || '',
                 endDate: m.endDate || '',
-                description: m.description || ''
+                description: m.description || '',
+                isActive: m.isActive !== false
             };
+            this.savedStartDate = m.startDate || '';
             this.linkage = {
                 productGroupId: m.productGroupId || '',
                 productGroupName: data.productGroupName || '',
@@ -128,6 +132,26 @@ export default class SchemeDefinitionWizard extends LightningElement {
 
     get isEditMode() { return !!this.recordId; }
     get pageTitle()  { return this.isEditMode ? 'Edit Scheme' : 'New Scheme'; }
+
+    get todayIso() {
+        const d = new Date();
+        const tzOffset = d.getTimezoneOffset() * 60000;
+        return new Date(d.getTime() - tzOffset).toISOString().slice(0, 10);
+    }
+
+    get isStartDateReadOnly() {
+        return this.isEditMode && !!this.savedStartDate && this.savedStartDate < this.todayIso;
+    }
+
+    get startDateMin() {
+        return this.isStartDateReadOnly ? null : this.todayIso;
+    }
+
+    get endDateMin() {
+        return this.master.startDate && this.master.startDate > this.todayIso
+            ? this.master.startDate
+            : this.todayIso;
+    }
 
     get schemeTypeOptions() {
         const list = this.schemeTypeOptionsRaw && this.schemeTypeOptionsRaw.length
@@ -182,7 +206,12 @@ export default class SchemeDefinitionWizard extends LightningElement {
     get isMasterValid() {
         const m = this.master;
         if (!m.name || !m.schemeType || !m.salesChannel || !m.startDate || !m.endDate) return false;
-        return m.endDate >= m.startDate;
+        if (m.endDate < m.startDate) return false;
+        const today = this.todayIso;
+        const startChanged = !this.savedStartDate || m.startDate !== this.savedStartDate;
+        if (startChanged && m.startDate < today) return false;
+        if (m.endDate < today) return false;
+        return true;
     }
 
     get isLinkageValid() {
@@ -205,7 +234,64 @@ export default class SchemeDefinitionWizard extends LightningElement {
                 if (s.valueMin == null || s.valueMin === '' || s.benefitPercent == null || s.benefitPercent === '') return false;
             }
         }
+        const isQtyType = this.isFreeQty || this.isQps || this.isFoc;
+        const isValueType = this.isOrderValue || this.isCategoryValue;
+        if (isQtyType) {
+            let openTops = 0;
+            const seen = new Set();
+            for (const s of this.slabs) {
+                if (s.qtyMax == null || s.qtyMax === '') openTops++;
+                if (s.qtyMin != null && s.qtyMin !== '') {
+                    if (seen.has(Number(s.qtyMin))) return false;
+                    seen.add(Number(s.qtyMin));
+                }
+            }
+            if (openTops > 1) return false;
+        } else if (isValueType) {
+            let openTops = 0;
+            const seen = new Set();
+            for (const s of this.slabs) {
+                if (s.valueMax == null || s.valueMax === '') openTops++;
+                if (s.valueMin != null && s.valueMin !== '') {
+                    if (seen.has(Number(s.valueMin))) return false;
+                    seen.add(Number(s.valueMin));
+                }
+            }
+            if (openTops > 1) return false;
+        }
         return true;
+    }
+
+    get slabsValidationMessage() {
+        if (!this.slabs.length) return 'Add at least one slab row.';
+        const isQtyType = this.isFreeQty || this.isQps || this.isFoc;
+        const isValueType = this.isOrderValue || this.isCategoryValue;
+        if (isQtyType) {
+            let openTops = 0;
+            const seen = new Set();
+            for (const s of this.slabs) {
+                if (s.qtyMax == null || s.qtyMax === '') openTops++;
+                if (s.qtyMin != null && s.qtyMin !== '') {
+                    const n = Number(s.qtyMin);
+                    if (seen.has(n)) return `Duplicate Min Qty ${n}.`;
+                    seen.add(n);
+                }
+            }
+            if (openTops > 1) return 'Only one slab can leave Max Qty blank (the open-top slab).';
+        } else if (isValueType) {
+            let openTops = 0;
+            const seen = new Set();
+            for (const s of this.slabs) {
+                if (s.valueMax == null || s.valueMax === '') openTops++;
+                if (s.valueMin != null && s.valueMin !== '') {
+                    const n = Number(s.valueMin);
+                    if (seen.has(n)) return `Duplicate Min Value ${n}.`;
+                    seen.add(n);
+                }
+            }
+            if (openTops > 1) return 'Only one slab can leave Max Value blank (the open-top slab).';
+        }
+        return 'Fill every slab row to enable Save.';
     }
 
     get isSaveDisabled() {
@@ -213,11 +299,20 @@ export default class SchemeDefinitionWizard extends LightningElement {
     }
 
     get inlineMessage() {
-        if (!this.isMasterValid) {
-            if (this.master.endDate && this.master.startDate && this.master.endDate < this.master.startDate) {
-                return { cls: 'chip chip--red',  text: 'End Date must be on/after Start Date.' };
-            }
+        const m = this.master;
+        if (!m.name || !m.schemeType || !m.salesChannel || !m.startDate || !m.endDate) {
             return { cls: 'chip chip--info', text: 'Fill all required master fields.' };
+        }
+        if (m.endDate < m.startDate) {
+            return { cls: 'chip chip--red', text: 'End Date must be on/after Start Date.' };
+        }
+        const today = this.todayIso;
+        const startChanged = !this.savedStartDate || m.startDate !== this.savedStartDate;
+        if (startChanged && m.startDate < today) {
+            return { cls: 'chip chip--red', text: 'Start Date cannot be in the past.' };
+        }
+        if (m.endDate < today) {
+            return { cls: 'chip chip--red', text: 'End Date cannot be in the past.' };
         }
         if (!this.isLinkageValid) {
             return { cls: 'chip chip--info', text: this.step2Mode === 'group'
@@ -225,7 +320,7 @@ export default class SchemeDefinitionWizard extends LightningElement {
                 : 'Select a Product Category to continue.' };
         }
         if (!this.areSlabsValid) {
-            return { cls: 'chip chip--info', text: 'Fill every slab row to enable Save.' };
+            return { cls: 'chip chip--red', text: this.slabsValidationMessage };
         }
         return { cls: 'chip chip--green', text: 'Ready to save.' };
     }
@@ -259,6 +354,13 @@ export default class SchemeDefinitionWizard extends LightningElement {
                 this.loadFocProducts(value);
             }
         }
+    }
+
+    handleActiveToggle(event) {
+        const checked = event.target && typeof event.target.checked === 'boolean'
+            ? event.target.checked
+            : !!(event.detail && event.detail.checked);
+        this.master = { ...this.master, isActive: checked };
     }
 
     defaultCategoryFor(schemeType) {
@@ -463,7 +565,8 @@ export default class SchemeDefinitionWizard extends LightningElement {
                 endDate:         this.master.endDate,
                 description:     this.master.description,
                 productGroupId:  this.linkage.productGroupId || null,
-                productCategory: this.linkage.productCategory || null
+                productCategory: this.linkage.productCategory || null,
+                isActive:        this.master.isActive !== false
             };
             const payloadSlabs = this.slabs.map((s, i) => ({
                 sequence: i + 1,

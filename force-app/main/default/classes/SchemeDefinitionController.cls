@@ -39,6 +39,7 @@ public with sharing class SchemeDefinitionController {
         @AuraEnabled public String description { get; set; }
         @AuraEnabled public Id productGroupId { get; set; }
         @AuraEnabled public String productCategory { get; set; }
+        @AuraEnabled public Boolean isActive { get; set; }
     }
 
     public class SlabDto {
@@ -116,6 +117,7 @@ public with sharing class SchemeDefinitionController {
         result.master.endDate         = s.Scheme_End_Date__c;
         result.master.productGroupId  = s.Scheme_Product_Group__c;
         result.master.productCategory = s.Scheme_Product_Category__c;
+        result.master.isActive        = s.IsActive__c;
         result.productGroupName = s.Scheme_Product_Group__c == null
             ? null : s.Scheme_Product_Group__r.Name;
 
@@ -194,7 +196,19 @@ public with sharing class SchemeDefinitionController {
             throw new AuraHandledException('Scheme data is missing.');
         }
 
-        validateMaster(master);
+        Date savedStartDate = null;
+        if (existingId != null) {
+            List<Scheme__c> existing = [
+                SELECT Scheme_Start_Date__c
+                FROM Scheme__c
+                WHERE Id = :existingId
+                LIMIT 1
+            ];
+            if (!existing.isEmpty()) {
+                savedStartDate = existing[0].Scheme_Start_Date__c;
+            }
+        }
+        validateMaster(master, savedStartDate);
         if (slabs == null || slabs.isEmpty()) {
             throw new AuraHandledException('At least one slab is required.');
         }
@@ -214,6 +228,7 @@ public with sharing class SchemeDefinitionController {
             s.Scheme_End_Date__c         = master.endDate;
             s.Scheme_Product_Group__c    = master.productGroupId;
             s.Scheme_Product_Category__c = master.productCategory;
+            s.IsActive__c                = master.isActive == null ? true : master.isActive;
             upsert s;
 
             if (existingId != null) {
@@ -241,13 +256,22 @@ public with sharing class SchemeDefinitionController {
         }
     }
 
-    private static void validateMaster(MasterDto m) {
+    private static void validateMaster(MasterDto m, Date savedStartDate) {
         if (String.isBlank(m.name))         throw new AuraHandledException('Name is required.');
         if (String.isBlank(m.schemeType))   throw new AuraHandledException('Scheme Type is required.');
         if (String.isBlank(m.salesChannel)) throw new AuraHandledException('Sales Channel is required.');
         if (m.startDate == null)            throw new AuraHandledException('Start Date is required.');
         if (m.endDate == null)              throw new AuraHandledException('End Date is required.');
         if (m.endDate < m.startDate)        throw new AuraHandledException('End Date cannot be before Start Date.');
+
+        Date today = Date.today();
+        Boolean startChanged = (savedStartDate == null) || (m.startDate != savedStartDate);
+        if (startChanged && m.startDate < today) {
+            throw new AuraHandledException('Start Date cannot be in the past.');
+        }
+        if (m.endDate < today) {
+            throw new AuraHandledException('End Date cannot be in the past.');
+        }
     }
 
     private static void validateLinkage(MasterDto m) {
@@ -325,9 +349,55 @@ public with sharing class SchemeDefinitionController {
         }
 
         if (schemeType == TYPE_FREE_QTY || schemeType == TYPE_QPS || schemeType == TYPE_FOC_GIVEAWAY) {
+            assertAtMostOneOpenTopQty(slabs);
+            assertUniqueQtyMin(slabs);
             assertNoQtyOverlap(slabs);
         } else if (schemeType == TYPE_ORDER_VALUE || schemeType == TYPE_CATEGORY) {
+            assertAtMostOneOpenTopValue(slabs);
+            assertUniqueValueMin(slabs);
             assertNoValueOverlap(slabs);
+        }
+    }
+
+    private static void assertAtMostOneOpenTopQty(List<SlabDto> slabs) {
+        Integer openTops = 0;
+        for (SlabDto d : slabs) {
+            if (d.qtyMax == null) openTops++;
+        }
+        if (openTops > 1) {
+            throw new AuraHandledException('Only one slab can leave Max Qty blank (the open-top slab).');
+        }
+    }
+
+    private static void assertUniqueQtyMin(List<SlabDto> slabs) {
+        Set<Decimal> seen = new Set<Decimal>();
+        for (SlabDto d : slabs) {
+            if (d.qtyMin == null) continue;
+            if (seen.contains(d.qtyMin)) {
+                throw new AuraHandledException('Duplicate Min Qty ' + d.qtyMin + '.');
+            }
+            seen.add(d.qtyMin);
+        }
+    }
+
+    private static void assertAtMostOneOpenTopValue(List<SlabDto> slabs) {
+        Integer openTops = 0;
+        for (SlabDto d : slabs) {
+            if (d.valueMax == null) openTops++;
+        }
+        if (openTops > 1) {
+            throw new AuraHandledException('Only one slab can leave Max Value blank (the open-top slab).');
+        }
+    }
+
+    private static void assertUniqueValueMin(List<SlabDto> slabs) {
+        Set<Decimal> seen = new Set<Decimal>();
+        for (SlabDto d : slabs) {
+            if (d.valueMin == null) continue;
+            if (seen.contains(d.valueMin)) {
+                throw new AuraHandledException('Duplicate Min Value ' + d.valueMin + '.');
+            }
+            seen.add(d.valueMin);
         }
     }
 

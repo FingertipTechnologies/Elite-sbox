@@ -83,6 +83,8 @@
                         type="date"
                         data-field="startDate"
                         value={master.startDate}
+                        min={startDateMin}
+                        disabled={isStartDateReadOnly}
                         required
                         onchange={handleMasterChange}>
                     </lightning-input>
@@ -93,10 +95,25 @@
                         type="date"
                         data-field="endDate"
                         value={master.endDate}
+                        min={endDateMin}
                         required
                         onchange={handleMasterChange}>
                     </lightning-input>
                 </div>
+            </div>
+
+            <div class="grid-2col">
+                <div>
+                    <lightning-input
+                        type="toggle"
+                        label="Active"
+                        message-toggle-active="Active"
+                        message-toggle-inactive="Inactive"
+                        checked={master.isActive}
+                        onchange={handleActiveToggle}>
+                    </lightning-input>
+                </div>
+                <div></div>
             </div>
 
             <div class="grid-1col">
