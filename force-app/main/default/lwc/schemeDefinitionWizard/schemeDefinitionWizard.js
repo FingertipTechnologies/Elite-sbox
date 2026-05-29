@@ -47,7 +47,7 @@ export default class SchemeDefinitionWizard extends LightningElement {
     };
     @track slabs = [];
     @track productGroupResults = [];
-    @track focProductOptions = [];
+    @track focUi = { activeUid: '', term: '', results: [] };
 
     @track isLoadingPicklists = false;
     @track isHydrating = false;
@@ -113,7 +113,8 @@ export default class SchemeDefinitionWizard extends LightningElement {
                 freeQty: s.freeQty,
                 benefitPerEa: s.benefitPerEa,
                 benefitPercent: s.benefitPercent,
-                focProductId: s.focProductId
+                focProductId: s.focProductId,
+                focProductName: s.focProductName || ''
             }));
             if (this.master.salesChannel && this.master.schemeType === TYPE_FOC_GIVEAWAY) {
                 this.loadFocProducts(this.master.salesChannel);
@@ -154,7 +155,7 @@ export default class SchemeDefinitionWizard extends LightningElement {
     get showSlabsTable()         { return this.hasMasterMinimums; }
 
     get expectedGroupPurpose() {
-        return this.master.schemeType === TYPE_FOC_GIVEAWAY ? 'FOCQualifier' : 'PriceDivision';
+        return this.master.schemeType === TYPE_FOC_GIVEAWAY ? 'FOC Qualifier' : 'Price Division';
     }
 
     get isFreeQty()       { return this.master.schemeType === TYPE_FREE_QTY; }
@@ -164,10 +165,17 @@ export default class SchemeDefinitionWizard extends LightningElement {
     get isCategoryValue() { return this.master.schemeType === TYPE_CATEGORY; }
 
     get displaySlabs() {
+        const activeUid = this.focUi.activeUid;
+        const focResults = this.focUi.results || [];
         return this.slabs.map((s, i) => ({
             ...s,
             sNo: i + 1,
-            showRemove: this.slabs.length > 1
+            showRemove: this.slabs.length > 1,
+            hasFocPick: !!s.focProductId,
+            showFocSearch: !s.focProductId,
+            isFocActive: activeUid === s._uid,
+            focResults: activeUid === s._uid ? focResults : [],
+            showFocResults: activeUid === s._uid && focResults.length > 0
         }));
     }
 
@@ -238,20 +246,17 @@ export default class SchemeDefinitionWizard extends LightningElement {
             this.linkage = newLinkage;
             this.productGroupResults = [];
             this.slabs = this.seedSlabsForType(value);
+            this.focUi = { activeUid: '', term: '', results: [] };
             if (value === TYPE_FOC_GIVEAWAY && this.master.salesChannel) {
                 this.loadFocProducts(this.master.salesChannel);
-            }
-            if (value !== prevType && (this.isOrderValue || this.isCategoryValue || this.isFreeQty || this.isQps)) {
-                this.focProductOptions = [];
             }
         } else if (field === 'salesChannel') {
             this.linkage = { ...this.linkage, productGroupId: '', productGroupName: '' };
             this.productGroupResults = [];
             this.clearFocFromSlabs();
+            this.focUi = { activeUid: '', term: '', results: [] };
             if (value && this.master.schemeType === TYPE_FOC_GIVEAWAY) {
                 this.loadFocProducts(value);
-            } else {
-                this.focProductOptions = [];
             }
         }
     }
@@ -264,32 +269,41 @@ export default class SchemeDefinitionWizard extends LightningElement {
 
     clearFocFromSlabs() {
         if (!this.slabs.length) return;
-        this.slabs = this.slabs.map(s => ({ ...s, focProductId: '' }));
+        this.slabs = this.slabs.map(s => ({ ...s, focProductId: '', focProductName: '' }));
     }
 
     async loadFocProducts(channel) {
-        if (!channel) {
-            this.focProductOptions = [];
-            return;
-        }
-        if (this._focCacheByChannel[channel]) {
-            this.focProductOptions = this._focCacheByChannel[channel];
+        if (!channel || this._focCacheByChannel[channel]) {
             return;
         }
         this.isLoadingFocSkus = true;
         try {
             const rows = await getSkusForChannel({ salesChannel: channel });
-            const opts = (rows || []).map(r => ({
-                label: r.skuCode ? `${r.name} (${r.skuCode})` : r.name,
-                value: r.id
+            this._focCacheByChannel[channel] = (rows || []).map(r => ({
+                id: r.id,
+                name: r.name,
+                skuCode: r.skuCode || '',
+                displayLabel: r.skuCode ? `${r.name} (${r.skuCode})` : r.name
             }));
-            this._focCacheByChannel[channel] = opts;
-            this.focProductOptions = opts;
         } catch (error) {
             this.toast('Error', this.reduceError(error), 'error');
         } finally {
             this.isLoadingFocSkus = false;
         }
+    }
+
+    filterFocProducts(term) {
+        const channel = this.master.salesChannel;
+        if (!channel || !this._focCacheByChannel[channel]) return [];
+        const t = (term || '').trim().toLowerCase();
+        const pool = this._focCacheByChannel[channel];
+        const filtered = !t
+            ? pool
+            : pool.filter(p =>
+                (p.name && p.name.toLowerCase().includes(t)) ||
+                (p.skuCode && p.skuCode.toLowerCase().includes(t))
+            );
+        return filtered.slice(0, 50);
     }
 
     seedSlabsForType(type) {
@@ -322,6 +336,9 @@ export default class SchemeDefinitionWizard extends LightningElement {
 
     handleAddSlab() {
         this.slabs = [...this.slabs, this.makeSlab({})];
+        if (this.isFoc && this.master.salesChannel) {
+            this.loadFocProducts(this.master.salesChannel);
+        }
     }
 
     handleRemoveSlab(event) {
@@ -341,10 +358,44 @@ export default class SchemeDefinitionWizard extends LightningElement {
         this.slabs = this.slabs.map(s => s._uid === uid ? { ...s, [field]: value } : s);
     }
 
-    handleFocProductChange(event) {
+    handleFocSearchFocus(event) {
         const uid = event.target.dataset.uid;
-        const value = event.detail ? event.detail.value : event.target.value;
-        this.slabs = this.slabs.map(s => s._uid === uid ? { ...s, focProductId: value || '' } : s);
+        this.focUi = {
+            activeUid: uid,
+            term: '',
+            results: this.filterFocProducts('')
+        };
+    }
+
+    handleFocSearchInput(event) {
+        const uid = event.target.dataset.uid;
+        const term = event.target.value || '';
+        this.focUi = {
+            activeUid: uid,
+            term,
+            results: this.filterFocProducts(term)
+        };
+    }
+
+    handleFocProductPick(event) {
+        const uid = event.currentTarget.dataset.uid;
+        const id = event.currentTarget.dataset.id;
+        const channel = this.master.salesChannel;
+        const pool = (channel && this._focCacheByChannel[channel]) || [];
+        const pick = pool.find(p => p.id === id);
+        if (!pick) return;
+        this.slabs = this.slabs.map(s => s._uid === uid
+            ? { ...s, focProductId: pick.id, focProductName: pick.displayLabel }
+            : s);
+        this.focUi = { activeUid: '', term: '', results: [] };
+    }
+
+    handleClearFocProduct(event) {
+        const uid = event.target.dataset.uid;
+        this.slabs = this.slabs.map(s => s._uid === uid
+            ? { ...s, focProductId: '', focProductName: '' }
+            : s);
+        this.focUi = { activeUid: '', term: '', results: [] };
     }
 
     handleProductGroupSearchInput(event) {

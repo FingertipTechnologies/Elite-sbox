@@ -261,6 +261,62 @@
 
 .col-sno    { width: 50px; text-align: center; }
 .col-action { width: 60px; text-align: center; }
+.col-foc    { min-width: 260px; }
+
+.foc-pick {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--success-light);
+    color: var(--success);
+    padding: 4px 4px 4px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.78rem;
+    max-width: 100%;
+}
+.foc-pick__name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+}
+
+.foc-search { position: relative; }
+.foc-result-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    margin-top: 4px;
+    max-height: 240px;
+    overflow: auto;
+    background: var(--white);
+    border: 1px solid var(--neutral-200);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+}
+.foc-result-item {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--neutral-200);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.foc-result-item:last-child { border-bottom: none; }
+.foc-result-item:hover { background: var(--brand-light); }
+.foc-result-item__name {
+    font-size: 0.8rem;
+    color: var(--neutral-800);
+    font-weight: 600;
+}
+.foc-result-item__sku {
+    font-size: 0.7rem;
+    color: var(--neutral-400);
+}
 
 .table-actions {
     display: flex;

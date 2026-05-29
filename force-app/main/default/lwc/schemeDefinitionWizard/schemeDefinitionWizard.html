@@ -279,7 +279,7 @@
                                 <th class="col-sno">#</th>
                                 <th>Min Qty</th>
                                 <th>Max Qty</th>
-                                <th>FOC Product</th>
+                                <th class="col-foc">FOC Product</th>
                                 <th>Free Qty</th>
                                 <th class="col-action"></th>
                             </tr>
@@ -290,16 +290,49 @@
                                     <td class="col-sno">{s.sNo}</td>
                                     <td><lightning-input variant="label-hidden" label="Min" type="number" data-uid={s._uid} data-field="qtyMin" value={s.qtyMin} onchange={handleSlabFieldChange}></lightning-input></td>
                                     <td><lightning-input variant="label-hidden" label="Max" type="number" data-uid={s._uid} data-field="qtyMax" value={s.qtyMax} onchange={handleSlabFieldChange}></lightning-input></td>
-                                    <td>
-                                        <lightning-combobox
-                                            variant="label-hidden"
-                                            label="FOC Product"
-                                            placeholder="Select…"
-                                            data-uid={s._uid}
-                                            value={s.focProductId}
-                                            options={focProductOptions}
-                                            onchange={handleFocProductChange}>
-                                        </lightning-combobox>
+                                    <td class="col-foc">
+                                        <template if:true={s.hasFocPick}>
+                                            <div class="foc-pick">
+                                                <span class="foc-pick__name" title={s.focProductName}>{s.focProductName}</span>
+                                                <lightning-button-icon
+                                                    icon-name="utility:close"
+                                                    alternative-text="Change"
+                                                    size="small"
+                                                    variant="bare"
+                                                    data-uid={s._uid}
+                                                    onclick={handleClearFocProduct}>
+                                                </lightning-button-icon>
+                                            </div>
+                                        </template>
+                                        <template if:true={s.showFocSearch}>
+                                            <div class="foc-search">
+                                                <lightning-input
+                                                    type="search"
+                                                    variant="label-hidden"
+                                                    label="Search FOC Product"
+                                                    placeholder="Search by name or SKU…"
+                                                    data-uid={s._uid}
+                                                    onfocus={handleFocSearchFocus}
+                                                    onchange={handleFocSearchInput}>
+                                                </lightning-input>
+                                                <template if:true={s.showFocResults}>
+                                                    <div class="foc-result-list">
+                                                        <template for:each={s.focResults} for:item="p">
+                                                            <div key={p.id}
+                                                                 class="foc-result-item"
+                                                                 data-uid={s._uid}
+                                                                 data-id={p.id}
+                                                                 onclick={handleFocProductPick}>
+                                                                <span class="foc-result-item__name">{p.name}</span>
+                                                                <template if:true={p.skuCode}>
+                                                                    <span class="foc-result-item__sku">{p.skuCode}</span>
+                                                                </template>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
                                     </td>
                                     <td><lightning-input variant="label-hidden" label="Free Qty" type="number" data-uid={s._uid} data-field="freeQty" value={s.freeQty} onchange={handleSlabFieldChange}></lightning-input></td>
                                     <td class="col-action">

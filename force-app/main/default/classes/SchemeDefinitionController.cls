@@ -53,6 +53,7 @@ public with sharing class SchemeDefinitionController {
         @AuraEnabled public Decimal benefitPerEa { get; set; }
         @AuraEnabled public Decimal benefitPercent { get; set; }
         @AuraEnabled public Id focProductId { get; set; }
+        @AuraEnabled public String focProductName { get; set; }
     }
 
     public class ProductGroupRow {
@@ -124,7 +125,7 @@ public with sharing class SchemeDefinitionController {
                    Qualifying_Qty_Min__c, Qualifying_Qty_Max__c,
                    Qualifying_Value_Min__c, Qualifying_Value_Max__c,
                    Free_Qty__c, Benefit_Amount_Per_EA__c, Benefit_Percent__c,
-                   FOC_Product__c
+                   FOC_Product__c, FOC_Product__r.Name
             FROM Scheme_Slab__c
             WHERE Scheme__c = :schemeId
             ORDER BY Slab_Sequence__c ASC NULLS LAST, CreatedDate ASC
@@ -141,6 +142,7 @@ public with sharing class SchemeDefinitionController {
             d.benefitPerEa   = sl.Benefit_Amount_Per_EA__c;
             d.benefitPercent = sl.Benefit_Percent__c;
             d.focProductId   = sl.FOC_Product__c;
+            d.focProductName = sl.FOC_Product__c == null ? null : sl.FOC_Product__r.Name;
             result.slabs.add(d);
         }
         return result;
@@ -254,7 +256,7 @@ public with sharing class SchemeDefinitionController {
             if (m.productGroupId == null) {
                 throw new AuraHandledException('Scheme Product Group is required for this scheme type.');
             }
-            String expectedPurpose = (t == TYPE_FOC_GIVEAWAY) ? 'FOCQualifier' : 'PriceDivision';
+            String expectedPurpose = (t == TYPE_FOC_GIVEAWAY) ? 'FOC Qualifier' : 'Price Division';
             String resolved = resolveGroupPurposeValue(expectedPurpose);
             Scheme_Product_Group__c g = [
                 SELECT Id, Sales_Channel__c, Group_Purpose__c, Is_Active__c
