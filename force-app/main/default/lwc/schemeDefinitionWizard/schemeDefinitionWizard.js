@@ -333,6 +333,17 @@ export default class SchemeDefinitionWizard extends LightningElement {
     get isStep2() { return this.currentStep === 2; }
     get stepLabel() { return this.isStep1 ? 'Step 1 of 2 — Definition' : 'Step 2 of 2 — Applicability'; }
 
+    get step1Class() {
+        return 'stepper__item' + (this.isStep1 ? ' stepper__item--active' : ' stepper__item--done stepper__item--clickable');
+    }
+    get step2Class() {
+        return 'stepper__item' + (this.isStep2 ? ' stepper__item--active' : '');
+    }
+
+    handleStepperStep1() {
+        if (this.isStep2 && !this.isSaving) this.currentStep = 1;
+    }
+
     get isStep1Complete() {
         return this.hasMasterMinimums && this.isMasterValid && this.isLinkageValid && this.areSlabsValid;
     }

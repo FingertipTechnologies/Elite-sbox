@@ -342,6 +342,69 @@
 .chip--info  { background: var(--info-light);    color: var(--info); }
 .chip--red   { background: var(--danger-light);  color: var(--danger); }
 
+.stepper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    margin: 0.5rem 0 1rem;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+.stepper__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    color: #6b7280;
+    background: transparent;
+    font-weight: 500;
+    user-select: none;
+}
+.stepper__item--clickable {
+    cursor: pointer;
+}
+.stepper__item--clickable:hover {
+    background: #eef2ff;
+    color: #4f46e5;
+}
+.stepper__item--active {
+    background: #4f46e5;
+    color: #fff;
+}
+.stepper__item--done .stepper__num {
+    background: #4f46e5;
+    color: #fff;
+    border-color: #4f46e5;
+}
+.stepper__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+.stepper__item--active .stepper__num {
+    background: #fff;
+    color: #4f46e5;
+    border-color: #fff;
+}
+.stepper__label {
+    font-size: 0.9rem;
+}
+.stepper__divider {
+    flex: 0 1 3rem;
+    height: 2px;
+    background: #d1d5db;
+    border-radius: 1px;
+}
+
 .applicability-level {
     padding: 1rem 0;
     border-bottom: 1px solid #e5e7eb;

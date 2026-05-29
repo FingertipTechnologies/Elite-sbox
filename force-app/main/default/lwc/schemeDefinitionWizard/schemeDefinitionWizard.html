@@ -45,6 +45,19 @@
             </div>
         </div>
 
+        <!-- Stepper -->
+        <div class="stepper">
+            <div class={step1Class} onclick={handleStepperStep1}>
+                <span class="stepper__num">1</span>
+                <span class="stepper__label">Definition</span>
+            </div>
+            <div class="stepper__divider"></div>
+            <div class={step2Class}>
+                <span class="stepper__num">2</span>
+                <span class="stepper__label">Applicability</span>
+            </div>
+        </div>
+
         <!-- Loading veil -->
         <template if:true={isHydrating}>
             <div class="card hydrating">
