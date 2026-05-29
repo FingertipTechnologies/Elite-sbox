@@ -79,8 +79,14 @@ export default class SecondaryPbisConsole extends LightningElement {
         return (this.totals || []).reduce((a, r) => a + (r.total || 0), 0);
     }
 
-    handleYear(e) { this.year = e.target.value ? Number(e.target.value) : null; }
-    handleMonth(e) { this.month = Number(e.detail.value); }
+    handleYear(e) {
+        this.year = e.target.value ? Number(e.target.value) : null;
+        this.loadTotals();
+    }
+    handleMonth(e) {
+        this.month = Number(e.detail.value);
+        this.loadTotals();
+    }
 
     handleRun() {
         if (!this.year || !this.month) {
