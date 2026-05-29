@@ -11,9 +11,9 @@ public with sharing class SchemeDefinitionController {
 
     private static final String TYPE_FREE_QTY     = 'Free Quantity';
     private static final String TYPE_QPS          = 'QPS';
-    private static final String TYPE_FOC_GIVEAWAY = 'FOC_Giveaway';
-    private static final String TYPE_ORDER_VALUE  = 'Order_Value';
-    private static final String TYPE_CATEGORY     = 'Category_Value';
+    private static final String TYPE_FOC_GIVEAWAY = 'FOC Giveaway';
+    private static final String TYPE_ORDER_VALUE  = 'Order Value';
+    private static final String TYPE_CATEGORY     = 'Category Value';
 
     public class PicklistOption {
         @AuraEnabled public String label { get; set; }

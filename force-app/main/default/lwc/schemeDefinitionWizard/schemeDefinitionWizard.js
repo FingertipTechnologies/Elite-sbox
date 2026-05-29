@@ -8,9 +8,9 @@ import getSkusForChannel from '@salesforce/apex/SchemeProductGroupController.get
 
 const TYPE_FREE_QTY     = 'Free Quantity';
 const TYPE_QPS          = 'QPS';
-const TYPE_FOC_GIVEAWAY = 'FOC_Giveaway';
-const TYPE_ORDER_VALUE  = 'Order_Value';
-const TYPE_CATEGORY     = 'Category_Value';
+const TYPE_FOC_GIVEAWAY = 'FOC Giveaway';
+const TYPE_ORDER_VALUE  = 'Order Value';
+const TYPE_CATEGORY     = 'Category Value';
 
 const GROUP_TYPES    = new Set([TYPE_FREE_QTY, TYPE_QPS, TYPE_FOC_GIVEAWAY]);
 const CATEGORY_TYPES = new Set([TYPE_CATEGORY]);
