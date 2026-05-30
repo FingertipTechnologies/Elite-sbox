@@ -1996,7 +1996,8 @@ public without sharing class DMSPortalLwc {
             'Customer__r.Credit_Description__c, ' +
             'Customer__r.Land_Mark__c, ' +
             'Customer__r.Street__c, ' +
-            'Customer__r.Pincode__c ' +
+            'Customer__r.Pincode__c, ' +
+            'Customer__r.Last_Order_Date_Formula__c ' +
             'FROM Product_Mapping__c ' +
             'WHERE Primary_Customer__c = :accountId ' +
             'AND Is_Executive_Active__c = true ' +
@@ -2059,6 +2060,11 @@ public without sharing class DMSPortalLwc {
             d.landmark          = pm.Customer__r.Land_Mark__c;
             d.street            = pm.Customer__r.Street__c;
             d.pincode           = pm.Customer__r.Pincode__c;
+            d.LastBilledDate =    pm.Customer__r.Last_Order_Date_Formula__c != null 
+                                ? String.valueOf(pm.Customer__r.Last_Order_Date_Formula__c.day()).leftPad(2, '0')   + '-' +
+                                String.valueOf(pm.Customer__r.Last_Order_Date_Formula__c.month()).leftPad(2, '0') + '-' +
+                                String.valueOf(pm.Customer__r.Last_Order_Date_Formula__c.year())
+                                : null;
 
             uniqueSecondaryCustomers.add(d);
         }
@@ -2144,7 +2150,8 @@ public without sharing class DMSPortalLwc {
             'Customer__r.Credit_Description__c, ' +
             'Customer__r.Land_Mark__c, ' +
             'Customer__r.Street__c, ' +
-            'Customer__r.Pincode__c ' +
+            'Customer__r.Pincode__c, ' +
+            'Customer__r.Last_Order_Date_Formula__c ' +
             'FROM Product_Mapping__c ' +
             'WHERE Primary_Customer__c = :accountId ' +
             'AND Is_Executive_Active__c = true ' +
@@ -2207,6 +2214,11 @@ public without sharing class DMSPortalLwc {
             d.landmark          = pm.Customer__r.Land_Mark__c;
             d.street            = pm.Customer__r.Street__c;
             d.pincode           = pm.Customer__r.Pincode__c;
+            d.LastBilledDate =    pm.Customer__r.Last_Order_Date_Formula__c != null 
+                                ? String.valueOf(pm.Customer__r.Last_Order_Date_Formula__c.day()).leftPad(2, '0')   + '-' +
+                                String.valueOf(pm.Customer__r.Last_Order_Date_Formula__c.month()).leftPad(2, '0') + '-' +
+                                String.valueOf(pm.Customer__r.Last_Order_Date_Formula__c.year())
+                                : null;
 
             uniqueSecondaryCustomers.add(d);
         }
@@ -2444,6 +2456,7 @@ public without sharing class DMSPortalLwc {
         @AuraEnabled public String landmark;
         @AuraEnabled public String street;
         @AuraEnabled public String pincode;
+        @AuraEnabled public String LastBilledDate;
     }
     
     

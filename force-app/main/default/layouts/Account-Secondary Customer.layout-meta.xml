@@ -77,6 +77,10 @@
                 <behavior>Edit</behavior>
                 <field>Place_of_Supply__c</field>
             </layoutItems>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>Last_Order_Date_Formula__c</field>
+            </layoutItems>
         </layoutColumns>
         <layoutColumns>
             <layoutItems>

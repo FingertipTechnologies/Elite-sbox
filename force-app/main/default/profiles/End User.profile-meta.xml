@@ -993,6 +993,14 @@
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>SchemeDefinitionController</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>SchemeDefinitionControllerTest</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>SchemeLwc</apexClass>
         <enabled>false</enabled>
     </classAccesses>
@@ -1918,6 +1926,11 @@
         <editable>false</editable>
         <field>Account.Last_Message_type__c</field>
         <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Account.Last_Order_Date_Formula__c</field>
+        <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
@@ -9426,6 +9439,21 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>Scheme_Applicability__c.Sort_Order__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Scheme_Applicability__c.Value_Lookup__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Scheme_Applicability__c.Value_Text__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>Scheme_Credit__c.Credit_Amount__c</field>
         <readable>false</readable>
     </fieldPermissions>
@@ -9572,6 +9600,26 @@
     <fieldPermissions>
         <editable>false</editable>
         <field>Scheme__c.Applies_to__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Scheme__c.Apply_to_All_Areas__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Scheme__c.Apply_to_All_Outlet_Categories__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Scheme__c.Apply_to_All_Regions__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Scheme__c.Apply_to_All_Territories__c</field>
         <readable>false</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -12736,6 +12784,9 @@
         <layout>Sales_Strategy__c-Sales Strategy Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
+        <layout>Scheme_Applicability__c-Scheme Applicability Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
         <layout>Scheme_Credit__c-Scheme Credit Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
@@ -13193,8 +13244,16 @@
         <visibility>DefaultOn</visibility>
     </tabVisibilities>
     <tabVisibilities>
+        <tab>Incentive_Credit__c</tab>
+        <visibility>DefaultOn</visibility>
+    </tabVisibilities>
+    <tabVisibilities>
         <tab>Incentive_Slab__c</tab>
         <visibility>Hidden</visibility>
+    </tabVisibilities>
+    <tabVisibilities>
+        <tab>Incentive__c</tab>
+        <visibility>DefaultOn</visibility>
     </tabVisibilities>
     <tabVisibilities>
         <tab>Invoice__c</tab>

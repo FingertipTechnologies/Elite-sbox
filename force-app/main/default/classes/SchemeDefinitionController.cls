@@ -7,7 +7,7 @@
 *                atomic Scheme__c + Scheme_Slab__c save (Steps 1-3
 *                of the Scheme Management spec, Section 2).
 ******************************************************************/
-public with sharing class SchemeDefinitionController {
+public without sharing class SchemeDefinitionController {
 
     private static final String TYPE_FREE_QTY     = 'Free Quantity';
     private static final String TYPE_QPS          = 'QPS';

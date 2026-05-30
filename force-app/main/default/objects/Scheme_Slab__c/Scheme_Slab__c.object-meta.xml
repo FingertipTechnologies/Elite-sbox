@@ -155,9 +155,10 @@
     <externalSharingModel>Private</externalSharingModel>
     <label>Scheme Slab</label>
     <nameField>
-        <label>Scheme Item Name</label>
+        <displayFormat>S-{0000}</displayFormat>
+        <label>Slab Name</label>
         <trackHistory>false</trackHistory>
-        <type>Text</type>
+        <type>AutoNumber</type>
     </nameField>
     <pluralLabel>Scheme Slabs</pluralLabel>
     <searchLayouts></searchLayouts>
