@@ -4400,6 +4400,7 @@ return getTaskData(objectId);
         @AuraEnabled public String validLabel { get; set; }
         @AuraEnabled public Id productGroupId { get; set; }
         @AuraEnabled public String productGroupName { get; set; }
+        @AuraEnabled public String productCategory { get; set; }
         @AuraEnabled public List<CoverageProductRef> products { get; set; }
         @AuraEnabled public List<CoverageSlabRow> slabRows { get; set; }
     }
@@ -4432,13 +4433,13 @@ return getTaskData(objectId);
             SELECT Id, Name, Scheme_Type__c, Sales_Channel__c,
                    Scheme_Start_Date__c, Scheme_End_Date__c,
                    Scheme_Product_Group__c, Scheme_Product_Group__r.Name,
+                   Scheme_Product_Category__c,
                    Apply_to_All_Regions__c, Apply_to_All_Areas__c,
                    Apply_to_All_Territories__c, Apply_to_All_Outlet_Categories__c
             FROM Scheme__c
             WHERE IsActive__c = true
               AND Scheme_Start_Date__c <= :today
               AND Scheme_End_Date__c >= :today
-              AND Scheme_Product_Group__c != null
         ];
         if (candidates.isEmpty()) return out;
 
@@ -4463,6 +4464,8 @@ return getTaskData(objectId);
         List<Scheme__c> matched = new List<Scheme__c>();
         Set<Id> matchedGroupIds = new Set<Id>();
         for (Scheme__c s : candidates) {
+            // skip schemes that have no membership signal at all (no group + no category)
+            if (s.Scheme_Product_Group__c == null && String.isBlank(s.Scheme_Product_Category__c)) continue;
             Map<String, Set<String>> lvls = appByScheme.containsKey(s.Id) ? appByScheme.get(s.Id) : new Map<String, Set<String>>();
 
             Boolean regionOk = s.Apply_to_All_Regions__c == true
@@ -4478,7 +4481,7 @@ return getTaskData(objectId);
 
             if (regionOk && outletOk && areaOk && territoryOk) {
                 matched.add(s);
-                matchedGroupIds.add(s.Scheme_Product_Group__c);
+                if (s.Scheme_Product_Group__c != null) matchedGroupIds.add(s.Scheme_Product_Group__c);
             }
         }
         if (matched.isEmpty()) return out;
@@ -4529,6 +4532,7 @@ return getTaskData(objectId);
             cs.validLabel       = formatDdMmYyyy(s.Scheme_Start_Date__c) + ' to ' + formatDdMmYyyy(s.Scheme_End_Date__c);
             cs.productGroupId   = s.Scheme_Product_Group__c;
             cs.productGroupName = s.Scheme_Product_Group__r == null ? null : s.Scheme_Product_Group__r.Name;
+            cs.productCategory  = s.Scheme_Product_Category__c;
             cs.products         = productsByGroup.containsKey(s.Scheme_Product_Group__c)
                                    ? productsByGroup.get(s.Scheme_Product_Group__c)
                                    : new List<CoverageProductRef>();
@@ -4545,51 +4549,50 @@ return getTaskData(objectId);
     private static List<CoverageSlabRow> buildSlabRows(String schemeType, List<Scheme_Slab__c> slabs) {
         List<CoverageSlabRow> rows = new List<CoverageSlabRow>();
         if (slabs == null || slabs.isEmpty()) return rows;
-        Integer i = 1;
         Boolean multi = slabs.size() > 1;
+        Integer i = 1;
         for (Scheme_Slab__c sl : slabs) {
-            String prefix = multi ? 'Slab ' + i + ' — ' : '';
-            if (schemeType == 'Free Quantity') {
-                String range = qtyRange(sl.Qualifying_Qty_Min__c, sl.Qualifying_Qty_Max__c);
-                rows.add(new CoverageSlabRow(prefix + 'Min order qty', range + ' EA'));
-                if (sl.Free_Qty__c != null && sl.Qualifying_Qty_Min__c != null) {
-                    rows.add(new CoverageSlabRow(prefix + 'Free qty',
-                        'Buy ' + decToStr(sl.Qualifying_Qty_Min__c) + ' EA get ' + decToStr(sl.Free_Qty__c) + ' EA free'));
-                }
-            } else if (schemeType == 'QPS') {
-                String range = qtyRange(sl.Qualifying_Qty_Min__c, sl.Qualifying_Qty_Max__c);
-                rows.add(new CoverageSlabRow(prefix + 'Min order qty', range + ' EA'));
-                if (sl.Benefit_Amount_Per_EA__c != null) {
-                    rows.add(new CoverageSlabRow(prefix + 'Benefit', '₹' + decToStr(sl.Benefit_Amount_Per_EA__c) + ' per EA'));
-                }
-            } else if (schemeType == 'FOC Giveaway') {
-                String range = qtyRange(sl.Qualifying_Qty_Min__c, sl.Qualifying_Qty_Max__c);
-                rows.add(new CoverageSlabRow(prefix + 'Min order qty', range + ' EA'));
-                if (sl.Free_Qty__c != null) {
-                    String focName = (sl.FOC_Product__c != null && sl.FOC_Product__r != null) ? sl.FOC_Product__r.Name : 'free product';
-                    rows.add(new CoverageSlabRow(prefix + 'Free', decToStr(sl.Free_Qty__c) + ' EA of ' + focName));
-                }
-            } else if (schemeType == 'Order Value' || schemeType == 'Category Value') {
-                String range = valueRange(sl.Qualifying_Value_Min__c, sl.Qualifying_Value_Max__c);
-                rows.add(new CoverageSlabRow(prefix + 'Order value', range));
-                if (sl.Benefit_Percent__c != null) {
-                    rows.add(new CoverageSlabRow(prefix + 'Discount', decToStr(sl.Benefit_Percent__c) + '%'));
-                }
-            }
+            String label = multi ? 'Tier ' + i : 'Offer';
+            String sentence = slabSentence(schemeType, sl);
+            if (sentence != null) rows.add(new CoverageSlabRow(label, sentence));
             i++;
         }
         return rows;
     }
 
-    private static String qtyRange(Decimal mn, Decimal mx) {
-        if (mn == null) return '—';
-        if (mx == null) return decToStr(mn) + '+';
-        return decToStr(mn) + '–' + decToStr(mx);
+    private static String slabSentence(String schemeType, Scheme_Slab__c sl) {
+        if (schemeType == 'Free Quantity') {
+            String buy = buyQtyClause(sl.Qualifying_Qty_Min__c, sl.Qualifying_Qty_Max__c);
+            if (buy == null || sl.Free_Qty__c == null) return null;
+            return '🛒 ' + buy + ' → 🎁 Get ' + decToStr(sl.Free_Qty__c) + ' EA Free';
+        } else if (schemeType == 'QPS') {
+            String buy = buyQtyClause(sl.Qualifying_Qty_Min__c, sl.Qualifying_Qty_Max__c);
+            if (buy == null || sl.Benefit_Amount_Per_EA__c == null) return null;
+            return '🛒 ' + buy + ' → 💰 ₹' + decToStr(sl.Benefit_Amount_Per_EA__c) + ' off per EA';
+        } else if (schemeType == 'FOC Giveaway') {
+            String buy = buyQtyClause(sl.Qualifying_Qty_Min__c, sl.Qualifying_Qty_Max__c);
+            if (buy == null || sl.Free_Qty__c == null) return null;
+            String focName = (sl.FOC_Product__c != null && sl.FOC_Product__r != null) ? sl.FOC_Product__r.Name : 'free product';
+            return '🛒 ' + buy + ' → 🎁 Get ' + decToStr(sl.Free_Qty__c) + ' EA of ' + focName + ' Free';
+        } else if (schemeType == 'Order Value' || schemeType == 'Category Value') {
+            String order = orderValueClause(sl.Qualifying_Value_Min__c, sl.Qualifying_Value_Max__c);
+            if (order == null || sl.Benefit_Percent__c == null) return null;
+            return '🛒 ' + order + ' → 💰 ' + decToStr(sl.Benefit_Percent__c) + '% Off';
+        }
+        return null;
     }
-    private static String valueRange(Decimal mn, Decimal mx) {
-        if (mn == null) return '—';
-        if (mx == null) return '₹' + decToStr(mn) + '+';
-        return '₹' + decToStr(mn) + ' – ₹' + decToStr(mx);
+
+    private static String buyQtyClause(Decimal mn, Decimal mx) {
+        if (mn == null) return null;
+        if (mx == null) return 'Buy ' + decToStr(mn) + ' EA or more';
+        if (mn == mx)   return 'Buy ' + decToStr(mn) + ' EA';
+        return 'Buy ' + decToStr(mn) + ' to ' + decToStr(mx) + ' EA';
+    }
+
+    private static String orderValueClause(Decimal mn, Decimal mx) {
+        if (mn == null) return null;
+        if (mx == null) return 'Order ₹' + decToStr(mn) + ' or more';
+        return 'Order ₹' + decToStr(mn) + ' to ₹' + decToStr(mx);
     }
     private static String decToStr(Decimal d) {
         if (d == null) return '';

@@ -971,6 +971,10 @@
     font-size: 0.9rem;
     text-align: right;
 }
+.coverage-scheme-card__body .kv-row--offer .kv-row__value {
+    font-size: 0.95rem;
+    color: #4f46e5;
+}
 .coverage-scheme-card__group {
     font-size: 0.78rem;
     color: #4b5563;

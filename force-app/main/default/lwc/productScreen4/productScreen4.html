@@ -212,16 +212,8 @@
                                                                     <span class="scheme-type-pill">{cs.schemeType}</span>
                                                                 </div>
                                                                 <div class="coverage-scheme-card__body">
-                                                                    <div class="kv-row">
-                                                                        <span class="kv-row__label">Channel</span>
-                                                                        <span class="kv-row__value">{cs.salesChannel}</span>
-                                                                    </div>
-                                                                    <div class="kv-row">
-                                                                        <span class="kv-row__label">Scheme type</span>
-                                                                        <span class="kv-row__value">{cs.schemeType}</span>
-                                                                    </div>
                                                                     <template for:each={cs.slabRows} for:item="r">
-                                                                        <div key={r.label} class="kv-row">
+                                                                        <div key={r.label} class="kv-row kv-row--offer">
                                                                             <span class="kv-row__label">{r.label}</span>
                                                                             <span class="kv-row__value">{r.value}</span>
                                                                         </div>
@@ -230,6 +222,9 @@
                                                                         <span class="kv-row__label">Valid</span>
                                                                         <span class="kv-row__value">{cs.validLabel}</span>
                                                                     </div>
+                                                                    <template if:true={cs.productCategory}>
+                                                                        <div class="coverage-scheme-card__group">Category: {cs.productCategory}</div>
+                                                                    </template>
                                                                     <template if:true={cs.productGroupName}>
                                                                         <div class="coverage-scheme-card__group">Group: {cs.productGroupName}</div>
                                                                         <template for:each={cs.products} for:item="p">
@@ -338,16 +333,8 @@
                                         </div>
                                         <template if:true={cs.isExpanded}>
                                             <div class="coverage-scheme-card__body">
-                                                <div class="kv-row">
-                                                    <span class="kv-row__label">Channel</span>
-                                                    <span class="kv-row__value">{cs.salesChannel}</span>
-                                                </div>
-                                                <div class="kv-row">
-                                                    <span class="kv-row__label">Scheme type</span>
-                                                    <span class="kv-row__value">{cs.schemeType}</span>
-                                                </div>
                                                 <template for:each={cs.slabRows} for:item="r">
-                                                    <div key={r.label} class="kv-row">
+                                                    <div key={r.label} class="kv-row kv-row--offer">
                                                         <span class="kv-row__label">{r.label}</span>
                                                         <span class="kv-row__value">{r.value}</span>
                                                     </div>
@@ -356,6 +343,9 @@
                                                     <span class="kv-row__label">Valid</span>
                                                     <span class="kv-row__value">{cs.validLabel}</span>
                                                 </div>
+                                                <template if:true={cs.productCategory}>
+                                                    <div class="coverage-scheme-card__group">Category: {cs.productCategory}</div>
+                                                </template>
                                                 <template if:true={cs.productGroupName}>
                                                     <div class="coverage-scheme-card__group">Group: {cs.productGroupName}</div>
                                                     <template for:each={cs.products} for:item="p">

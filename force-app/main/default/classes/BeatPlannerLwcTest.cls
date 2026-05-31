@@ -1881,7 +1881,9 @@ insert tar;
         System.assert(out.productSchemeIds.containsKey(p2.Id));
         System.assertEquals(1, out.productSchemeIds.get(p1.Id).size());
         System.assertNotEquals(null, out.schemes[0].slabRows);
-        System.assert(out.schemes[0].slabRows.size() >= 2, 'expected Min order qty + Free qty rows');
+        System.assertEquals(1, out.schemes[0].slabRows.size(), 'one row per slab');
+        System.assert(out.schemes[0].slabRows[0].value.contains('Buy'), 'rep-friendly Buy/Get sentence');
+        System.assert(out.schemes[0].slabRows[0].value.contains('Free'),  'rep-friendly Buy/Get sentence');
     }
 
     @isTest
