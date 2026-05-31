@@ -131,7 +131,7 @@
 
                             <template lwc:if={schemePro}>
                                 <div class="vertical-scroll-container">
-                                    <template for:each={schemePro} for:item="itm" for:index="index">
+                                    <template for:each={displaySchemePro} for:item="itm" for:index="index">
                                         <div key={itm.Id} class={itm.headerClass}>{itm.name}</div>
 
                                         <!-- Product Rows with Card Layout -->
@@ -147,6 +147,18 @@
                                                                     title="Has applicable schemes">
                                                                 </lightning-icon>
                                                             </template>
+                                                        </template>
+                                                        <template if:true={item.hasSchemeGroupMatch}>
+                                                            <span class="scheme-star" title="Product is part of a running scheme">⭐</span>
+                                                            <lightning-button-icon
+                                                                icon-name={item.schemeExpandIcon}
+                                                                variant="bare"
+                                                                size="small"
+                                                                alternative-text="Show schemes"
+                                                                data-product-id={item.id}
+                                                                onclick={toggleProductSchemes}
+                                                                class="scheme-expand-btn">
+                                                            </lightning-button-icon>
                                                         </template>
                                                     </div>
                                                     <div class="no-gap"><b>MRP : ₹{item.MRP} || Unit Price :
@@ -190,6 +202,23 @@
                                                             oninput={handleEachQtyChange} />
                                                     </template>
                                                 </div>
+
+                                                <template if:true={item.isSchemeExpanded}>
+                                                    <div class="scheme-inline-list">
+                                                        <template for:each={item.coveringSchemes} for:item="cs">
+                                                            <div key={cs.id} class="scheme-inline-row">
+                                                                <div class="scheme-inline-row__head">
+                                                                    <strong>{cs.name}</strong>
+                                                                    <span class="scheme-type-pill">{cs.schemeType}</span>
+                                                                </div>
+                                                                <div class="scheme-inline-row__meta">
+                                                                    <span>Channel: {cs.salesChannel}</span>
+                                                                    <span>Valid: {cs.startDate} → {cs.endDate}</span>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
 
                                             </div>
                                         </template>
@@ -254,6 +283,41 @@
 
 
                     <template lwc:if={isSchemeView}>
+                        <!-- Running schemes applicable to this Account (all types, both Primary and Secondary) -->
+                        <template if:true={hasCoverageSchemes}>
+                            <div class="coverage-schemes">
+                                <h3 class="coverage-schemes__title">Running Schemes for this Account</h3>
+                                <template for:each={displayCoverageSchemes} for:item="cs">
+                                    <div key={cs.id} class="coverage-scheme-card">
+                                        <div class="coverage-scheme-card__head">
+                                            <lightning-button-icon
+                                                icon-name={cs.expandIcon}
+                                                variant="bare"
+                                                size="small"
+                                                alternative-text="Show products"
+                                                data-scheme-id={cs.id}
+                                                onclick={toggleCoverageScheme}>
+                                            </lightning-button-icon>
+                                            <strong>{cs.name}</strong>
+                                            <span class="scheme-type-pill">{cs.schemeType}</span>
+                                            <span class="coverage-scheme-card__dates">{cs.startDate} → {cs.endDate}</span>
+                                        </div>
+                                        <template if:true={cs.isExpanded}>
+                                            <div class="coverage-scheme-card__body">
+                                                <div class="coverage-scheme-card__group">Group: {cs.productGroupName}</div>
+                                                <template for:each={cs.products} for:item="p">
+                                                    <div key={p.id} class="coverage-scheme-product">
+                                                        <span class="coverage-scheme-product__name">{p.name}</span>
+                                                        <span class="coverage-scheme-product__sku">{p.sku}</span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
                         <!-- Show a message for Primary Customers with custom styling -->
                         <template lwc:if={isPrimaryAccount}>
                             <div class="no-schemes-message">

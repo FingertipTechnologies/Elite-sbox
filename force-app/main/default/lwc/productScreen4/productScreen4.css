@@ -888,3 +888,94 @@
     font-style: italic;
     margin-top: 4px;
 }
+
+.scheme-star {
+    margin-left: 6px;
+    font-size: 0.95rem;
+    line-height: 1;
+}
+.scheme-expand-btn {
+    margin-left: 4px;
+    vertical-align: middle;
+}
+.scheme-inline-list {
+    margin-top: 6px;
+    padding: 8px;
+    background: #f6f7fb;
+    border-left: 3px solid #4f46e5;
+    border-radius: 4px;
+}
+.scheme-inline-row + .scheme-inline-row {
+    margin-top: 6px;
+    border-top: 1px dashed #d8d8e0;
+    padding-top: 6px;
+}
+.scheme-inline-row__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.scheme-inline-row__meta {
+    margin-top: 2px;
+    font-size: 0.75rem;
+    color: #555;
+    display: flex;
+    gap: 12px;
+}
+.scheme-type-pill {
+    background: #4f46e5;
+    color: #fff;
+    border-radius: 999px;
+    padding: 0 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+.coverage-schemes {
+    padding: 8px;
+}
+.coverage-schemes__title {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    font-weight: 600;
+}
+.coverage-scheme-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    padding: 8px;
+}
+.coverage-scheme-card__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.coverage-scheme-card__dates {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: #555;
+}
+.coverage-scheme-card__body {
+    margin-top: 8px;
+    padding: 8px;
+    background: #f9fafb;
+    border-radius: 4px;
+}
+.coverage-scheme-card__group {
+    font-size: 0.75rem;
+    color: #555;
+    margin-bottom: 6px;
+}
+.coverage-scheme-product {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 0.85rem;
+    border-bottom: 1px dashed #e5e7eb;
+}
+.coverage-scheme-product:last-child { border-bottom: none; }
+.coverage-scheme-product__sku {
+    color: #6b7280;
+    font-size: 0.75rem;
+}
