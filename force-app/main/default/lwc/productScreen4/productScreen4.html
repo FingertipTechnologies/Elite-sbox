@@ -220,8 +220,8 @@
                                                                         <span class="kv-row__label">Scheme type</span>
                                                                         <span class="kv-row__value">{cs.schemeType}</span>
                                                                     </div>
-                                                                    <template for:each={cs.slabRows} for:item="r" for:index="rIdx">
-                                                                        <div key={rIdx} class="kv-row">
+                                                                    <template for:each={cs.slabRows} for:item="r">
+                                                                        <div key={r.label} class="kv-row">
                                                                             <span class="kv-row__label">{r.label}</span>
                                                                             <span class="kv-row__value">{r.value}</span>
                                                                         </div>
@@ -338,8 +338,8 @@
                                                     <span class="kv-row__label">Scheme type</span>
                                                     <span class="kv-row__value">{cs.schemeType}</span>
                                                 </div>
-                                                <template for:each={cs.slabRows} for:item="r" for:index="rIdx">
-                                                    <div key={rIdx} class="kv-row">
+                                                <template for:each={cs.slabRows} for:item="r">
+                                                    <div key={r.label} class="kv-row">
                                                         <span class="kv-row__label">{r.label}</span>
                                                         <span class="kv-row__value">{r.value}</span>
                                                     </div>
