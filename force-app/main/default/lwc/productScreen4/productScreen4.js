@@ -5,6 +5,7 @@ import getAccountsByArea from '@salesforce/apex/beatPlannerlwc.getAccountsByArea
 import saveOrderItemData from '@salesforce/apex/beatPlannerlwc.upsertOrder';
 import saveStockItem from '@salesforce/apex/beatPlannerlwc.upsertStock';
 import getAreaOptions from '@salesforce/apex/beatPlannerlwc.getAreaOptions';
+import getSchemeCoverageForAccount from '@salesforce/apex/beatPlannerlwc.getSchemeCoverageForAccount';
 import PLANNER_ICON from '@salesforce/resourceUrl/planner';
 import FORM_FACTOR from '@salesforce/client/formFactor';
 import GOOGLE_ICONS from '@salesforce/resourceUrl/googleIcons';
@@ -35,6 +36,10 @@ export default class ProductScreen4 extends LightningElement {
     @track isShowOwner = false;
     @track productData = [];
     @track getSelectedProduct = [];
+    @track coverageSchemes = [];
+    coverageProductSchemeIds = {};
+    @track expandedProductIds = [];
+    @track expandedSchemeIds = [];
     @track deliveryTo = '';
     @track expectedDeliveryDate = '';
     @track OrderOwnerId = '';
@@ -296,6 +301,7 @@ export default class ProductScreen4 extends LightningElement {
                 this.productCatDropdown = result.productCatDropdown;
                 this.isShowOwner = result.isShowOwner;
 
+                this.loadCoverage();
 
                 if (result.Account) {
                     const acc = result.Account.find(a => a.Id === this.acccountId);
@@ -1374,6 +1380,70 @@ export default class ProductScreen4 extends LightningElement {
         this.showAccountSearch = false;
         this.isSummaryProduct = false;
         this.isProductAdded = false;
+    }
+
+    loadCoverage() {
+        if (!this.acccountId) return;
+        getSchemeCoverageForAccount({ accountId: this.acccountId })
+            .then(result => {
+                this.coverageSchemes = (result && result.schemes) ? result.schemes : [];
+                this.coverageProductSchemeIds = (result && result.productSchemeIds) ? result.productSchemeIds : {};
+            })
+            .catch(() => {
+                this.coverageSchemes = [];
+                this.coverageProductSchemeIds = {};
+            });
+    }
+
+    get hasCoverageSchemes() {
+        return Array.isArray(this.coverageSchemes) && this.coverageSchemes.length > 0;
+    }
+
+    get displayCoverageSchemes() {
+        const expanded = new Set(this.expandedSchemeIds);
+        return (this.coverageSchemes || []).map(s => ({
+            ...s,
+            isExpanded: expanded.has(s.id),
+            expandIcon: expanded.has(s.id) ? 'utility:chevrondown' : 'utility:chevronright'
+        }));
+    }
+
+    get displaySchemePro() {
+        if (!Array.isArray(this.schemePro)) return this.schemePro;
+        const psm = this.coverageProductSchemeIds || {};
+        const schemesById = {};
+        for (const s of (this.coverageSchemes || [])) schemesById[s.id] = s;
+        const expanded = new Set(this.expandedProductIds);
+        return this.schemePro.map(itm => ({
+            ...itm,
+            products: (itm.products || []).map(p => {
+                const sids = psm[p.id] || [];
+                const isExpanded = expanded.has(p.id);
+                return {
+                    ...p,
+                    hasSchemeGroupMatch: sids.length > 0,
+                    isSchemeExpanded: isExpanded,
+                    schemeExpandIcon: isExpanded ? 'utility:chevrondown' : 'utility:chevronright',
+                    coveringSchemes: sids.map(id => schemesById[id]).filter(Boolean)
+                };
+            })
+        }));
+    }
+
+    toggleProductSchemes(event) {
+        const pid = event.currentTarget.dataset.productId;
+        if (!pid) return;
+        const next = new Set(this.expandedProductIds);
+        if (next.has(pid)) next.delete(pid); else next.add(pid);
+        this.expandedProductIds = Array.from(next);
+    }
+
+    toggleCoverageScheme(event) {
+        const sid = event.currentTarget.dataset.schemeId;
+        if (!sid) return;
+        const next = new Set(this.expandedSchemeIds);
+        if (next.has(sid)) next.delete(sid); else next.add(sid);
+        this.expandedSchemeIds = Array.from(next);
     }
 
     selectScheme(event) {

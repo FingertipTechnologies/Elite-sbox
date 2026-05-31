@@ -4371,7 +4371,7 @@ return getTaskData(objectId);
         decimal outstandingAmount;
     }
     global class BeatData {
-        @AuraEnabled public Id beatId; 
+        @AuraEnabled public Id beatId;
         @AuraEnabled public String beatName;
         @AuraEnabled public Boolean istodayBeat;
         @AuraEnabled public Boolean isCurrentBeat;
@@ -4380,5 +4380,138 @@ return getTaskData(objectId);
         @AuraEnabled public String pjpDate;
         @AuraEnabled public String pjpId;
         @AuraEnabled public String ownerName;
+    }
+
+    /** ============ Scheme Coverage view (productScreen4 Task 3) ============ **/
+
+    global class CoverageProductRef {
+        @AuraEnabled public Id id { get; set; }
+        @AuraEnabled public String name { get; set; }
+        @AuraEnabled public String sku { get; set; }
+    }
+
+    global class CoverageScheme {
+        @AuraEnabled public Id id { get; set; }
+        @AuraEnabled public String name { get; set; }
+        @AuraEnabled public String schemeType { get; set; }
+        @AuraEnabled public String salesChannel { get; set; }
+        @AuraEnabled public Date startDate { get; set; }
+        @AuraEnabled public Date endDate { get; set; }
+        @AuraEnabled public Id productGroupId { get; set; }
+        @AuraEnabled public String productGroupName { get; set; }
+        @AuraEnabled public List<CoverageProductRef> products { get; set; }
+    }
+
+    global class CoverageDto {
+        @AuraEnabled public List<CoverageScheme> schemes { get; set; }
+        @AuraEnabled public Map<Id, List<Id>> productSchemeIds { get; set; }
+    }
+
+    @AuraEnabled(cacheable=true)
+    global static CoverageDto getSchemeCoverageForAccount(Id accountId) {
+        CoverageDto out = new CoverageDto();
+        out.schemes = new List<CoverageScheme>();
+        out.productSchemeIds = new Map<Id, List<Id>>();
+        if (accountId == null) return out;
+
+        Account acc = [
+            SELECT Id, Region__c, Secondary_Customer_Category__c, Customer_Type__c
+            FROM Account WHERE Id = :accountId LIMIT 1
+        ];
+
+        Date today = Date.today();
+        List<Scheme__c> candidates = [
+            SELECT Id, Name, Scheme_Type__c, Sales_Channel__c,
+                   Scheme_Start_Date__c, Scheme_End_Date__c,
+                   Scheme_Product_Group__c, Scheme_Product_Group__r.Name,
+                   Apply_to_All_Regions__c, Apply_to_All_Areas__c,
+                   Apply_to_All_Territories__c, Apply_to_All_Outlet_Categories__c
+            FROM Scheme__c
+            WHERE IsActive__c = true
+              AND Scheme_Start_Date__c <= :today
+              AND Scheme_End_Date__c >= :today
+              AND Scheme_Product_Group__c != null
+        ];
+        if (candidates.isEmpty()) return out;
+
+        Set<Id> schemeIds = new Set<Id>();
+        for (Scheme__c s : candidates) schemeIds.add(s.Id);
+
+        Map<Id, Map<String, Set<String>>> appByScheme = new Map<Id, Map<String, Set<String>>>();
+        for (Scheme_Applicability__c r : [
+            SELECT Scheme__c, Level__c, Value_Text__c, Value_Lookup__c
+            FROM Scheme_Applicability__c
+            WHERE Scheme__c IN :schemeIds
+        ]) {
+            if (!appByScheme.containsKey(r.Scheme__c)) {
+                appByScheme.put(r.Scheme__c, new Map<String, Set<String>>());
+            }
+            Map<String, Set<String>> lvls = appByScheme.get(r.Scheme__c);
+            if (!lvls.containsKey(r.Level__c)) lvls.put(r.Level__c, new Set<String>());
+            String v = (r.Value_Lookup__c != null) ? String.valueOf(r.Value_Lookup__c) : r.Value_Text__c;
+            if (v != null) lvls.get(r.Level__c).add(v);
+        }
+
+        List<Scheme__c> matched = new List<Scheme__c>();
+        Set<Id> matchedGroupIds = new Set<Id>();
+        for (Scheme__c s : candidates) {
+            Map<String, Set<String>> lvls = appByScheme.containsKey(s.Id) ? appByScheme.get(s.Id) : new Map<String, Set<String>>();
+
+            Boolean regionOk = s.Apply_to_All_Regions__c == true
+                || acc.Region__c == null
+                || (lvls.containsKey('Region') && lvls.get('Region').contains(acc.Region__c));
+
+            Boolean outletOk = s.Apply_to_All_Outlet_Categories__c == true
+                || acc.Secondary_Customer_Category__c == null
+                || (lvls.containsKey('Outlet Category') && lvls.get('Outlet Category').contains(acc.Secondary_Customer_Category__c));
+
+            Boolean areaOk = s.Apply_to_All_Areas__c == true || !lvls.containsKey('Area');
+            Boolean territoryOk = s.Apply_to_All_Territories__c == true || !lvls.containsKey('Territory');
+
+            if (regionOk && outletOk && areaOk && territoryOk) {
+                matched.add(s);
+                matchedGroupIds.add(s.Scheme_Product_Group__c);
+            }
+        }
+        if (matched.isEmpty()) return out;
+
+        Map<Id, List<CoverageProductRef>> productsByGroup = new Map<Id, List<CoverageProductRef>>();
+        for (Scheme_Product_Group_Item__c it : [
+            SELECT Scheme_Product_Group__c, Product__c, Product__r.Name, Product__r.SKU_Code__c
+            FROM Scheme_Product_Group_Item__c
+            WHERE Scheme_Product_Group__c IN :matchedGroupIds
+            ORDER BY Product__r.Name
+        ]) {
+            if (it.Product__c == null) continue;
+            if (!productsByGroup.containsKey(it.Scheme_Product_Group__c)) {
+                productsByGroup.put(it.Scheme_Product_Group__c, new List<CoverageProductRef>());
+            }
+            CoverageProductRef p = new CoverageProductRef();
+            p.id   = it.Product__c;
+            p.name = it.Product__r.Name;
+            p.sku  = it.Product__r.SKU_Code__c;
+            productsByGroup.get(it.Scheme_Product_Group__c).add(p);
+        }
+
+        for (Scheme__c s : matched) {
+            CoverageScheme cs = new CoverageScheme();
+            cs.id               = s.Id;
+            cs.name             = s.Name;
+            cs.schemeType       = s.Scheme_Type__c;
+            cs.salesChannel     = s.Sales_Channel__c;
+            cs.startDate        = s.Scheme_Start_Date__c;
+            cs.endDate          = s.Scheme_End_Date__c;
+            cs.productGroupId   = s.Scheme_Product_Group__c;
+            cs.productGroupName = s.Scheme_Product_Group__r == null ? null : s.Scheme_Product_Group__r.Name;
+            cs.products         = productsByGroup.containsKey(s.Scheme_Product_Group__c)
+                                   ? productsByGroup.get(s.Scheme_Product_Group__c)
+                                   : new List<CoverageProductRef>();
+            out.schemes.add(cs);
+            for (CoverageProductRef p : cs.products) {
+                if (!out.productSchemeIds.containsKey(p.id)) out.productSchemeIds.put(p.id, new List<Id>());
+                out.productSchemeIds.get(p.id).add(s.Id);
+            }
+        }
+        return out;
     }
 }

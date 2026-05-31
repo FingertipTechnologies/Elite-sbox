@@ -1825,6 +1825,144 @@ insert tar;
 
 
 
-    
-    
+
+    @isTest
+    static void coverage_returnsEmptyForNullAccount() {
+        Test.startTest();
+        beatPlannerlwc.CoverageDto out = beatPlannerlwc.getSchemeCoverageForAccount(null);
+        Test.stopTest();
+        System.assertNotEquals(null, out);
+        System.assertEquals(0, out.schemes.size());
+        System.assert(out.productSchemeIds.isEmpty());
+    }
+
+    @isTest
+    static void coverage_matchesViaApplyToAllAndIncludesGroupProducts() {
+        Account acc = new Account(Name = 'Cov Acc', Customer_Type__c = 'Primary Customer');
+        insert acc;
+        Product__c p1 = new Product__c(Name = 'CovP1', Is_Active__c = true, SKU_Code__c = 'CovP1');
+        Product__c p2 = new Product__c(Name = 'CovP2', Is_Active__c = true, SKU_Code__c = 'CovP2');
+        insert new List<Product__c>{ p1, p2 };
+
+        String purpose = null;
+        for (Schema.PicklistEntry e : Scheme_Product_Group__c.Group_Purpose__c.getDescribe().getPicklistValues()) {
+            if (e.isActive()) { purpose = e.getValue(); break; }
+        }
+        Scheme_Product_Group__c g = new Scheme_Product_Group__c(
+            Name = 'CovGrp', Sales_Channel__c = 'Cake', Group_Purpose__c = purpose, Is_Active__c = true
+        );
+        insert g;
+        insert new List<Scheme_Product_Group_Item__c>{
+            new Scheme_Product_Group_Item__c(Scheme_Product_Group__c = g.Id, Product__c = p1.Id),
+            new Scheme_Product_Group_Item__c(Scheme_Product_Group__c = g.Id, Product__c = p2.Id)
+        };
+
+        Scheme__c s = new Scheme__c(
+            Name = 'CovScheme', Scheme_Type__c = 'QPS', Sales_Channel__c = 'Cake',
+            Scheme_Start_Date__c = Date.today(), Scheme_End_Date__c = Date.today().addDays(7),
+            IsActive__c = true, Scheme_Product_Group__c = g.Id,
+            Apply_to_All_Regions__c = true, Apply_to_All_Areas__c = true,
+            Apply_to_All_Territories__c = true, Apply_to_All_Outlet_Categories__c = true
+        );
+        insert s;
+
+        Test.startTest();
+        beatPlannerlwc.CoverageDto out = beatPlannerlwc.getSchemeCoverageForAccount(acc.Id);
+        Test.stopTest();
+
+        System.assertEquals(1, out.schemes.size());
+        System.assertEquals('CovScheme', out.schemes[0].name);
+        System.assertEquals(2, out.schemes[0].products.size());
+        System.assert(out.productSchemeIds.containsKey(p1.Id));
+        System.assert(out.productSchemeIds.containsKey(p2.Id));
+        System.assertEquals(1, out.productSchemeIds.get(p1.Id).size());
+    }
+
+    @isTest
+    static void coverage_filtersWhenRegionLevelExcludesAccount() {
+        String validRegion = null;
+        for (Schema.PicklistEntry e : Account.Region__c.getDescribe().getPicklistValues()) {
+            if (e.isActive()) { validRegion = e.getValue(); break; }
+        }
+        if (validRegion == null) return;
+
+        Account acc = new Account(Name = 'RegAcc', Customer_Type__c = 'Primary Customer', Region__c = validRegion);
+        insert acc;
+        Product__c p1 = new Product__c(Name = 'RegP', Is_Active__c = true, SKU_Code__c = 'RegP');
+        insert p1;
+
+        String purpose = null;
+        for (Schema.PicklistEntry e : Scheme_Product_Group__c.Group_Purpose__c.getDescribe().getPicklistValues()) {
+            if (e.isActive()) { purpose = e.getValue(); break; }
+        }
+        Scheme_Product_Group__c g = new Scheme_Product_Group__c(
+            Name = 'RegGrp', Sales_Channel__c = 'Cake', Group_Purpose__c = purpose, Is_Active__c = true
+        );
+        insert g;
+        insert new Scheme_Product_Group_Item__c(Scheme_Product_Group__c = g.Id, Product__c = p1.Id);
+
+        Scheme__c s = new Scheme__c(
+            Name = 'RegScheme', Scheme_Type__c = 'QPS', Sales_Channel__c = 'Cake',
+            Scheme_Start_Date__c = Date.today(), Scheme_End_Date__c = Date.today().addDays(7),
+            IsActive__c = true, Scheme_Product_Group__c = g.Id,
+            Apply_to_All_Regions__c = false,
+            Apply_to_All_Areas__c = true, Apply_to_All_Territories__c = true, Apply_to_All_Outlet_Categories__c = true
+        );
+        insert s;
+
+        String otherRegion = 'NOT-A-REGION-' + System.now().getTime();
+        insert new Scheme_Applicability__c(
+            Scheme__c = s.Id, Level__c = 'Region', Value_Text__c = otherRegion, Sort_Order__c = 1
+        );
+
+        Test.startTest();
+        beatPlannerlwc.CoverageDto out = beatPlannerlwc.getSchemeCoverageForAccount(acc.Id);
+        Test.stopTest();
+
+        System.assertEquals(0, out.schemes.size(),
+            'Account region differs from the only allowed Region value; scheme must be filtered out');
+    }
+
+    @isTest
+    static void coverage_skipsExpiredAndFutureSchemes() {
+        Account acc = new Account(Name = 'DateAcc', Customer_Type__c = 'Primary Customer');
+        insert acc;
+        Product__c p1 = new Product__c(Name = 'DateP', Is_Active__c = true, SKU_Code__c = 'DateP');
+        insert p1;
+        String purpose = null;
+        for (Schema.PicklistEntry e : Scheme_Product_Group__c.Group_Purpose__c.getDescribe().getPicklistValues()) {
+            if (e.isActive()) { purpose = e.getValue(); break; }
+        }
+        Scheme_Product_Group__c g = new Scheme_Product_Group__c(
+            Name = 'DateGrp', Sales_Channel__c = 'Cake', Group_Purpose__c = purpose, Is_Active__c = true
+        );
+        insert g;
+        insert new Scheme_Product_Group_Item__c(Scheme_Product_Group__c = g.Id, Product__c = p1.Id);
+
+        List<Scheme__c> schemes = new List<Scheme__c>{
+            new Scheme__c(Name = 'PastS', Scheme_Type__c = 'QPS', Sales_Channel__c = 'Cake',
+                Scheme_Start_Date__c = Date.today().addDays(-30), Scheme_End_Date__c = Date.today().addDays(-1),
+                IsActive__c = true, Scheme_Product_Group__c = g.Id,
+                Apply_to_All_Regions__c = true, Apply_to_All_Areas__c = true,
+                Apply_to_All_Territories__c = true, Apply_to_All_Outlet_Categories__c = true),
+            new Scheme__c(Name = 'NowS', Scheme_Type__c = 'QPS', Sales_Channel__c = 'Cake',
+                Scheme_Start_Date__c = Date.today(), Scheme_End_Date__c = Date.today().addDays(7),
+                IsActive__c = true, Scheme_Product_Group__c = g.Id,
+                Apply_to_All_Regions__c = true, Apply_to_All_Areas__c = true,
+                Apply_to_All_Territories__c = true, Apply_to_All_Outlet_Categories__c = true),
+            new Scheme__c(Name = 'FutureS', Scheme_Type__c = 'QPS', Sales_Channel__c = 'Cake',
+                Scheme_Start_Date__c = Date.today().addDays(10), Scheme_End_Date__c = Date.today().addDays(20),
+                IsActive__c = true, Scheme_Product_Group__c = g.Id,
+                Apply_to_All_Regions__c = true, Apply_to_All_Areas__c = true,
+                Apply_to_All_Territories__c = true, Apply_to_All_Outlet_Categories__c = true)
+        };
+        insert schemes;
+
+        Test.startTest();
+        beatPlannerlwc.CoverageDto out = beatPlannerlwc.getSchemeCoverageForAccount(acc.Id);
+        Test.stopTest();
+
+        System.assertEquals(1, out.schemes.size());
+        System.assertEquals('NowS', out.schemes[0].name);
+    }
 }
