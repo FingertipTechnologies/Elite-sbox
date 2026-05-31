@@ -407,19 +407,136 @@
                             <lightning-combobox label="Operator" data-field="Operator__c"
                                 value={criteria.Operator__c} options={operatorOptions}
                                 onchange={handleOperatorChange} required></lightning-combobox>
-                            <lightning-combobox label="SUM Field" data-field="Field__c" disabled={isCount}
-                                value={criteria.Field__c} options={numberFieldOptions}
-                                onchange={handleInput}></lightning-combobox>
-                            <lightning-combobox label="Date Field" data-field="Date_Field__c"
-                                value={criteria.Date_Field__c} options={dateFieldOptions}
-                                onchange={handleInput} required></lightning-combobox>
-                            <lightning-combobox label="User Field" data-field="User_Field__c"
-                                value={criteria.User_Field__c} options={userFieldOptions}
-                                onchange={handleInput} required></lightning-combobox>
+                            <template if:true={isSumOperator}>
+                                <lightning-combobox label="SUM Field" data-field="Field__c"
+                                    value={criteria.Field__c} options={numberFieldOptions}
+                                    onchange={handleInput} required></lightning-combobox>
+                            </template>
                         </div>
-                        <p class="tcb-help-text">
-                            Operator, Date Field and User Field are mandatory. SUM Field is mandatory when Operator is SUM.
-                        </p>
+
+                        <template if:true={showSourceMapping}>
+                            <div class="two-col">
+                                <lightning-combobox label="Date Field" data-field="Date_Field__c"
+                                    value={criteria.Date_Field__c} options={dateFieldOptions}
+                                    onchange={handleInput} required></lightning-combobox>
+                                <lightning-combobox label="User Field" data-field="User_Field__c"
+                                    value={criteria.User_Field__c} options={userFieldOptions}
+                                    onchange={handleInput} required></lightning-combobox>
+                            </div>
+
+                            <template if:true={showDistinctField}>
+                                <div class="two-col">
+                                    <lightning-combobox label="Distinct Field (outlet)" data-field="Distinct_Field__c"
+                                        value={criteria.Distinct_Field__c} options={allFieldOptions}
+                                        onchange={handleInput} required></lightning-combobox>
+                                </div>
+                            </template>
+
+                            <template if:true={showOrderField}>
+                                <div class="two-col">
+                                    <lightning-combobox label="Order Field (to count distinct orders/day)"
+                                        data-field="Distinct_Field__c"
+                                        value={criteria.Distinct_Field__c} options={allFieldOptions}
+                                        onchange={handleInput} required></lightning-combobox>
+                                </div>
+                                <p class="tcb-help-text">
+                                    Average TLSD = (line-item rows ÷ distinct orders) per day, averaged over the divisor.
+                                    Pick the field that identifies the order (e.g. Order).
+                                </p>
+                            </template>
+
+                            <template if:true={showRatioFields}>
+                                <div class="two-col">
+                                    <lightning-combobox label="Numerator Field" data-field="Numerator_Field__c"
+                                        value={criteria.Numerator_Field__c} options={numberFieldOptions}
+                                        onchange={handleInput} required></lightning-combobox>
+                                    <lightning-combobox label="Denominator Field" data-field="Denominator_Field__c"
+                                        value={criteria.Denominator_Field__c} options={numberFieldOptions}
+                                        onchange={handleInput} required></lightning-combobox>
+                                </div>
+                            </template>
+
+                            <template if:true={showAttendanceDivisor}>
+                                <div class="two-col">
+                                    <lightning-input type="checkbox" label="Use Attendance Divisor (working days)"
+                                        data-field="Use_Attendance_Divisor__c"
+                                        checked={criteria.Use_Attendance_Divisor__c}
+                                        onchange={handleCheckbox}></lightning-input>
+                                </div>
+                            </template>
+
+                            <template if:true={showSecondarySources}>
+                                <lightning-textarea label="Secondary Source Objects (JSON)"
+                                    data-field="Secondary_Source_Objects__c"
+                                    value={criteria.Secondary_Source_Objects__c}
+                                    onchange={handleInput}
+                                    placeholder="Optional JSON array of extra source objects to union for dedup (object, userField, dateField, distinctField)."></lightning-textarea>
+                            </template>
+                        </template>
+
+                        <template if:true={isFocusPack}>
+                            <div class="two-col">
+                                <lightning-combobox label="Date Field (defaults to Order Date)"
+                                    data-field="Date_Field__c"
+                                    value={criteria.Date_Field__c} options={dateFieldOptions}
+                                    onchange={handleInput}></lightning-combobox>
+                                <lightning-combobox label="User Field (defaults to Order Owner Id)"
+                                    data-field="User_Field__c"
+                                    value={criteria.User_Field__c} options={userFieldOptions}
+                                    onchange={handleInput}></lightning-combobox>
+                            </div>
+                            <p class="tcb-help-text">
+                                Focus-Pack operators read SKUs and the qualifying quantity from the Focus
+                                Pack chosen on each Secondary Target. The pack is selected per target in the
+                                Secondary Target Manager, not here. Add your secondary-order condition
+                                (e.g. Customer_Order_Type__c = 'Secondary Order') in the Filters step —
+                                pick Order Item as the Object in Step 1 so the fields are available.
+                                Date and User fields default to Order_Date__c and Order_Owner_Id__c if left blank.
+                            </p>
+                            <template if:true={showFocusValueField}>
+                                <div class="two-col">
+                                    <lightning-combobox label="Revenue Field (defaults to pre-tax order value)"
+                                        data-field="Field__c"
+                                        value={criteria.Field__c} options={numberFieldOptions}
+                                        onchange={handleInput}></lightning-combobox>
+                                </div>
+                                <p class="tcb-help-text">
+                                    Leave blank to use Non_Taxable_Order_Value__c (revenue excludes tax, BRD 3.3.5).
+                                    Selecting a field requires choosing Order Item as the Object in Step 1.
+                                </p>
+                            </template>
+                            <template if:true={showFocusQtyField}>
+                                <div class="two-col">
+                                    <lightning-combobox label="Quantity Field (defaults to Quantity)"
+                                        data-field="Field__c"
+                                        value={criteria.Field__c} options={numberFieldOptions}
+                                        onchange={handleInput}></lightning-combobox>
+                                </div>
+                                <p class="tcb-help-text">
+                                    Field summed per order for the minimum-quantity ECO check (BRD 3.4.5).
+                                    Set to the ordered quantity field (e.g. Each Qty). Choose Order Item as the Object in Step 1 to list fields.
+                                </p>
+                            </template>
+                            <template if:true={showFocusOutletField}>
+                                <div class="two-col">
+                                    <lightning-combobox label="Outlet Field (defaults to Account)"
+                                        data-field="Distinct_Field__c"
+                                        value={criteria.Distinct_Field__c} options={allFieldOptions}
+                                        onchange={handleInput}></lightning-combobox>
+                                </div>
+                                <p class="tcb-help-text">
+                                    Pick the field that identifies the outlet. If Account is empty on the line,
+                                    pick "Order > Account" (the parent's Account) instead. Choose Order Item as the Object in Step 1 so the list is populated.
+                                </p>
+                            </template>
+                        </template>
+
+                        <template if:true={showSourceMapping}>
+                            <p class="tcb-help-text">
+                                Operator, Date Field and User Field are mandatory. SUM Field is required for SUM,
+                                a Distinct Field for COUNT DISTINCT / DAILY UNIQUE AVG, and Numerator/Denominator for DAILY RATIO AVG.
+                            </p>
+                        </template>
                     </div>
                 </section>
             </template>
@@ -555,6 +672,12 @@
                         </div>
 
                         <pre class="tcb-query-preview slds-m-bottom_medium">{previewQuery}</pre>
+
+                        <template if:true={previewHasNote}>
+                            <div class="slds-box slds-box_x-small slds-m-bottom_small slds-theme_shade">
+                                {previewNote}
+                            </div>
+                        </template>
 
                         <template if:true={previewIsSuccess}>
                             <template if:true={previewHasRows}>

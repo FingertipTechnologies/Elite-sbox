@@ -1,0 +1,251 @@
+<template>
+    <div class="builder-wrapper">
+
+        <!-- Top bar: brand + header fields + actions -->
+        <div class="top-bar">
+            <div class="top-bar__brand">
+                <div class="top-bar__title-wrap">
+                    <p class="top-bar__eyebrow">Scheme Product Group</p>
+                    <p class="top-bar__title">{pageTitle}</p>
+                </div>
+            </div>
+
+            <div class="top-bar__divider"></div>
+
+            <div class="top-bar__fields">
+                <div class="top-bar__field">
+                    <lightning-input
+                        label="Name"
+                        data-field="groupLabel"
+                        value={header.groupLabel}
+                        required
+                        message-when-value-missing="Name is required"
+                        onchange={handleHeaderChange}>
+                    </lightning-input>
+                </div>
+                <div class="top-bar__field">
+                    <lightning-combobox
+                        label="Group Purpose"
+                        data-field="groupPurpose"
+                        value={header.groupPurpose}
+                        options={groupPurposeOptions}
+                        required
+                        placeholder="Select Purpose"
+                        onchange={handleHeaderChange}>
+                    </lightning-combobox>
+                </div>
+                <div class="top-bar__field">
+                    <lightning-combobox
+                        label="Sales Channel"
+                        data-field="salesChannel"
+                        value={header.salesChannel}
+                        options={salesChannelOptions}
+                        required
+                        placeholder="Select Channel"
+                        onchange={handleHeaderChange}>
+                    </lightning-combobox>
+                </div>
+            </div>
+
+            <div class="top-bar__divider"></div>
+
+            <div class="top-bar__actions">
+                <lightning-button label="Cancel" variant="destructive-text" onclick={handleCancel}></lightning-button>
+                <lightning-button label="Save" variant="brand"
+                                  disabled={isSubmitDisabled}
+                                  onclick={handleSubmit}>
+                </lightning-button>
+            </div>
+        </div>
+
+        <!-- Description + Active row -->
+        <div class="card meta-card">
+            <div class="meta-card__row">
+                <lightning-textarea
+                    label="Description"
+                    data-field="description"
+                    value={header.description}
+                    onchange={handleHeaderChange}
+                    class="meta-card__desc">
+                </lightning-textarea>
+                <lightning-input
+                    type="toggle"
+                    label="Active"
+                    checked={header.isActive}
+                    message-toggle-active="Yes"
+                    message-toggle-inactive="No"
+                    onchange={handleActiveToggle}>
+                </lightning-input>
+            </div>
+
+            <div class="chip-wrap">
+                <span class={chipClass}>{chipMessage}</span>
+                <span class="selected-pill">{selectedCount} selected</span>
+            </div>
+        </div>
+
+        <!-- Channel-not-selected hint -->
+        <template if:false={hasChannel}>
+            <div class="card empty-hint">
+                <lightning-icon icon-name="utility:filterList" alternative-text="Filter" size="medium" class="empty-hint__icon"></lightning-icon>
+                <p class="empty-hint__title">Select a Sales Channel</p>
+                <p class="empty-hint__sub">Pick a Sales Channel above to load the SKUs available for that channel.</p>
+            </div>
+        </template>
+
+        <!-- Filter card -->
+        <template if:true={hasChannel}>
+            <div class="card filter-card">
+                <div class="filter-card__row">
+                    <div class="filter-card__field">
+                        <lightning-combobox
+                            label="Category"
+                            data-field="category"
+                            value={filters.category}
+                            options={categoryOptions}
+                            placeholder="All"
+                            onchange={handleFilterChange}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="filter-card__field">
+                        <lightning-combobox
+                            label="Product Group"
+                            data-field="productGroup"
+                            value={filters.productGroup}
+                            options={productGroupOptions}
+                            placeholder="All"
+                            onchange={handleFilterChange}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="filter-card__field">
+                        <lightning-combobox
+                            label="Sub Group"
+                            data-field="productSubGroup"
+                            value={filters.productSubGroup}
+                            options={productSubGroupOptions}
+                            placeholder="All"
+                            onchange={handleFilterChange}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="filter-card__field">
+                        <lightning-combobox
+                            label="Variant"
+                            data-field="varient"
+                            value={filters.varient}
+                            options={varientOptions}
+                            placeholder="All"
+                            onchange={handleFilterChange}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="filter-card__field">
+                        <lightning-combobox
+                            label="Grammage (g)"
+                            data-field="grammage"
+                            value={filters.grammage}
+                            options={grammageOptions}
+                            placeholder="All"
+                            onchange={handleFilterChange}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="filter-card__field">
+                        <lightning-combobox
+                            label="MRP"
+                            data-field="mrpFilter"
+                            value={filters.mrpFilter}
+                            options={mrpOptions}
+                            placeholder="All"
+                            onchange={handleFilterChange}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="filter-card__field">
+                        <lightning-input
+                            type="search"
+                            label="Search SKU"
+                            placeholder="Name / SKU Code"
+                            onchange={handleSearchChange}>
+                        </lightning-input>
+                    </div>
+                </div>
+                <div class="filter-card__actions">
+                    <lightning-button label="Clear Filters" onclick={handleClearFilters}></lightning-button>
+                    <lightning-button label="Select All Visible" onclick={handleSelectAllVisible}></lightning-button>
+                    <lightning-button label="Clear Selection" onclick={handleClearSelection}></lightning-button>
+                    <div class="view-toggle">
+                        <button class={allViewClass} data-view="all" onclick={handleViewToggle}>All</button>
+                        <button class={selectedViewClass} data-view="selected" onclick={handleViewToggle}>Selected ({selectedCount})</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Table card -->
+        <template if:true={hasChannel}>
+            <div class="card table-card">
+                <div class="table-scroll">
+                    <template if:true={isLoading}>
+                        <div class="table-loading">
+                            <lightning-spinner alternative-text="Loading SKUs" size="small"></lightning-spinner>
+                        </div>
+                    </template>
+                    <table class="builder-table">
+                        <thead>
+                            <tr>
+                                <th class="col-check">
+                                    <input type="checkbox"
+                                           checked={isAllVisibleSelected}
+                                           onchange={handleSelectAll}/>
+                                </th>
+                                <th class="col-sno">S.No.</th>
+                                <th>SKU Code</th>
+                                <th>Product Name</th>
+                                <th>Category</th>
+                                <th>Group</th>
+                                <th>Sub Group</th>
+                                <th>Variant</th>
+                                <th>Grammage (g)</th>
+                                <th>MRP</th>
+                                <th class="col-flag">!</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={rowsForDisplay} for:item="row">
+                                <tr key={row.id} class={row.rowClass}>
+                                    <td class="col-check">
+                                        <input type="checkbox"
+                                               data-id={row.id}
+                                               checked={row.isSelected}
+                                               onchange={handleRowCheckbox}/>
+                                    </td>
+                                    <td class="col-sno">{row.sNo}</td>
+                                    <td>{row.skuCode}</td>
+                                    <td>{row.name}</td>
+                                    <td>{row.category}</td>
+                                    <td>{row.productGroup}</td>
+                                    <td>{row.productSubGroup}</td>
+                                    <td>{row.varient}</td>
+                                    <td>{row.netWeight}</td>
+                                    <td>{row.mrp}</td>
+                                    <td class="col-flag">
+                                        <template if:true={row.hasConflict}>
+                                            <lightning-icon
+                                                icon-name="utility:warning"
+                                                alternative-text="Conflict"
+                                                size="x-small"
+                                                title={row.conflictGroup}>
+                                            </lightning-icon>
+                                        </template>
+                                    </td>
+                                </tr>
+                            </template>
+                            <template if:true={isEmpty}>
+                                <tr>
+                                    <td colspan="11" class="table-empty">No SKUs match the current filters.</td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </template>
+    </div>
+</template>

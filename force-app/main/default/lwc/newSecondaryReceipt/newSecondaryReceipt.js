@@ -111,7 +111,7 @@ export default class NewSecondaryReceipt extends LightningElement {
             }
             return;
         }
-        const header = ['S.No.', 'Receipt No', 'Customer Name', 'Payment Date', 'Payment Mode', 'Reference No', 'Remark'];
+        const header = ['S.No.', 'Receipt No', 'Customer Name', 'Payment Date', 'Payment Mode', 'Reference No', 'Remark','Amount'];
         const rows = this.originalReceipts.map(rec => [
             rec.rowIndex,
             rec.receiptNo || '',
@@ -119,7 +119,8 @@ export default class NewSecondaryReceipt extends LightningElement {
             rec.paymentDate || '',
             rec.paymentMode || '',
             rec.referenceNumber || '',
-            rec.remarks || ''
+            rec.remarks || '',
+            rec.amount || ''
         ]);
         let csvContent = 'data:text/csv;charset=utf-8,' + header.join(',') + '\n';
         rows.forEach(row => {

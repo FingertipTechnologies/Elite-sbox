@@ -111,10 +111,6 @@
     </relatedLists>
     <relatedLists>
         <fields>NAME</fields>
-        <relatedList>Scheme__c.Target_Logic__c</relatedList>
-    </relatedLists>
-    <relatedLists>
-        <fields>NAME</fields>
         <relatedList>Incentive__c.Target_Logic__c</relatedList>
     </relatedLists>
     <showEmailCheckbox>false</showEmailCheckbox>

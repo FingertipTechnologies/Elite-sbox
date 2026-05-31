@@ -9,42 +9,6 @@
     <type>Picklist</type>
     <valueSet>
         <restricted>true</restricted>
-        <valueSetDefinition>
-            <sorted>false</sorted>
-            <value>
-                <fullName>Product</fullName>
-                <default>false</default>
-                <label>Product</label>
-            </value>
-            <value>
-                <fullName>Category</fullName>
-                <default>false</default>
-                <label>Category</label>
-            </value>
-            <value>
-                <fullName>Category Sales</fullName>
-                <default>false</default>
-                <isActive>false</isActive>
-                <label>Category Sales</label>
-            </value>
-            <value>
-                <fullName>Collection</fullName>
-                <default>false</default>
-                <isActive>false</isActive>
-                <label>Collection</label>
-            </value>
-            <value>
-                <fullName>Product Sales</fullName>
-                <default>false</default>
-                <isActive>false</isActive>
-                <label>Product Sales</label>
-            </value>
-            <value>
-                <fullName>Sales</fullName>
-                <default>false</default>
-                <isActive>false</isActive>
-                <label>Sales</label>
-            </value>
-        </valueSetDefinition>
+        <valueSetName>Scheme_Type</valueSetName>
     </valueSet>
 </CustomField>

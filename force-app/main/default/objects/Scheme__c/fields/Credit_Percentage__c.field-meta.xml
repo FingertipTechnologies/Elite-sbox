@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Credit_Percentage__c</fullName>
     <externalId>false</externalId>
-    <label>Credit Percentage</label>
+    <label>Not in Use</label>
     <precision>18</precision>
     <required>false</required>
     <scale>0</scale>

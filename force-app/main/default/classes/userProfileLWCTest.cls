@@ -1032,6 +1032,7 @@ public class userProfileLWCTest {
             Bill_Amount__c = 100,
             Qyt__c = 5,
             Qyt_in_Each__c = 10,
+            OwnerId = u.Id,
             Bill_to_party_name__c = 'Party A'
         );
         
@@ -1043,6 +1044,7 @@ public class userProfileLWCTest {
             Bill_Amount__c = 200,
             Qyt__c = 3,
             Qyt_in_Each__c = 6,
+            OwnerId = u.Id,
             Bill_to_party_name__c = 'Party B'
         );
         

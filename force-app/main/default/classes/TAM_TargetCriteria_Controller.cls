@@ -127,7 +127,9 @@ public with sharing class TAM_TargetCriteria_Controller {
                    Filters__c, Filter_Logic__c,
                    Enable_Customer_Targets__c, Active__c, Category__c,
                    Incentive_Weight__c, Prerequisite_Criteria__c,
-                   Prerequisite_Criteria__r.Name, Prerequisite_Min_Percent__c
+                   Prerequisite_Criteria__r.Name, Prerequisite_Min_Percent__c,
+                   Distinct_Field__c, Numerator_Field__c, Denominator_Field__c,
+                   Use_Attendance_Divisor__c, Secondary_Source_Objects__c
             FROM Target_Criteria__c
             WHERE Id = :criteriaId
         ];
@@ -250,42 +252,35 @@ public with sharing class TAM_TargetCriteria_Controller {
         Target_Criteria__c crit = getCriteria(criteriaId);
         Map<String, Object> result = new Map<String, Object>();
 
-        String whereFilters = TAM_FilterEngine_Service.buildWhereClause(
-            crit.Filters__c, crit.Filter_Logic__c
-        );
-
-        String agg = (crit.Operator__c == 'COUNT')
-            ? 'COUNT(Id)'
-            : crit.Operator__c + '(' + crit.Field__c + ')';
-
-        // Build date range for current month
         Date startDate = Date.today().toStartOfMonth();
         Date endDate = startDate.addMonths(1).addDays(-1);
+        result.put('period', startDate.format() + ' to ' + endDate.format());
+        result.put('operator', crit.Operator__c);
 
-        List<String> whereSegments = new List<String>();
-        whereSegments.add(crit.Date_Field__c + ' >= :startDate');
-        whereSegments.add(crit.Date_Field__c + ' <= :endDate');
-        if (!String.isBlank(whereFilters)) {
-            whereSegments.add(whereFilters);
+        // Focus-Pack operators read the pack from the Secondary Target, so they
+        // cannot be previewed from the criteria alone.
+        if (crit.Operator__c == 'FOCUS_PACK_REVENUE' || crit.Operator__c == 'FOCUS_PACK_ECO') {
+            result.put('success', true);
+            result.put('data', new List<Map<String, Object>>());
+            result.put('rowCount', 0);
+            result.put('note', 'Focus Pack operators compute from the Focus Pack on each Secondary Target. Run the achievement batch to see values.');
+            return result;
         }
 
-        String soql = 'SELECT ' + crit.User_Field__c + ', ' + agg + ' val' +
-            ' FROM ' + crit.Object__c +
-            ' WHERE ' + String.join(whereSegments, ' AND ') +
-            ' GROUP BY ' + crit.User_Field__c +
-            ' LIMIT 5';
-
-        result.put('query', soql);
-        result.put('period', startDate.format() + ' to ' + endDate.format());
-
         try {
-            List<AggregateResult> rows = Database.query(soql);
+            Set<Id> userIds = discoverPreviewUsers(crit, startDate, endDate);
+            Map<Id, Integer> workingDays = TAM_AttendanceService.getWorkingDays(userIds, startDate, endDate);
+            Map<Id, Decimal> perUser = TAM_CalculationEngine_Service.computePerUser(
+                crit, userIds, startDate, endDate, workingDays
+            );
+
             List<Map<String, Object>> data = new List<Map<String, Object>>();
-            for (AggregateResult ar : rows) {
+            for (Id uid : perUser.keySet()) {
                 Map<String, Object> row = new Map<String, Object>();
-                row.put('userId', ar.get(crit.User_Field__c));
-                row.put('value', ar.get('val'));
+                row.put('userId', uid);
+                row.put('value', perUser.get(uid));
                 data.add(row);
+                if (data.size() >= 5) break;
             }
             result.put('data', data);
             result.put('rowCount', data.size());
@@ -298,6 +293,30 @@ public with sharing class TAM_TargetCriteria_Controller {
         }
 
         return result;
+    }
+
+    // Find up to 50 candidate users from the criteria's source object for the period,
+    // so previews can run the engine without persisted Secondary Targets.
+    private static Set<Id> discoverPreviewUsers(Target_Criteria__c crit, Date startDate, Date endDate) {
+        Set<Id> userIds = new Set<Id>();
+        // Raw rows (no GROUP BY) so a formula User Field still works.
+        String soql = 'SELECT ' + crit.User_Field__c +
+            ' FROM ' + crit.Object__c +
+            ' WHERE ' + crit.Date_Field__c + ' >= :startDate' +
+            ' AND ' + crit.Date_Field__c + ' <= :endDate' +
+            ' AND ' + crit.User_Field__c + ' != NULL' +
+            ' LIMIT 2000';
+        for (SObject row : Database.query(soql)) {
+            Object raw = row.get(crit.User_Field__c);
+            if (raw == null) continue;
+            try {
+                userIds.add(Id.valueOf(String.valueOf(raw)));
+            } catch (Exception ignored) {
+                // skip values that are not valid Ids
+            }
+            if (userIds.size() >= 50) break;
+        }
+        return userIds;
     }
 
     static Boolean isSystemObject(String apiName) {

@@ -10,10 +10,10 @@
         var msg = event.getParam("message");
         if(msg == 'close'){
             let recordId = component.get('v.recordId');
-            let navEvt = recordId ? 
-                $A.get("e.force:navigateToSObject") : 
+            let navEvt = recordId ?
+                $A.get("e.force:navigateToSObject") :
             $A.get("e.force:navigateToList");
-            
+
             navEvt.setParams(recordId ? {
                 "recordId": recordId,
                 "slideDevName": "related"
@@ -22,7 +22,7 @@
                 "listViewName": null,
                 "scope": "Scheme__c"
             });
-            
+
             navEvt.fire();
         }
         else if(msg == 'Done'){
@@ -35,4 +35,34 @@
             navEvt.fire();
         }
     },
+    onWizardComplete:function(component, event, helper) {
+        const savedId = event.getParam('recordId');
+        if (savedId) {
+            const navEvt = $A.get("e.force:navigateToSObject");
+            navEvt.setParams({
+                "recordId": savedId,
+                "slideDevName": "related"
+            });
+            navEvt.fire();
+        }
+    },
+    onWizardCancel:function(component, event, helper) {
+        const recordId = component.get('v.recordId');
+        if (recordId) {
+            const navEvt = $A.get("e.force:navigateToSObject");
+            navEvt.setParams({
+                "recordId": recordId,
+                "slideDevName": "related"
+            });
+            navEvt.fire();
+        } else {
+            const navEvt = $A.get("e.force:navigateToList");
+            navEvt.setParams({
+                "listViewId": null,
+                "listViewName": null,
+                "scope": "Scheme__c"
+            });
+            navEvt.fire();
+        }
+    }
 })

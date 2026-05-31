@@ -1708,10 +1708,7 @@ public with sharing class userProfileLWC {
             SELECT Id, Name, Store__c,Bill_Date__c,Bill_Amount__c,Bill_to_Party__c,Bill_to_party_name__c,
             Bill_Number__c,	SAP_Order_Id__c,Order__c,Ship_to_party_name__c,Bill_to_party_GSTIN__c,Order__r.Name,
             Qyt_in_Each__c,	Qyt__c,Invoice__r.Name,Invoice__c
-            FROM Invoice_item__c WHERE (
-                (Order__c != null AND Order__r.OwnerId = :ids)
-                OR (Order__c = null AND Invoice__r.OwnerId = :ids)
-            )
+            FROM Invoice_item__c WHERE OwnerId = :ids
             AND Bill_Date__c >= :frmDate AND Bill_Date__c <= :toDate AND Invoice__c != null
         ];  
         

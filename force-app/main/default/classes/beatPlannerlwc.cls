@@ -3549,7 +3549,8 @@ return getTaskData(objectId);
         
         if (!channelSet.isEmpty()) {
             return channelSet;
-        } else {
+        }
+        else {
             List<Product_Mapping__c> secondaryProductMappings = [
                 SELECT Chanel__c, Primary_Customer__c 
                 FROM Product_Mapping__c 
@@ -3577,6 +3578,7 @@ return getTaskData(objectId);
             if (!channelSet.isEmpty()) {
                 return channelSet;
             } else {
+                
                 channelSet = salesChannelList;
                 return channelSet;
             }

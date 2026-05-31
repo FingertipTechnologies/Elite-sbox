@@ -1,0 +1,59 @@
+<template>
+    <lightning-card title="Secondary PBIS Console" icon-name="standard:reward">
+        <lightning-button slot="actions" label="Refresh" icon-name="utility:refresh"
+            onclick={handleRefresh} class="slds-m-right_x-small"></lightning-button>
+        <lightning-button slot="actions" label="Run PBIS for this Month" icon-name="utility:play"
+            variant="brand" onclick={handleRun}></lightning-button>
+
+        <div class="slds-p-horizontal_medium">
+            <div class="slds-grid slds-gutters slds-grid_vertical-align-end slds-m-bottom_small slds-wrap">
+                <div class="slds-col slds-size_1-of-4">
+                    <lightning-input type="number" label="Year" value={year}
+                        onchange={handleYear}></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-4">
+                    <lightning-combobox label="Month" value={month}
+                        options={monthOptions} onchange={handleMonth}></lightning-combobox>
+                </div>
+                <div class="slds-col slds-size_1-of-2 slds-text-align_right slds-p-bottom_x-small">
+                    <span class="slds-text-heading_small">Period: {periodLabel}</span>
+                </div>
+            </div>
+
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Working" size="small"></lightning-spinner>
+            </template>
+
+            <template if:true={hasTotals}>
+                <div class="slds-box slds-box_x-small slds-m-bottom_x-small slds-text-align_right">
+                    <span class="slds-text-title">Grand Total</span>
+                    <strong class="slds-m-left_x-small">{grandTotal}</strong>
+                </div>
+                <lightning-datatable key-field="executiveId" data={totals} columns={totalColumns}
+                    hide-checkbox-column onrowaction={handleTotalsAction}></lightning-datatable>
+            </template>
+            <template if:false={hasTotals}>
+                <div class="slds-p-around_large slds-text-align_center">
+                    <p class="slds-text-body_regular">
+                        No incentive rows for {periodLabel} yet. Click "Run PBIS for this Month" to compute.
+                    </p>
+                </div>
+            </template>
+
+            <template if:true={showLines}>
+                <div class="slds-m-top_medium">
+                    <h2 class="slds-text-heading_small slds-m-bottom_x-small">
+                        Breakdown — {selectedUserName}
+                    </h2>
+                    <template if:true={hasLines}>
+                        <lightning-datatable key-field="Id" data={lines} columns={lineColumns}
+                            hide-checkbox-column></lightning-datatable>
+                    </template>
+                    <template if:false={hasLines}>
+                        <p class="slds-text-body_regular slds-text-color_weak">No matched slabs for this user.</p>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

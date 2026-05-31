@@ -42,7 +42,11 @@ public with sharing class TAM_FieldMetadata_Service {
             results.add(info);
         }
 
-        // Add common relationship fields (parent.field) for Reference/Lookup fields
+        // Add parent-relationship fields (e.g. Order__r.Account__c) so admins can
+        // pick fields that live on the parent record without typing dot paths.
+        Set<String> commonFieldsLower = new Set<String>{
+            'name', 'email', 'phone', 'title', 'department', 'city', 'state', 'country'
+        };
         for (String name : fields.keySet()) {
             Schema.DescribeFieldResult fd = fields.get(name).getDescribe();
             if (fd.getType() != Schema.DisplayType.Reference) continue;
@@ -54,29 +58,37 @@ public with sharing class TAM_FieldMetadata_Service {
             String relationName = fd.getRelationshipName();
             if (String.isBlank(relationName)) continue;
 
-            // Add key parent fields: Name, Id, and a few common ones
             Map<String, Schema.SObjectField> parentFields = parentDesc.fields.getMap();
-            List<String> commonFields = new List<String>{ 'Name', 'Email', 'Phone', 'Title', 'Department', 'City', 'State', 'Country' };
+            for (String pname : parentFields.keySet()) {
+                Schema.DescribeFieldResult pfd = parentFields.get(pname).getDescribe();
+                Schema.DisplayType pt = pfd.getType();
+                Boolean include = commonFieldsLower.contains(pname.toLowerCase())
+                    || pt == Schema.DisplayType.Reference
+                    || pt == Schema.DisplayType.Picklist
+                    || pt == Schema.DisplayType.MultiPicklist
+                    || pt == Schema.DisplayType.Date
+                    || pt == Schema.DisplayType.DateTime;
+                if (!include) continue;
 
-            for (String cf : commonFields) {
-                String cfLower = cf.toLowerCase();
-                if (!parentFields.containsKey(cfLower)) continue;
-
-                Schema.DescribeFieldResult pfd = parentFields.get(cfLower).getDescribe();
                 FieldInfo info = new FieldInfo();
                 info.apiName = relationName + '.' + pfd.getName();
                 info.label = parentDesc.getLabel() + ' > ' + pfd.getLabel();
                 info.type = getFieldType(pfd);
                 info.isUserField = false;
 
-                if (pfd.getType() == Schema.DisplayType.Picklist ||
-                    pfd.getType() == Schema.DisplayType.MultiPicklist) {
+                if (pt == Schema.DisplayType.Picklist || pt == Schema.DisplayType.MultiPicklist) {
                     info.picklistValues = new List<String>();
                     for (Schema.PicklistEntry p : pfd.getPicklistValues()) {
                         info.picklistValues.add(p.getValue());
                     }
                 }
-
+                if (pt == Schema.DisplayType.Reference) {
+                    for (Schema.SObjectType r : pfd.getReferenceTo()) {
+                        if (r != null && r.getDescribe().getName().equalsIgnoreCase('User')) {
+                            info.isUserField = true;
+                        }
+                    }
+                }
                 results.add(info);
             }
         }

@@ -288,4 +288,133 @@ public class InvoiceItemTriggerHandlerTest {
         insert inv;
         Test.stopTest();
     }
+
+    // Item with linked Order -> owner taken from the Order owner.
+    @isTest
+    static void testInvoiceItemOwnerFromOrder() {
+        Account acc = [SELECT Id, SAP_Customer_Code__c FROM Account WHERE SAP_Customer_Code__c = '1122' LIMIT 1];
+        Invoice__c inv = [SELECT Id, Invoice_No__c FROM Invoice__c WHERE Invoice_No__c = 'INV-EXISTING' LIMIT 1];
+
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        User orderOwner = new User(
+            FirstName = 'Order', LastName = 'Owner', Email = 'orderowner@test.com',
+            Username = 'orderowner' + System.currentTimeMillis() + '@test.com',
+            Alias = 'oo1', Employee_Code__c = 'OOHC01', ProfileId = p.Id,
+            TimeZoneSidKey = 'Asia/Kolkata', LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'en_US', IsActive = true
+        );
+        insert orderOwner;
+
+        Order__c order = new Order__c(
+            Order_Type__c = 'Primary Order',
+            Account__c = acc.Id,
+            Order_Fulfillment_Status__c = 'Not Fulfilled',
+            Order_Date__c = Date.today(),
+            OwnerId = orderOwner.Id
+        );
+        insert order;
+
+        Test.startTest();
+        Invoice_Item__c item = new Invoice_Item__c(
+            Bill_Number__c = inv.Invoice_No__c,
+            Invoice__c = inv.Id,
+            Bill_to_Party__c = acc.SAP_Customer_Code__c,
+            Order__c = order.Id,
+            Qyt_in_Each__c = 5
+        );
+        insert item;
+        Test.stopTest();
+
+        Invoice_Item__c result = [SELECT OwnerId FROM Invoice_Item__c WHERE Id = :item.Id];
+        System.assertEquals(orderOwner.Id, result.OwnerId, 'Item owner should be the linked Order owner');
+    }
+
+    // Item without an Order -> owner taken from the bottom Product Mapping executive.
+    @isTest
+    static void testInvoiceItemOwnerFromProductMapping() {
+        Account acc = [SELECT Id, SAP_Customer_Code__c FROM Account WHERE SAP_Customer_Code__c = '1133' LIMIT 1];
+        Area__c tr = [SELECT Id FROM Area__c WHERE Name = 'test11121' LIMIT 1];
+
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        User execLow = new User(
+            FirstName = 'ExecLow', LastName = 'User', Email = 'execlow@test.com',
+            Username = 'execlow' + System.currentTimeMillis() + '@test.com',
+            Alias = 'el1', Employee_Code__c = 'ELHC01', ProfileId = p.Id,
+            TimeZoneSidKey = 'Asia/Kolkata', LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'en_US', IsActive = true
+        );
+        User execHigh = new User(
+            FirstName = 'ExecHigh', LastName = 'User', Email = 'exechigh@test.com',
+            Username = 'exechigh' + System.currentTimeMillis() + '@test.com',
+            Alias = 'eh1', Employee_Code__c = 'EHHC01', ProfileId = p.Id,
+            TimeZoneSidKey = 'Asia/Kolkata', LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'en_US', IsActive = true
+        );
+        insert new List<User>{execLow, execHigh};
+
+        // Two mappings for the same customer + plant pair to exercise lowest-hierarchy selection.
+        Product_Mapping__c pmLow = new Product_Mapping__c(
+            Customer__c = acc.Id, Exectuive__c = execLow.Id,
+            Area__c = tr.Id, Chanel__c = 'CPD',
+            Parent_Depot__c = '1400', Child_Depot__c = '1480'
+        );
+        Product_Mapping__c pmHigh = new Product_Mapping__c(
+            Customer__c = acc.Id, Exectuive__c = execHigh.Id,
+            Area__c = tr.Id, Chanel__c = 'CPD',
+            Parent_Depot__c = '1400', Child_Depot__c = '1480'
+        );
+        insert new List<Product_Mapping__c>{pmLow, pmHigh};
+
+        // Dedicated invoice whose SAP code is the customer code so the item Bill_To_Party__c resolves to '1133'.
+        Invoice__c inv = new Invoice__c(
+            Invoice_No__c = 'INV-ITEM-PM',
+            Store__c = acc.Id,
+            Customer_SAP_Code__c = '1133',
+            Delivery_Plant__c = '1480',
+            Status__c = 'Raised',
+            Customer_Name__c = 'PM Customer'
+        );
+        insert inv;
+
+        Test.startTest();
+        Invoice_Item__c item = new Invoice_Item__c(
+            Bill_Number__c = inv.Invoice_No__c,
+            Invoice__c = inv.Id,
+            Bill_to_Party__c = '1133',
+            Plant__c = '1480',
+            Qyt_in_Each__c = 5
+        );
+        insert item;
+        Test.stopTest();
+
+        Invoice_Item__c result = [SELECT OwnerId FROM Invoice_Item__c WHERE Id = :item.Id];
+        System.assert(result.OwnerId == execLow.Id || result.OwnerId == execHigh.Id,
+            'Item owner should come from a matching Product Mapping executive');
+    }
+
+    // Invoice header is always owned by a System Administrator.
+    @isTest
+    static void testInvoiceHeaderOwnerIsAdmin() {
+        Account acc = [SELECT Id FROM Account WHERE SAP_Customer_Code__c = '1122' LIMIT 1];
+        User admin = [
+            SELECT Id FROM User
+            WHERE Profile.Name = 'System Administrator' AND IsActive = true
+            ORDER BY CreatedDate ASC LIMIT 1
+        ];
+
+        Test.startTest();
+        Invoice__c inv = new Invoice__c(
+            Invoice_No__c = 'INV-ADMIN-OWN',
+            Store__c = acc.Id,
+            Customer_SAP_Code__c = '1122',
+            Delivery_Plant__c = '1480',
+            Status__c = 'Raised',
+            Customer_Name__c = 'Admin Owned'
+        );
+        insert inv;
+        Test.stopTest();
+
+        Invoice__c result = [SELECT OwnerId FROM Invoice__c WHERE Invoice_No__c = 'INV-ADMIN-OWN'];
+        System.assertEquals(admin.Id, result.OwnerId, 'Invoice header should be owned by a System Administrator');
+    }
 }
