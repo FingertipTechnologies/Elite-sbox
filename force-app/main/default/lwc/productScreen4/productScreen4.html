@@ -230,6 +230,15 @@
                                                                         <span class="kv-row__label">Valid</span>
                                                                         <span class="kv-row__value">{cs.validLabel}</span>
                                                                     </div>
+                                                                    <template if:true={cs.productGroupName}>
+                                                                        <div class="coverage-scheme-card__group">Group: {cs.productGroupName}</div>
+                                                                        <template for:each={cs.products} for:item="p">
+                                                                            <div key={p.id} class="coverage-scheme-product">
+                                                                                <span class="coverage-scheme-product__name">{p.name}</span>
+                                                                                <span class="coverage-scheme-product__sku">{p.sku}</span>
+                                                                            </div>
+                                                                        </template>
+                                                                    </template>
                                                                 </div>
                                                             </div>
                                                         </template>
