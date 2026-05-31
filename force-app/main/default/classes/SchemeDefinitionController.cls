@@ -565,27 +565,40 @@ public without sharing class SchemeDefinitionController {
             if (schemeType == TYPE_FREE_QTY) {
                 if (d.qtyMin == null) throw new AuraHandledException(label + ': Buy Qty is required.');
                 if (d.freeQty == null) throw new AuraHandledException(label + ': Free Qty is required.');
-                if (d.qtyMax != null && d.qtyMax < d.qtyMin) {
-                    throw new AuraHandledException(label + ': Max Qty must be >= Buy Qty.');
+                if (d.qtyMin <= 0) throw new AuraHandledException(label + ': Min Qty must be greater than 0.');
+                if (d.freeQty <= 0) throw new AuraHandledException(label + ': Free Qty must be greater than 0.');
+                if (d.qtyMax != null) {
+                    if (d.qtyMax <= 0) throw new AuraHandledException(label + ': Max Qty must be greater than 0.');
+                    if (d.qtyMax < d.qtyMin) throw new AuraHandledException(label + ': Max Qty must be >= Buy Qty.');
                 }
             } else if (schemeType == TYPE_QPS) {
                 if (d.qtyMin == null) throw new AuraHandledException(label + ': Qualifying Cases is required.');
                 if (d.benefitPerEa == null) throw new AuraHandledException(label + ': Benefit per Case is required.');
-                if (d.qtyMax != null && d.qtyMax < d.qtyMin) {
-                    throw new AuraHandledException(label + ': Max Qty must be >= Min Qty.');
+                if (d.qtyMin <= 0) throw new AuraHandledException(label + ': Min Qty must be greater than 0.');
+                if (d.benefitPerEa <= 0) throw new AuraHandledException(label + ': Benefit / EA must be greater than 0.');
+                if (d.qtyMax != null) {
+                    if (d.qtyMax <= 0) throw new AuraHandledException(label + ': Max Qty must be greater than 0.');
+                    if (d.qtyMax < d.qtyMin) throw new AuraHandledException(label + ': Max Qty must be >= Min Qty.');
                 }
             } else if (schemeType == TYPE_FOC_GIVEAWAY) {
                 if (d.qtyMin == null) throw new AuraHandledException(label + ': Min Qualifying Qty is required.');
                 if (d.focProductId == null) throw new AuraHandledException(label + ': FOC Product is required.');
                 if (d.freeQty == null) throw new AuraHandledException(label + ': Free Qty is required.');
-                if (d.qtyMax != null && d.qtyMax < d.qtyMin) {
-                    throw new AuraHandledException(label + ': Max Qty must be >= Min Qty.');
+                if (d.qtyMin <= 0) throw new AuraHandledException(label + ': Min Qty must be greater than 0.');
+                if (d.freeQty <= 0) throw new AuraHandledException(label + ': Free Qty must be greater than 0.');
+                if (d.qtyMax != null) {
+                    if (d.qtyMax <= 0) throw new AuraHandledException(label + ': Max Qty must be greater than 0.');
+                    if (d.qtyMax < d.qtyMin) throw new AuraHandledException(label + ': Max Qty must be >= Min Qty.');
                 }
             } else if (schemeType == TYPE_ORDER_VALUE || schemeType == TYPE_CATEGORY) {
                 if (d.valueMin == null) throw new AuraHandledException(label + ': Slab From is required.');
                 if (d.benefitPercent == null) throw new AuraHandledException(label + ': Discount % is required.');
-                if (d.valueMax != null && d.valueMax < d.valueMin) {
-                    throw new AuraHandledException(label + ': Slab To must be >= Slab From.');
+                if (d.valueMin <= 0) throw new AuraHandledException(label + ': Min Value must be greater than 0.');
+                if (d.benefitPercent <= 0) throw new AuraHandledException(label + ': Discount % must be greater than 0.');
+                if (d.benefitPercent > 100) throw new AuraHandledException(label + ': Discount % cannot exceed 100.');
+                if (d.valueMax != null) {
+                    if (d.valueMax <= 0) throw new AuraHandledException(label + ': Max Value must be greater than 0.');
+                    if (d.valueMax < d.valueMin) throw new AuraHandledException(label + ': Slab To must be >= Slab From.');
                 }
             } else {
                 throw new AuraHandledException('Unsupported scheme type: ' + schemeType);
@@ -598,6 +611,9 @@ public without sharing class SchemeDefinitionController {
             }
         }
 
+        assertSlabsAscending(schemeType, slabs);
+        assertBenefitsIncrease(schemeType, slabs);
+
         if (schemeType == TYPE_FREE_QTY || schemeType == TYPE_QPS || schemeType == TYPE_FOC_GIVEAWAY) {
             assertAtMostOneOpenTopQty(slabs);
             assertUniqueQtyMin(slabs);
@@ -606,6 +622,57 @@ public without sharing class SchemeDefinitionController {
             assertAtMostOneOpenTopValue(slabs);
             assertUniqueValueMin(slabs);
             assertNoValueOverlap(slabs);
+        }
+    }
+
+    private static Boolean isQtyType(String t) {
+        return t == TYPE_FREE_QTY || t == TYPE_QPS || t == TYPE_FOC_GIVEAWAY;
+    }
+    private static Boolean isValueType(String t) {
+        return t == TYPE_ORDER_VALUE || t == TYPE_CATEGORY;
+    }
+    private static Decimal slabMin(SlabDto d, String t) {
+        return isQtyType(t) ? d.qtyMin : d.valueMin;
+    }
+    private static Decimal slabBenefit(SlabDto d, String t) {
+        if (t == TYPE_FREE_QTY || t == TYPE_FOC_GIVEAWAY) return d.freeQty;
+        if (t == TYPE_QPS) return d.benefitPerEa;
+        return d.benefitPercent;
+    }
+    private static String benefitLabelFor(String t) {
+        if (t == TYPE_FREE_QTY || t == TYPE_FOC_GIVEAWAY) return 'Free Qty';
+        if (t == TYPE_QPS) return 'Benefit / EA';
+        return 'Discount %';
+    }
+    private static String minLabelFor(String t) {
+        return isQtyType(t) ? 'Min Qty' : 'Min Value';
+    }
+
+    private static void assertSlabsAscending(String schemeType, List<SlabDto> slabs) {
+        for (Integer i = 1; i < slabs.size(); i++) {
+            Decimal prev = slabMin(slabs[i - 1], schemeType);
+            Decimal cur  = slabMin(slabs[i], schemeType);
+            if (prev == null || cur == null) continue;
+            if (cur <= prev) {
+                throw new AuraHandledException(
+                    'Slab ' + (i + 1) + '\'s ' + minLabelFor(schemeType) + ' (' + cur +
+                    ') must be greater than Slab ' + i + '\'s ' + minLabelFor(schemeType) + ' (' + prev +
+                    '). Enter slabs in ascending order.');
+            }
+        }
+    }
+
+    private static void assertBenefitsIncrease(String schemeType, List<SlabDto> slabs) {
+        for (Integer i = 1; i < slabs.size(); i++) {
+            Decimal prev = slabBenefit(slabs[i - 1], schemeType);
+            Decimal cur  = slabBenefit(slabs[i], schemeType);
+            if (prev == null || cur == null) continue;
+            if (cur <= prev) {
+                throw new AuraHandledException(
+                    'Slab ' + (i + 1) + '\'s ' + benefitLabelFor(schemeType) + ' (' + cur +
+                    ') must be greater than Slab ' + i + '\'s ' + benefitLabelFor(schemeType) + ' (' + prev +
+                    '). Higher slabs should give a better deal.');
+            }
         }
     }
 
