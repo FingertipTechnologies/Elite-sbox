@@ -312,7 +312,6 @@
                                         label="Search">
                                     </lightning-input>
                                 </div>
-                                <h3 class="coverage-schemes__title">Running Schemes for this Account</h3>
                                 <template for:each={displayCoverageSchemes} for:item="cs">
                                     <div key={cs.id} class="coverage-scheme-card">
                                         <div class="coverage-scheme-card__head">
@@ -377,11 +376,6 @@
                         <template lwc:if={isSecondaryAccount}>
                             <template lwc:if={schemeOffer}>
 
-                                <div class="scheme-search-container">
-                                    <lightning-input type="search" placeholder="Search Scheme or SKU..."
-                                        onchange={onSchemeSearch} class="fieldWidth" disabled={isFieldsDisabled}>
-                                    </lightning-input>
-                                </div>
                                 <div class="scheme-container">
                                     <template for:each={schemeOffer} for:item="scheme">
                                         <div key={scheme.id} class="scheme-card">
