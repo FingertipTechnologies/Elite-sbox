@@ -255,78 +255,61 @@ export default class SchemeDefinitionWizard extends LightningElement {
         return true;
     }
 
-    get areSlabsValid() {
-        if (!this.slabs.length) return false;
+    get slabsError() {
+        if (!this.slabs.length) return 'Add at least one slab row.';
         for (const s of this.slabs) {
             if (this.isFreeQty) {
-                if (s.qtyMin == null || s.qtyMin === '' || s.freeQty == null || s.freeQty === '') return false;
+                if (s.qtyMin == null || s.qtyMin === '' || s.freeQty == null || s.freeQty === '') return 'Fill every slab row to continue.';
             } else if (this.isQps) {
-                if (s.qtyMin == null || s.qtyMin === '' || s.benefitPerEa == null || s.benefitPerEa === '') return false;
+                if (s.qtyMin == null || s.qtyMin === '' || s.benefitPerEa == null || s.benefitPerEa === '') return 'Fill every slab row to continue.';
             } else if (this.isFoc) {
-                if (s.qtyMin == null || s.qtyMin === '' || s.freeQty == null || s.freeQty === '') return false;
-                if (!s.focProductId) return false;
+                if (s.qtyMin == null || s.qtyMin === '' || s.freeQty == null || s.freeQty === '') return 'Fill every slab row to continue.';
+                if (!s.focProductId) return 'Pick the FOC product for every slab.';
             } else if (this.isOrderValue || this.isCategoryValue) {
-                if (s.valueMin == null || s.valueMin === '' || s.benefitPercent == null || s.benefitPercent === '') return false;
+                if (s.valueMin == null || s.valueMin === '' || s.benefitPercent == null || s.benefitPercent === '') return 'Fill every slab row to continue.';
             }
         }
         const isQtyType = this.isFreeQty || this.isQps || this.isFoc;
         const isValueType = this.isOrderValue || this.isCategoryValue;
-        if (isQtyType) {
-            let openTops = 0;
-            const seen = new Set();
-            for (const s of this.slabs) {
-                if (s.qtyMax == null || s.qtyMax === '') openTops++;
-                if (s.qtyMin != null && s.qtyMin !== '') {
-                    if (seen.has(Number(s.qtyMin))) return false;
-                    seen.add(Number(s.qtyMin));
-                }
+        const minField  = isQtyType ? 'qtyMin' : 'valueMin';
+        const maxField  = isQtyType ? 'qtyMax' : 'valueMax';
+        const minLabel  = isQtyType ? 'Min Qty' : 'Min Value';
+        const maxLabel  = isQtyType ? 'Max Qty' : 'Max Value';
+        if (!(isQtyType || isValueType)) return null;
+
+        const seen = new Set();
+        let openTops = 0;
+        for (const s of this.slabs) {
+            if (s[maxField] == null || s[maxField] === '') openTops++;
+            if (s[minField] != null && s[minField] !== '') {
+                const n = Number(s[minField]);
+                if (seen.has(n)) return `Duplicate ${minLabel} ${n}.`;
+                seen.add(n);
             }
-            if (openTops > 1) return false;
-        } else if (isValueType) {
-            let openTops = 0;
-            const seen = new Set();
-            for (const s of this.slabs) {
-                if (s.valueMax == null || s.valueMax === '') openTops++;
-                if (s.valueMin != null && s.valueMin !== '') {
-                    if (seen.has(Number(s.valueMin))) return false;
-                    seen.add(Number(s.valueMin));
-                }
-            }
-            if (openTops > 1) return false;
         }
-        return true;
+        if (openTops > 1) return `Only one slab can leave ${maxLabel} blank (the open-top slab).`;
+
+        const sorted = [...this.slabs].sort((a, b) => Number(a[minField]) - Number(b[minField]));
+        for (let i = 0; i < sorted.length - 1; i++) {
+            const currMax = sorted[i][maxField];
+            const nextMin = sorted[i + 1][minField];
+            if (currMax == null || currMax === '') {
+                return `Only the last slab can leave ${maxLabel} blank — ${minLabel} ${sorted[i][minField]} has no ${maxLabel} but is followed by another slab.`;
+            }
+            if (nextMin == null || nextMin === '') continue;
+            if (Number(currMax) >= Number(nextMin)) {
+                return `Slab ranges overlap at ${nextMin}.`;
+            }
+        }
+        return null;
+    }
+
+    get areSlabsValid() {
+        return this.slabsError === null;
     }
 
     get slabsValidationMessage() {
-        if (!this.slabs.length) return 'Add at least one slab row.';
-        const isQtyType = this.isFreeQty || this.isQps || this.isFoc;
-        const isValueType = this.isOrderValue || this.isCategoryValue;
-        if (isQtyType) {
-            let openTops = 0;
-            const seen = new Set();
-            for (const s of this.slabs) {
-                if (s.qtyMax == null || s.qtyMax === '') openTops++;
-                if (s.qtyMin != null && s.qtyMin !== '') {
-                    const n = Number(s.qtyMin);
-                    if (seen.has(n)) return `Duplicate Min Qty ${n}.`;
-                    seen.add(n);
-                }
-            }
-            if (openTops > 1) return 'Only one slab can leave Max Qty blank (the open-top slab).';
-        } else if (isValueType) {
-            let openTops = 0;
-            const seen = new Set();
-            for (const s of this.slabs) {
-                if (s.valueMax == null || s.valueMax === '') openTops++;
-                if (s.valueMin != null && s.valueMin !== '') {
-                    const n = Number(s.valueMin);
-                    if (seen.has(n)) return `Duplicate Min Value ${n}.`;
-                    seen.add(n);
-                }
-            }
-            if (openTops > 1) return 'Only one slab can leave Max Value blank (the open-top slab).';
-        }
-        return 'Fill every slab row to enable Save.';
+        return this.slabsError || 'Fill every slab row to continue.';
     }
 
     get isStep1() { return this.currentStep === 1; }
@@ -741,6 +724,32 @@ export default class SchemeDefinitionWizard extends LightningElement {
         }
     }
 
+    resetWizard() {
+        this.master = {
+            name: '',
+            schemeType: '',
+            salesChannel: '',
+            startDate: '',
+            endDate: '',
+            description: '',
+            isActive: true
+        };
+        this.savedStartDate = '';
+        this.linkage = { productGroupId: '', productGroupName: '', productCategory: '' };
+        this.slabs = [];
+        this.productGroupResults = [];
+        this.focUi = { activeUid: '', term: '', results: [] };
+        this.applicability = {
+            regions:          { applyToAll: false, values: [] },
+            areas:            { applyToAll: false, values: [] },
+            territories:      { applyToAll: false, values: [] },
+            outletCategories: { applyToAll: false, values: [] }
+        };
+        this.applicabilityOptions = { regions: [], areas: [], territories: [], outletCategories: [] };
+        this.savedTerritoryDisplay = {};
+        this.currentStep = 1;
+    }
+
     async handleSave() {
         if (this.isSaveDisabled) return;
         this.isSaving = true;
@@ -780,8 +789,12 @@ export default class SchemeDefinitionWizard extends LightningElement {
                 applicability: payloadApplicability,
                 existingId: this.recordId || null
             });
-            this.toast('Success', this.isEditMode ? 'Scheme updated.' : 'Scheme created.', 'success');
+            const wasEdit = this.isEditMode;
+            this.toast('Success', wasEdit ? 'Scheme updated.' : 'Scheme created.', 'success');
             this.dispatchEvent(new CustomEvent('complete', { detail: { recordId: savedId } }));
+            if (!wasEdit) {
+                this.resetWizard();
+            }
         } catch (error) {
             this.toast('Error', this.reduceError(error), 'error');
         } finally {

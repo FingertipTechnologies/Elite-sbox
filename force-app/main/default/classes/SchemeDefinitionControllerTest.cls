@@ -350,6 +350,25 @@ private class SchemeDefinitionControllerTest {
     }
 
     @isTest
+    static void saveSchemeWithSlabs_rejectsOpenTopInMiddleOfValueSlabs() {
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_ORDER_VALUE, null);
+        SchemeDefinitionController.SlabDto s1 = slab(); s1.valueMin = 10000; s1.valueMax = 20000; s1.benefitPercent = 1;
+        SchemeDefinitionController.SlabDto s2 = slab(); s2.valueMin = 21000; s2.valueMax = null;  s2.benefitPercent = 2;
+        SchemeDefinitionController.SlabDto s3 = slab(); s3.valueMin = 30000; s3.valueMax = 350000; s3.benefitPercent = 3;
+
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            SchemeDefinitionController.saveSchemeWithSlabs(
+                m, new List<SchemeDefinitionController.SlabDto>{ s1, s2, s3 }, null);
+        } catch (AuraHandledException ex) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected open-top-in-middle rejection');
+    }
+
+    @isTest
     static void saveSchemeWithSlabs_rejectsPastStartDateOnInsert() {
         Scheme_Product_Group__c g = makeGroup('PastStart', 'PriceDivision');
         SchemeDefinitionController.MasterDto m = masterFor(TYPE_QPS, g.Id);
