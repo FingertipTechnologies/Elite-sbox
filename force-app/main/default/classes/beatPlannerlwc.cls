@@ -4562,7 +4562,7 @@ return getTaskData(objectId);
 
     private static String slabSentence(String schemeType, Scheme_Slab__c sl) {
         if (schemeType == 'Free Quantity') {
-            String buy = buyQtyClause(sl.Qualifying_Qty_Min__c, sl.Qualifying_Qty_Max__c);
+            String buy = buyThresholdClause(sl.Qualifying_Qty_Min__c, sl.Qualifying_Qty_Max__c);
             if (buy == null || sl.Free_Qty__c == null) return null;
             return '🛒 ' + buy + ' → 🎁 Get ' + decToStr(sl.Free_Qty__c) + ' EA Free';
         } else if (schemeType == 'QPS') {
@@ -4570,7 +4570,7 @@ return getTaskData(objectId);
             if (buy == null || sl.Benefit_Amount_Per_EA__c == null) return null;
             return '🛒 ' + buy + ' → 💰 ₹' + decToStr(sl.Benefit_Amount_Per_EA__c) + ' off per EA';
         } else if (schemeType == 'FOC Giveaway') {
-            String buy = buyQtyClause(sl.Qualifying_Qty_Min__c, sl.Qualifying_Qty_Max__c);
+            String buy = buyThresholdClause(sl.Qualifying_Qty_Min__c, sl.Qualifying_Qty_Max__c);
             if (buy == null || sl.Free_Qty__c == null) return null;
             String focName = (sl.FOC_Product__c != null && sl.FOC_Product__r != null) ? sl.FOC_Product__r.Name : 'free product';
             return '🛒 ' + buy + ' → 🎁 Get ' + decToStr(sl.Free_Qty__c) + ' EA of ' + focName + ' Free';
@@ -4580,6 +4580,12 @@ return getTaskData(objectId);
             return '🛒 ' + order + ' → 💰 ' + decToStr(sl.Benefit_Percent__c) + '% Off';
         }
         return null;
+    }
+
+    private static String buyThresholdClause(Decimal mn, Decimal mx) {
+        if (mn == null) return null;
+        if (mx == null || mn == mx) return 'Buy ' + decToStr(mn) + ' EA';
+        return 'Buy ' + decToStr(mn) + ' to ' + decToStr(mx) + ' EA';
     }
 
     private static String buyQtyClause(Decimal mn, Decimal mx) {
