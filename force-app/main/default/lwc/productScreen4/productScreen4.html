@@ -206,14 +206,30 @@
                                                 <template if:true={item.isSchemeExpanded}>
                                                     <div class="scheme-inline-list">
                                                         <template for:each={item.coveringSchemes} for:item="cs">
-                                                            <div key={cs.id} class="scheme-inline-row">
-                                                                <div class="scheme-inline-row__head">
-                                                                    <strong>{cs.name}</strong>
+                                                            <div key={cs.id} class="coverage-scheme-card coverage-scheme-card--inline">
+                                                                <div class="coverage-scheme-card__head">
+                                                                    <strong class="coverage-scheme-card__name">{cs.name}</strong>
                                                                     <span class="scheme-type-pill">{cs.schemeType}</span>
                                                                 </div>
-                                                                <div class="scheme-inline-row__meta">
-                                                                    <span>Channel: {cs.salesChannel}</span>
-                                                                    <span>Valid: {cs.startDate} → {cs.endDate}</span>
+                                                                <div class="coverage-scheme-card__body">
+                                                                    <div class="kv-row">
+                                                                        <span class="kv-row__label">Channel</span>
+                                                                        <span class="kv-row__value">{cs.salesChannel}</span>
+                                                                    </div>
+                                                                    <div class="kv-row">
+                                                                        <span class="kv-row__label">Scheme type</span>
+                                                                        <span class="kv-row__value">{cs.schemeType}</span>
+                                                                    </div>
+                                                                    <template for:each={cs.slabRows} for:item="r" for:index="rIdx">
+                                                                        <div key={rIdx} class="kv-row">
+                                                                            <span class="kv-row__label">{r.label}</span>
+                                                                            <span class="kv-row__value">{r.value}</span>
+                                                                        </div>
+                                                                    </template>
+                                                                    <div class="kv-row">
+                                                                        <span class="kv-row__label">Valid</span>
+                                                                        <span class="kv-row__value">{cs.startDate} → {cs.endDate}</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </template>
@@ -286,30 +302,60 @@
                         <!-- Running schemes applicable to this Account (all types, both Primary and Secondary) -->
                         <template if:true={hasCoverageSchemes}>
                             <div class="coverage-schemes">
+                                <div class="coverage-schemes__search">
+                                    <lightning-input
+                                        type="search"
+                                        placeholder="Search Scheme or SKU..."
+                                        value={coverageSearch}
+                                        onchange={handleCoverageSearch}
+                                        variant="label-hidden"
+                                        label="Search">
+                                    </lightning-input>
+                                </div>
                                 <h3 class="coverage-schemes__title">Running Schemes for this Account</h3>
                                 <template for:each={displayCoverageSchemes} for:item="cs">
                                     <div key={cs.id} class="coverage-scheme-card">
                                         <div class="coverage-scheme-card__head">
+                                            <strong class="coverage-scheme-card__name">{cs.name}</strong>
+                                            <span class="scheme-type-pill">{cs.schemeType}</span>
+                                            <span class="coverage-scheme-card__spacer"></span>
                                             <lightning-button-icon
                                                 icon-name={cs.expandIcon}
                                                 variant="bare"
                                                 size="small"
-                                                alternative-text="Show products"
+                                                alternative-text="Toggle"
                                                 data-scheme-id={cs.id}
                                                 onclick={toggleCoverageScheme}>
                                             </lightning-button-icon>
-                                            <strong>{cs.name}</strong>
-                                            <span class="scheme-type-pill">{cs.schemeType}</span>
-                                            <span class="coverage-scheme-card__dates">{cs.startDate} → {cs.endDate}</span>
                                         </div>
                                         <template if:true={cs.isExpanded}>
                                             <div class="coverage-scheme-card__body">
-                                                <div class="coverage-scheme-card__group">Group: {cs.productGroupName}</div>
-                                                <template for:each={cs.products} for:item="p">
-                                                    <div key={p.id} class="coverage-scheme-product">
-                                                        <span class="coverage-scheme-product__name">{p.name}</span>
-                                                        <span class="coverage-scheme-product__sku">{p.sku}</span>
+                                                <div class="kv-row">
+                                                    <span class="kv-row__label">Channel</span>
+                                                    <span class="kv-row__value">{cs.salesChannel}</span>
+                                                </div>
+                                                <div class="kv-row">
+                                                    <span class="kv-row__label">Scheme type</span>
+                                                    <span class="kv-row__value">{cs.schemeType}</span>
+                                                </div>
+                                                <template for:each={cs.slabRows} for:item="r" for:index="rIdx">
+                                                    <div key={rIdx} class="kv-row">
+                                                        <span class="kv-row__label">{r.label}</span>
+                                                        <span class="kv-row__value">{r.value}</span>
                                                     </div>
+                                                </template>
+                                                <div class="kv-row">
+                                                    <span class="kv-row__label">Valid</span>
+                                                    <span class="kv-row__value">{cs.startDate} → {cs.endDate}</span>
+                                                </div>
+                                                <template if:true={cs.productGroupName}>
+                                                    <div class="coverage-scheme-card__group">Group: {cs.productGroupName}</div>
+                                                    <template for:each={cs.products} for:item="p">
+                                                        <div key={p.id} class="coverage-scheme-product">
+                                                            <span class="coverage-scheme-product__name">{p.name}</span>
+                                                            <span class="coverage-scheme-product__sku">{p.sku}</span>
+                                                        </div>
+                                                    </template>
                                                 </template>
                                             </div>
                                         </template>

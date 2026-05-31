@@ -39,7 +39,8 @@ export default class ProductScreen4 extends LightningElement {
     @track coverageSchemes = [];
     coverageProductSchemeIds = {};
     @track expandedProductIds = [];
-    @track expandedSchemeIds = [];
+    @track collapsedSchemeIds = [];
+    @track coverageSearch = '';
     @track deliveryTo = '';
     @track expectedDeliveryDate = '';
     @track OrderOwnerId = '';
@@ -1400,12 +1401,28 @@ export default class ProductScreen4 extends LightningElement {
     }
 
     get displayCoverageSchemes() {
-        const expanded = new Set(this.expandedSchemeIds);
-        return (this.coverageSchemes || []).map(s => ({
-            ...s,
-            isExpanded: expanded.has(s.id),
-            expandIcon: expanded.has(s.id) ? 'utility:chevrondown' : 'utility:chevronright'
-        }));
+        const collapsed = new Set(this.collapsedSchemeIds);
+        const term = (this.coverageSearch || '').trim().toLowerCase();
+        return (this.coverageSchemes || [])
+            .filter(s => {
+                if (!term) return true;
+                if ((s.name || '').toLowerCase().includes(term)) return true;
+                return (s.products || []).some(p =>
+                    (p.name || '').toLowerCase().includes(term)
+                    || (p.sku || '').toLowerCase().includes(term));
+            })
+            .map(s => {
+                const isExpanded = !collapsed.has(s.id);
+                return {
+                    ...s,
+                    isExpanded,
+                    expandIcon: isExpanded ? 'utility:chevronup' : 'utility:chevrondown'
+                };
+            });
+    }
+
+    handleCoverageSearch(event) {
+        this.coverageSearch = event.target.value || '';
     }
 
     get displaySchemePro() {
@@ -1441,9 +1458,9 @@ export default class ProductScreen4 extends LightningElement {
     toggleCoverageScheme(event) {
         const sid = event.currentTarget.dataset.schemeId;
         if (!sid) return;
-        const next = new Set(this.expandedSchemeIds);
+        const next = new Set(this.collapsedSchemeIds);
         if (next.has(sid)) next.delete(sid); else next.add(sid);
-        this.expandedSchemeIds = Array.from(next);
+        this.collapsedSchemeIds = Array.from(next);
     }
 
     selectScheme(event) {
