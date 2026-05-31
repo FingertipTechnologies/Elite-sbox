@@ -4400,6 +4400,13 @@ return getTaskData(objectId);
         @AuraEnabled public Id productGroupId { get; set; }
         @AuraEnabled public String productGroupName { get; set; }
         @AuraEnabled public List<CoverageProductRef> products { get; set; }
+        @AuraEnabled public List<CoverageSlabRow> slabRows { get; set; }
+    }
+
+    global class CoverageSlabRow {
+        @AuraEnabled public String label { get; set; }
+        @AuraEnabled public String value { get; set; }
+        public CoverageSlabRow(String l, String v) { this.label = l; this.value = v; }
     }
 
     global class CoverageDto {
@@ -4493,6 +4500,23 @@ return getTaskData(objectId);
             productsByGroup.get(it.Scheme_Product_Group__c).add(p);
         }
 
+        Set<Id> matchedSchemeIds = new Set<Id>();
+        for (Scheme__c m : matched) matchedSchemeIds.add(m.Id);
+        Map<Id, List<Scheme_Slab__c>> slabsByScheme = new Map<Id, List<Scheme_Slab__c>>();
+        for (Scheme_Slab__c sl : [
+            SELECT Scheme__c, Slab_Sequence__c, Slab_Type__c,
+                   Qualifying_Qty_Min__c, Qualifying_Qty_Max__c,
+                   Qualifying_Value_Min__c, Qualifying_Value_Max__c,
+                   Free_Qty__c, Benefit_Amount_Per_EA__c, Benefit_Percent__c,
+                   FOC_Product__c, FOC_Product__r.Name
+            FROM Scheme_Slab__c
+            WHERE Scheme__c IN :matchedSchemeIds
+            ORDER BY Slab_Sequence__c ASC NULLS LAST, CreatedDate ASC
+        ]) {
+            if (!slabsByScheme.containsKey(sl.Scheme__c)) slabsByScheme.put(sl.Scheme__c, new List<Scheme_Slab__c>());
+            slabsByScheme.get(sl.Scheme__c).add(sl);
+        }
+
         for (Scheme__c s : matched) {
             CoverageScheme cs = new CoverageScheme();
             cs.id               = s.Id;
@@ -4506,6 +4530,7 @@ return getTaskData(objectId);
             cs.products         = productsByGroup.containsKey(s.Scheme_Product_Group__c)
                                    ? productsByGroup.get(s.Scheme_Product_Group__c)
                                    : new List<CoverageProductRef>();
+            cs.slabRows         = buildSlabRows(s.Scheme_Type__c, slabsByScheme.get(s.Id));
             out.schemes.add(cs);
             for (CoverageProductRef p : cs.products) {
                 if (!out.productSchemeIds.containsKey(p.id)) out.productSchemeIds.put(p.id, new List<Id>());
@@ -4513,5 +4538,60 @@ return getTaskData(objectId);
             }
         }
         return out;
+    }
+
+    private static List<CoverageSlabRow> buildSlabRows(String schemeType, List<Scheme_Slab__c> slabs) {
+        List<CoverageSlabRow> rows = new List<CoverageSlabRow>();
+        if (slabs == null || slabs.isEmpty()) return rows;
+        Integer i = 1;
+        Boolean multi = slabs.size() > 1;
+        for (Scheme_Slab__c sl : slabs) {
+            String prefix = multi ? 'Slab ' + i + ' — ' : '';
+            if (schemeType == 'Free Quantity') {
+                String range = qtyRange(sl.Qualifying_Qty_Min__c, sl.Qualifying_Qty_Max__c);
+                rows.add(new CoverageSlabRow(prefix + 'Min order qty', range + ' EA'));
+                if (sl.Free_Qty__c != null && sl.Qualifying_Qty_Min__c != null) {
+                    rows.add(new CoverageSlabRow(prefix + 'Free qty',
+                        decToStr(sl.Free_Qty__c) + ' EA per ' + decToStr(sl.Qualifying_Qty_Min__c) + ' ordered'));
+                }
+            } else if (schemeType == 'QPS') {
+                String range = qtyRange(sl.Qualifying_Qty_Min__c, sl.Qualifying_Qty_Max__c);
+                rows.add(new CoverageSlabRow(prefix + 'Min order qty', range + ' EA'));
+                if (sl.Benefit_Amount_Per_EA__c != null) {
+                    rows.add(new CoverageSlabRow(prefix + 'Benefit', '₹' + decToStr(sl.Benefit_Amount_Per_EA__c) + ' per EA'));
+                }
+            } else if (schemeType == 'FOC Giveaway') {
+                String range = qtyRange(sl.Qualifying_Qty_Min__c, sl.Qualifying_Qty_Max__c);
+                rows.add(new CoverageSlabRow(prefix + 'Min order qty', range + ' EA'));
+                if (sl.Free_Qty__c != null) {
+                    String focName = (sl.FOC_Product__c != null && sl.FOC_Product__r != null) ? sl.FOC_Product__r.Name : 'free product';
+                    rows.add(new CoverageSlabRow(prefix + 'Free', decToStr(sl.Free_Qty__c) + ' EA of ' + focName));
+                }
+            } else if (schemeType == 'Order Value' || schemeType == 'Category Value') {
+                String range = valueRange(sl.Qualifying_Value_Min__c, sl.Qualifying_Value_Max__c);
+                rows.add(new CoverageSlabRow(prefix + 'Order value', range));
+                if (sl.Benefit_Percent__c != null) {
+                    rows.add(new CoverageSlabRow(prefix + 'Discount', decToStr(sl.Benefit_Percent__c) + '%'));
+                }
+            }
+            i++;
+        }
+        return rows;
+    }
+
+    private static String qtyRange(Decimal mn, Decimal mx) {
+        if (mn == null) return '—';
+        if (mx == null) return decToStr(mn) + '+';
+        return decToStr(mn) + '–' + decToStr(mx);
+    }
+    private static String valueRange(Decimal mn, Decimal mx) {
+        if (mn == null) return '—';
+        if (mx == null) return '₹' + decToStr(mn) + '+';
+        return '₹' + decToStr(mn) + ' – ₹' + decToStr(mx);
+    }
+    private static String decToStr(Decimal d) {
+        if (d == null) return '';
+        if (d == d.setScale(0)) return String.valueOf(d.setScale(0));
+        return String.valueOf(d);
     }
 }

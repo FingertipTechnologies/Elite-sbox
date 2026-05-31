@@ -1858,13 +1858,17 @@ insert tar;
         };
 
         Scheme__c s = new Scheme__c(
-            Name = 'CovScheme', Scheme_Type__c = 'QPS', Sales_Channel__c = 'Cake',
+            Name = 'CovScheme', Scheme_Type__c = 'Free Quantity', Sales_Channel__c = 'Cake',
             Scheme_Start_Date__c = Date.today(), Scheme_End_Date__c = Date.today().addDays(7),
             IsActive__c = true, Scheme_Product_Group__c = g.Id,
             Apply_to_All_Regions__c = true, Apply_to_All_Areas__c = true,
             Apply_to_All_Territories__c = true, Apply_to_All_Outlet_Categories__c = true
         );
         insert s;
+        insert new Scheme_Slab__c(
+            Scheme__c = s.Id, Slab_Sequence__c = 1, Slab_Type__c = 'Free Quantity',
+            Qualifying_Qty_Min__c = 10, Free_Qty__c = 1
+        );
 
         Test.startTest();
         beatPlannerlwc.CoverageDto out = beatPlannerlwc.getSchemeCoverageForAccount(acc.Id);
@@ -1876,6 +1880,8 @@ insert tar;
         System.assert(out.productSchemeIds.containsKey(p1.Id));
         System.assert(out.productSchemeIds.containsKey(p2.Id));
         System.assertEquals(1, out.productSchemeIds.get(p1.Id).size());
+        System.assertNotEquals(null, out.schemes[0].slabRows);
+        System.assert(out.schemes[0].slabRows.size() >= 2, 'expected Min order qty + Free qty rows');
     }
 
     @isTest
