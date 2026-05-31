@@ -655,9 +655,12 @@ public with sharing class SchemeDefinitionController {
         List<SlabDto> sorted = new List<SlabDto>(slabs);
         sorted.sort(new MinQtyComparator());
         for (Integer i = 0; i < sorted.size() - 1; i++) {
+            if (sorted[i].qtyMax == null) {
+                throw new AuraHandledException('Only the last slab can leave Max Qty blank — Min ' + sorted[i].qtyMin + ' has no Max but is followed by another slab.');
+            }
             Decimal currMax = sorted[i].qtyMax;
             Decimal nextMin = sorted[i + 1].qtyMin;
-            if (currMax == null || nextMin == null) continue;
+            if (nextMin == null) continue;
             if (currMax >= nextMin) {
                 throw new AuraHandledException('Slab quantity ranges overlap at ' + nextMin + '.');
             }
@@ -668,9 +671,12 @@ public with sharing class SchemeDefinitionController {
         List<SlabDto> sorted = new List<SlabDto>(slabs);
         sorted.sort(new MinValueComparator());
         for (Integer i = 0; i < sorted.size() - 1; i++) {
+            if (sorted[i].valueMax == null) {
+                throw new AuraHandledException('Only the last slab can leave Max Value blank — Min ' + sorted[i].valueMin + ' has no Max but is followed by another slab.');
+            }
             Decimal currMax = sorted[i].valueMax;
             Decimal nextMin = sorted[i + 1].valueMin;
-            if (currMax == null || nextMin == null) continue;
+            if (nextMin == null) continue;
             if (currMax >= nextMin) {
                 throw new AuraHandledException('Slab value ranges overlap at ' + nextMin + '.');
             }
