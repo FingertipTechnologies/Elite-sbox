@@ -4397,6 +4397,7 @@ return getTaskData(objectId);
         @AuraEnabled public String salesChannel { get; set; }
         @AuraEnabled public Date startDate { get; set; }
         @AuraEnabled public Date endDate { get; set; }
+        @AuraEnabled public String validLabel { get; set; }
         @AuraEnabled public Id productGroupId { get; set; }
         @AuraEnabled public String productGroupName { get; set; }
         @AuraEnabled public List<CoverageProductRef> products { get; set; }
@@ -4525,6 +4526,7 @@ return getTaskData(objectId);
             cs.salesChannel     = s.Sales_Channel__c;
             cs.startDate        = s.Scheme_Start_Date__c;
             cs.endDate          = s.Scheme_End_Date__c;
+            cs.validLabel       = formatDdMmYyyy(s.Scheme_Start_Date__c) + ' to ' + formatDdMmYyyy(s.Scheme_End_Date__c);
             cs.productGroupId   = s.Scheme_Product_Group__c;
             cs.productGroupName = s.Scheme_Product_Group__r == null ? null : s.Scheme_Product_Group__r.Name;
             cs.products         = productsByGroup.containsKey(s.Scheme_Product_Group__c)
@@ -4552,7 +4554,7 @@ return getTaskData(objectId);
                 rows.add(new CoverageSlabRow(prefix + 'Min order qty', range + ' EA'));
                 if (sl.Free_Qty__c != null && sl.Qualifying_Qty_Min__c != null) {
                     rows.add(new CoverageSlabRow(prefix + 'Free qty',
-                        decToStr(sl.Free_Qty__c) + ' EA per ' + decToStr(sl.Qualifying_Qty_Min__c) + ' ordered'));
+                        'Buy ' + decToStr(sl.Qualifying_Qty_Min__c) + ' EA get ' + decToStr(sl.Free_Qty__c) + ' EA free'));
                 }
             } else if (schemeType == 'QPS') {
                 String range = qtyRange(sl.Qualifying_Qty_Min__c, sl.Qualifying_Qty_Max__c);
@@ -4593,5 +4595,11 @@ return getTaskData(objectId);
         if (d == null) return '';
         if (d == d.setScale(0)) return String.valueOf(d.setScale(0));
         return String.valueOf(d);
+    }
+    private static String formatDdMmYyyy(Date d) {
+        if (d == null) return '';
+        String dd = String.valueOf(d.day()).leftPad(2, '0');
+        String mm = String.valueOf(d.month()).leftPad(2, '0');
+        return dd + '-' + mm + '-' + String.valueOf(d.year());
     }
 }
