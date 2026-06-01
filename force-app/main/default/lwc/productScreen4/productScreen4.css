@@ -27,6 +27,10 @@
 .force-height {
     height: 30rem !important;
 }
+.content-loading {
+    min-height: 100vh;
+    min-height: 100dvh;
+}
 .red-icon {
     --sds-c-icon-color-foreground: red;
 }
