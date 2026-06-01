@@ -357,6 +357,7 @@ public without sharing class SchemeDefinitionController {
             throw new AuraHandledException('At least one slab is required.');
         }
         validateLinkage(master);
+        validateActiveDuplicate(master, existingId);
         validateSlabs(master.schemeType, slabs);
         if (applicability != null) {
             validateApplicability(applicability);
@@ -551,6 +552,32 @@ public without sharing class SchemeDefinitionController {
             if (String.isBlank(m.productCategory)) {
                 throw new AuraHandledException('Product Category is required for Category Value schemes.');
             }
+        }
+    }
+
+    private static void validateActiveDuplicate(MasterDto m, Id existingId) {
+        // No two ACTIVE schemes may share Scheme Type + Product Group with
+        // overlapping date ranges.
+        Boolean willBeActive = (m.isActive == null) ? true : m.isActive;
+        if (!willBeActive) return;            // inactive saves never conflict
+        if (m.productGroupId == null) return; // rule applies to product-group schemes
+
+        // Overlap: existing.start <= new.end AND existing.end >= new.start
+        List<Scheme__c> dupes = [
+            SELECT Id, Name, Scheme_Start_Date__c, Scheme_End_Date__c
+            FROM Scheme__c
+            WHERE Scheme_Type__c = :m.schemeType
+              AND Scheme_Product_Group__c = :m.productGroupId
+              AND IsActive__c = true
+              AND Id != :existingId
+              AND Scheme_Start_Date__c <= :m.endDate
+              AND Scheme_End_Date__c   >= :m.startDate
+            LIMIT 1
+        ];
+        if (!dupes.isEmpty()) {
+            throw new AuraHandledException(
+                'An active scheme with the same Scheme Type and Product Group and an overlapping date range already exists ("'
+                + dupes[0].Name + '"). Deactivate it or use non-overlapping dates.');
         }
     }
 
