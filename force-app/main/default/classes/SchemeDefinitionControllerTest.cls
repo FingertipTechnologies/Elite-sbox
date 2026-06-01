@@ -31,6 +31,14 @@ private class SchemeDefinitionControllerTest {
         return g;
     }
 
+    private static String anyProductCategory() {
+        for (Schema.PicklistEntry e :
+                Scheme__c.Scheme_Product_Category__c.getDescribe().getPicklistValues()) {
+            if (e.isActive()) return e.getValue();
+        }
+        return null;
+    }
+
     private static Product__c makeProduct(String name) {
         Product__c p = new Product__c(
             Name = name,
@@ -550,6 +558,84 @@ private class SchemeDefinitionControllerTest {
         Id id2 = SchemeDefinitionController.saveSchemeWithSlabs(m2, new List<SchemeDefinitionController.SlabDto>{ s2 }, id);
         Test.stopTest();
         System.assertEquals(id, id2, 're-saving the same active record should be allowed (self excluded)');
+    }
+
+    @isTest
+    static void validateActiveDuplicate_blocksCategoryValueSameCategoryChannelOverlap() {
+        String cat = anyProductCategory();
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_CATEGORY, null);
+        m.productCategory = cat;
+        SchemeDefinitionController.SlabDto s = slab(); s.valueMin = 5000; s.benefitPercent = 5;
+        SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+
+        SchemeDefinitionController.MasterDto m2 = masterFor(TYPE_CATEGORY, null);
+        m2.productCategory = cat;
+        SchemeDefinitionController.SlabDto s2 = slab(); s2.valueMin = 5000; s2.benefitPercent = 6;
+
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            SchemeDefinitionController.saveSchemeWithSlabs(m2, new List<SchemeDefinitionController.SlabDto>{ s2 }, null);
+        } catch (AuraHandledException ex) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected duplicate rejection for same category, channel and overlapping dates');
+    }
+
+    @isTest
+    static void validateActiveDuplicate_allowsCategoryValueDifferentChannel() {
+        String cat = anyProductCategory();
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_CATEGORY, null);
+        m.productCategory = cat;
+        SchemeDefinitionController.SlabDto s = slab(); s.valueMin = 5000; s.benefitPercent = 5;
+        SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+
+        SchemeDefinitionController.MasterDto m2 = masterFor(TYPE_CATEGORY, null);
+        m2.productCategory = cat;
+        m2.salesChannel = 'Plum';
+        SchemeDefinitionController.SlabDto s2 = slab(); s2.valueMin = 5000; s2.benefitPercent = 6;
+
+        Test.startTest();
+        Id id2 = SchemeDefinitionController.saveSchemeWithSlabs(m2, new List<SchemeDefinitionController.SlabDto>{ s2 }, null);
+        Test.stopTest();
+        System.assertNotEquals(null, id2, 'category scheme on a different channel should be allowed');
+    }
+
+    @isTest
+    static void validateActiveDuplicate_blocksOrderValueSameChannelOverlap() {
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_ORDER_VALUE, null);
+        SchemeDefinitionController.SlabDto s = slab(); s.valueMin = 5000; s.benefitPercent = 5;
+        SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+
+        SchemeDefinitionController.MasterDto m2 = masterFor(TYPE_ORDER_VALUE, null);
+        SchemeDefinitionController.SlabDto s2 = slab(); s2.valueMin = 5000; s2.benefitPercent = 6;
+
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            SchemeDefinitionController.saveSchemeWithSlabs(m2, new List<SchemeDefinitionController.SlabDto>{ s2 }, null);
+        } catch (AuraHandledException ex) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected duplicate rejection for same channel and overlapping dates');
+    }
+
+    @isTest
+    static void validateActiveDuplicate_allowsOrderValueDifferentChannel() {
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_ORDER_VALUE, null);
+        SchemeDefinitionController.SlabDto s = slab(); s.valueMin = 5000; s.benefitPercent = 5;
+        SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+
+        SchemeDefinitionController.MasterDto m2 = masterFor(TYPE_ORDER_VALUE, null);
+        m2.salesChannel = 'Plum';
+        SchemeDefinitionController.SlabDto s2 = slab(); s2.valueMin = 5000; s2.benefitPercent = 6;
+
+        Test.startTest();
+        Id id2 = SchemeDefinitionController.saveSchemeWithSlabs(m2, new List<SchemeDefinitionController.SlabDto>{ s2 }, null);
+        Test.stopTest();
+        System.assertNotEquals(null, id2, 'order value scheme on a different channel should be allowed');
     }
 
     private static Area__c makeTerritory(String name, String region, String area) {

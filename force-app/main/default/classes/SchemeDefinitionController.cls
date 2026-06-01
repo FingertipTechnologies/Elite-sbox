@@ -556,27 +556,64 @@ public without sharing class SchemeDefinitionController {
     }
 
     private static void validateActiveDuplicate(MasterDto m, Id existingId) {
-        // No two ACTIVE schemes may share Scheme Type + Product Group with
-        // overlapping date ranges.
+        // No two ACTIVE schemes may match the same selling context with
+        // overlapping date ranges. Match fields vary by scheme type.
         Boolean willBeActive = (m.isActive == null) ? true : m.isActive;
-        if (!willBeActive) return;            // inactive saves never conflict
-        if (m.productGroupId == null) return; // rule applies to product-group schemes
+        if (!willBeActive) return; // inactive saves never conflict
+
+        String t = m.schemeType;
+        List<Scheme__c> dupes = null;
+        String criteria = null;
 
         // Overlap: existing.start <= new.end AND existing.end >= new.start
-        List<Scheme__c> dupes = [
-            SELECT Id, Name, Scheme_Start_Date__c, Scheme_End_Date__c
-            FROM Scheme__c
-            WHERE Scheme_Type__c = :m.schemeType
-              AND Scheme_Product_Group__c = :m.productGroupId
-              AND IsActive__c = true
-              AND Id != :existingId
-              AND Scheme_Start_Date__c <= :m.endDate
-              AND Scheme_End_Date__c   >= :m.startDate
-            LIMIT 1
-        ];
-        if (!dupes.isEmpty()) {
+        if (t == TYPE_FREE_QTY || t == TYPE_QPS || t == TYPE_FOC_GIVEAWAY) {
+            if (m.productGroupId == null) return;
+            criteria = 'Scheme Type, Product Group and Sales Channel';
+            dupes = [
+                SELECT Id, Name FROM Scheme__c
+                WHERE Scheme_Type__c = :t
+                  AND Scheme_Product_Group__c = :m.productGroupId
+                  AND Sales_Channel__c = :m.salesChannel
+                  AND IsActive__c = true
+                  AND Id != :existingId
+                  AND Scheme_Start_Date__c <= :m.endDate
+                  AND Scheme_End_Date__c   >= :m.startDate
+                LIMIT 1
+            ];
+        } else if (t == TYPE_CATEGORY) {
+            if (String.isBlank(m.productCategory)) return;
+            criteria = 'Scheme Type, Product Category and Sales Channel';
+            dupes = [
+                SELECT Id, Name FROM Scheme__c
+                WHERE Scheme_Type__c = :t
+                  AND Scheme_Product_Category__c = :m.productCategory
+                  AND Sales_Channel__c = :m.salesChannel
+                  AND IsActive__c = true
+                  AND Id != :existingId
+                  AND Scheme_Start_Date__c <= :m.endDate
+                  AND Scheme_End_Date__c   >= :m.startDate
+                LIMIT 1
+            ];
+        } else if (t == TYPE_ORDER_VALUE) {
+            criteria = 'Scheme Type and Sales Channel';
+            dupes = [
+                SELECT Id, Name FROM Scheme__c
+                WHERE Scheme_Type__c = :t
+                  AND Sales_Channel__c = :m.salesChannel
+                  AND IsActive__c = true
+                  AND Id != :existingId
+                  AND Scheme_Start_Date__c <= :m.endDate
+                  AND Scheme_End_Date__c   >= :m.startDate
+                LIMIT 1
+            ];
+        } else {
+            return;
+        }
+
+        if (dupes != null && !dupes.isEmpty()) {
             throw new AuraHandledException(
-                'An active scheme with the same Scheme Type and Product Group and an overlapping date range already exists ("'
+                'An active scheme with the same ' + criteria
+                + ' and an overlapping date range already exists ("'
                 + dupes[0].Name + '"). Deactivate it or use non-overlapping dates.');
         }
     }
