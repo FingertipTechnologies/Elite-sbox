@@ -121,7 +121,9 @@
 
                 <!-- Skeleton while account data loads after a customer is selected -->
                 <template lwc:if={isContentLoading}>
-                    <c-loading-screen size="4"></c-loading-screen>
+                    <div class="content-loading">
+                        <c-loading-screen size="6"></c-loading-screen>
+                    </div>
                 </template>
 
                 <template if:false={isFieldsDisabled}>

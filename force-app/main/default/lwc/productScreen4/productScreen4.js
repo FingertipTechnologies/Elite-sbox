@@ -1367,6 +1367,8 @@ export default class ProductScreen4 extends LightningElement {
     selectObjName(event) {
         this.acccountId = event.currentTarget.dataset.id;
         this.accNam = event.currentTarget.dataset.name;
+        this.accountData = null; // close the customer search popup immediately
+        this.isContentLoading = true; // show the loading screen while data loads
         this.getData();
     }
     handleCheckBoxProSceme(event) {
