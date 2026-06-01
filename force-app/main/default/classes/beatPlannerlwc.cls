@@ -3549,7 +3549,8 @@ return getTaskData(objectId);
         
         if (!channelSet.isEmpty()) {
             return channelSet;
-        } else {
+        }
+        else {
             List<Product_Mapping__c> secondaryProductMappings = [
                 SELECT Chanel__c, Primary_Customer__c 
                 FROM Product_Mapping__c 
@@ -3577,8 +3578,29 @@ return getTaskData(objectId);
             if (!channelSet.isEmpty()) {
                 return channelSet;
             } else {
-                channelSet = salesChannelList;
-                return channelSet;
+                List<Product_Mapping__c> primaryCustomerMapping = [
+                    SELECT Chanel__c, Primary_Customer__c 
+                    FROM Product_Mapping__c 
+                    WHERE Customer__c =:accountId 
+                    AND Chanel__c IN :salesChannelList 
+                ];
+                
+                // Populate the channelSet again
+                for(Product_Mapping__c prodMap : primaryCustomerMapping) {
+                    if (prodMap.Chanel__c != null) {
+                        channelSet.add(prodMap.Chanel__c);
+                    }
+                }
+                if (!channelSet.isEmpty()) {
+                    return channelSet;
+                }
+                else
+                {
+                    channelSet = salesChannelList;
+                    return channelSet;
+                }
+                
+               
             }
         }
         
@@ -3586,6 +3608,148 @@ return getTaskData(objectId);
         
     }
     
+    
+    /*public static Set<String> getProductsForSure(String accountId, String customerType) 
+    {
+        
+        Id currentUserId = UserInfo.getUserId();
+        User us = [
+            SELECT Id, Name, Sales_Channel__c, Alternate_Sales_Channel__c 
+            FROM User 
+            WHERE Id = :currentUserId
+        ];
+        
+        // Build the user's sales channel set
+        Set<String> salesChannelList = new Set<String>();
+        if (us.Alternate_Sales_Channel__c != null) {
+            salesChannelList.addAll(us.Alternate_Sales_Channel__c.split(';'));
+        } else if (us.Sales_Channel__c != null) {
+            salesChannelList.addAll(us.Sales_Channel__c.split(';'));
+        }
+        
+        Set<String> channelSet = new Set<String>();
+        
+        if (customerType == 'Primary') {
+            channelSet = getPrimaryCustomerChannels(accountId, currentUserId, salesChannelList, us.Alternate_Sales_Channel__c);
+        } else if (customerType == 'Secondary') {
+            channelSet = getSecondaryCustomerChannels(accountId, currentUserId, salesChannelList);
+        }
+        
+        // Final fallback — return user's sales channel if nothing resolved
+        if (channelSet.isEmpty()) {
+            channelSet = salesChannelList;
+        }
+        
+        return channelSet;
+    }*/
+    
+    
+    // PRIMARY: Direct query on Customer__c = accountId
+    private static Set<String> getPrimaryCustomerChannels(String accountId, Id currentUserId,Set<String> salesChannelList, String alternateSalesChannel) {
+        Set<String> channelSet = new Set<String>();
+        
+        List<Product_Mapping__c> primaryMappings;
+        
+        if (alternateSalesChannel == null) {
+            // When no alternate channel, filter by executive
+            primaryMappings = [
+                SELECT Chanel__c 
+                FROM Product_Mapping__c 
+                WHERE Customer__c = :accountId 
+                AND Exectuive__c = :currentUserId
+            ];
+            
+            if(primaryMappings.isEmpty())
+            {
+                primaryMappings = [
+                    SELECT Chanel__c 
+                    FROM Product_Mapping__c 
+                    WHERE Customer__c = :accountId 
+                    AND Chanel__c IN :salesChannelList
+                ];
+            }
+        }
+        else {
+            // When alternate channel exists, broader query with channel filter
+            primaryMappings = [
+                SELECT Chanel__c 
+                FROM Product_Mapping__c 
+                WHERE Customer__c = :accountId 
+                AND Chanel__c IN :salesChannelList
+            ];
+        }
+        
+        for (Product_Mapping__c prodMap : primaryMappings) {
+            if (prodMap.Chanel__c != null) {
+                channelSet.add(prodMap.Chanel__c);
+            }
+        }
+        
+        return channelSet;
+    }
+    
+    
+    // SECONDARY: First get Primary Customer Ids, then resolve channels from those
+    private static Set<String> getSecondaryCustomerChannels( String accountId,  Id currentUserId,  Set<String> salesChannelList ) 
+    {
+        Set<String> channelSet = new Set<String>();
+        // Step 1: Get Primary Customer Ids linked to this Secondary Customer
+        List<Product_Mapping__c> secondaryMappings = [
+            SELECT Primary_Customer__c 
+            FROM Product_Mapping__c 
+            WHERE Customer__c = :accountId 
+            AND Exectuive__c = :currentUserId
+        ];
+        
+        if(secondaryMappings.isEmpty())
+        {
+            secondaryMappings = [
+                SELECT Primary_Customer__c 
+                FROM Product_Mapping__c 
+                WHERE Customer__c = :accountId 
+                AND Exectuive__r.Sales_Channel__c IN :salesChannelList
+            ];
+        }
+        
+        
+        Set<String> primaryCustomerIds = new Set<String>();
+        for (Product_Mapping__c prodMap : secondaryMappings) {
+            if (prodMap.Primary_Customer__c != null) {
+                primaryCustomerIds.add(prodMap.Primary_Customer__c);
+            }
+        }
+        
+        if (primaryCustomerIds.isEmpty()) {
+            return channelSet; // Nothing to resolve
+        }
+        
+        // Step 2: Query Product_Mapping__c using those Primary Customer Ids (with executive filter)
+        List<Product_Mapping__c> primaryChannelMappings = [
+            SELECT Chanel__c 
+            FROM Product_Mapping__c 
+            WHERE Customer__c IN :primaryCustomerIds 
+            AND Chanel__c IN :salesChannelList 
+            AND Exectuive__c = :currentUserId
+        ];
+        
+        // Step 3: Fallback — same query without executive filter
+        if (primaryChannelMappings.isEmpty()) {
+            primaryChannelMappings = [
+                SELECT Chanel__c 
+                FROM Product_Mapping__c 
+                WHERE Customer__c IN :primaryCustomerIds 
+                AND Chanel__c IN :salesChannelList
+            ];
+        }
+        
+        for (Product_Mapping__c prodMap : primaryChannelMappings) {
+            if (prodMap.Chanel__c != null) {
+                channelSet.add(prodMap.Chanel__c);
+            }
+        }
+        
+        return channelSet;
+    }
     
     public static Set<String> getProductsForArea(string accountId,string customerType) {
         
