@@ -52,6 +52,7 @@ export default class ProductScreen4 extends LightningElement {
     @track accounts = [];    // Accounts data from Apex
     @track areaOptions = []; // Dropdown options for Area
     @track isLoading = false;
+    @track isContentLoading = false; // Skeleton while account data loads after selection
     @track isDropdownOpen = true;  // By default, the dropdown is open
     dropdownClass = 'slds-dropdown-trigger slds-dropdown-trigger_click';
     productCatDropdown = [];
@@ -276,6 +277,7 @@ export default class ProductScreen4 extends LightningElement {
             });
     }
     getData() {
+        this.isContentLoading = true;
         getApexData({
             visitId: this.recordId,
             AccountId: this.acccountId,
@@ -401,10 +403,12 @@ export default class ProductScreen4 extends LightningElement {
                     this.isProductAdded = false;
                     this.isSummaryProduct = false;
                 }
+                this.isContentLoading = false;
             })
             .catch(error => {
                 console.error(error);
                 this.isPageLoaded = false;
+                this.isContentLoading = false;
             });
     }
 
@@ -1349,6 +1353,10 @@ export default class ProductScreen4 extends LightningElement {
             this.schemePro = null;
             this.getSelectedProduct = null;
             this.orderSummery = null;
+            // Customer removed: content collapses, so keep the card tall enough
+            // that the customer search dropdown isn't clipped by .tasks overflow.
+            const tasksEl = this.template.querySelector('.tasks');
+            if (tasksEl) tasksEl.classList.add('force-height');
         }
     }
     handleOnBlur() {
@@ -1430,22 +1438,18 @@ export default class ProductScreen4 extends LightningElement {
         const psm = this.coverageProductSchemeIds || {};
         const schemesById = {};
         for (const s of (this.coverageSchemes || [])) schemesById[s.id] = s;
-        const orderWideSchemeIds = (this.coverageSchemes || [])
-            .filter(s => s.schemeType === 'Order Value')
-            .map(s => s.id);
         const expanded = new Set(this.expandedProductIds);
         return this.schemePro.map(itm => ({
             ...itm,
             products: (itm.products || []).map(p => {
                 const sids = psm[p.id] || [];
-                const allSids = [...new Set([...sids, ...orderWideSchemeIds])];
                 const isExpanded = expanded.has(p.id);
                 return {
                     ...p,
-                    hasSchemeGroupMatch: allSids.length > 0,
+                    hasSchemeGroupMatch: sids.length > 0,
                     isSchemeExpanded: isExpanded,
                     schemeExpandIcon: isExpanded ? 'utility:chevrondown' : 'utility:chevronright',
-                    coveringSchemes: allSids.map(id => schemesById[id]).filter(Boolean)
+                    coveringSchemes: sids.map(id => schemesById[id]).filter(Boolean)
                 };
             })
         }));
