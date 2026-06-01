@@ -119,6 +119,10 @@
                     </template>
                 </div>
 
+                <!-- Skeleton while account data loads after a customer is selected -->
+                <template lwc:if={isContentLoading}>
+                    <c-loading-screen size="4"></c-loading-screen>
+                </template>
 
                 <template if:false={isFieldsDisabled}>
                     <template lwc:if={isAllOrder}>
