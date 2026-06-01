@@ -1430,18 +1430,22 @@ export default class ProductScreen4 extends LightningElement {
         const psm = this.coverageProductSchemeIds || {};
         const schemesById = {};
         for (const s of (this.coverageSchemes || [])) schemesById[s.id] = s;
+        const orderWideSchemeIds = (this.coverageSchemes || [])
+            .filter(s => s.schemeType === 'Order Value')
+            .map(s => s.id);
         const expanded = new Set(this.expandedProductIds);
         return this.schemePro.map(itm => ({
             ...itm,
             products: (itm.products || []).map(p => {
                 const sids = psm[p.id] || [];
+                const allSids = [...new Set([...sids, ...orderWideSchemeIds])];
                 const isExpanded = expanded.has(p.id);
                 return {
                     ...p,
-                    hasSchemeGroupMatch: sids.length > 0,
+                    hasSchemeGroupMatch: allSids.length > 0,
                     isSchemeExpanded: isExpanded,
                     schemeExpandIcon: isExpanded ? 'utility:chevrondown' : 'utility:chevronright',
-                    coveringSchemes: sids.map(id => schemesById[id]).filter(Boolean)
+                    coveringSchemes: allSids.map(id => schemesById[id]).filter(Boolean)
                 };
             })
         }));

@@ -212,6 +212,10 @@
                                                                     <span class="scheme-type-pill">{cs.schemeType}</span>
                                                                 </div>
                                                                 <div class="coverage-scheme-card__body">
+                                                                    <div class="kv-row">
+                                                                        <span class="kv-row__label">Scheme Type</span>
+                                                                        <span class="kv-row__value">{cs.schemeType}</span>
+                                                                    </div>
                                                                     <template for:each={cs.slabRows} for:item="r">
                                                                         <div key={r.label} class="kv-row kv-row--offer">
                                                                             <span class="kv-row__label">{r.label}</span>
@@ -333,6 +337,10 @@
                                         </div>
                                         <template if:true={cs.isExpanded}>
                                             <div class="coverage-scheme-card__body">
+                                                <div class="kv-row">
+                                                    <span class="kv-row__label">Scheme Type</span>
+                                                    <span class="kv-row__value">{cs.schemeType}</span>
+                                                </div>
                                                 <template for:each={cs.slabRows} for:item="r">
                                                     <div key={r.label} class="kv-row kv-row--offer">
                                                         <span class="kv-row__label">{r.label}</span>

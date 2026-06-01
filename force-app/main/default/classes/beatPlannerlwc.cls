@@ -4628,8 +4628,10 @@ return getTaskData(objectId);
         List<Scheme__c> matched = new List<Scheme__c>();
         Set<Id> matchedGroupIds = new Set<Id>();
         for (Scheme__c s : candidates) {
-            // skip schemes that have no membership signal at all (no group + no category)
-            if (s.Scheme_Product_Group__c == null && String.isBlank(s.Scheme_Product_Category__c)) continue;
+            // skip schemes that have no membership signal at all (no group + no category),
+            // except Order Value which applies to the whole order
+            if (s.Scheme_Product_Group__c == null && String.isBlank(s.Scheme_Product_Category__c)
+                    && s.Scheme_Type__c != 'Order Value') continue;
             Map<String, Set<String>> lvls = appByScheme.containsKey(s.Id) ? appByScheme.get(s.Id) : new Map<String, Set<String>>();
 
             Boolean regionOk = s.Apply_to_All_Regions__c == true
