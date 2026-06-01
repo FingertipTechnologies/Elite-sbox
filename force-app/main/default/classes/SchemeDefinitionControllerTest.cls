@@ -450,6 +450,108 @@ private class SchemeDefinitionControllerTest {
         System.assert(threw, 'expected past start date rejection on update');
     }
 
+    @isTest
+    static void validateActiveDuplicate_blocksSecondActiveSameTypeGroupOverlappingDates() {
+        Scheme_Product_Group__c g = makeGroup('DupBlock', 'PriceDivision');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_QPS, g.Id);
+        SchemeDefinitionController.SlabDto s = slab(); s.qtyMin = 3; s.benefitPerEa = 40;
+        SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+
+        SchemeDefinitionController.MasterDto m2 = masterFor(TYPE_QPS, g.Id);
+        SchemeDefinitionController.SlabDto s2 = slab(); s2.qtyMin = 3; s2.benefitPerEa = 50;
+
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            SchemeDefinitionController.saveSchemeWithSlabs(m2, new List<SchemeDefinitionController.SlabDto>{ s2 }, null);
+        } catch (AuraHandledException ex) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected duplicate active scheme rejection for overlapping dates');
+    }
+
+    @isTest
+    static void validateActiveDuplicate_allowsNonOverlappingDates() {
+        Scheme_Product_Group__c g = makeGroup('DupNonOverlap', 'PriceDivision');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_QPS, g.Id);
+        SchemeDefinitionController.SlabDto s = slab(); s.qtyMin = 3; s.benefitPerEa = 40;
+        SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+
+        SchemeDefinitionController.MasterDto m2 = masterFor(TYPE_QPS, g.Id);
+        m2.startDate = Date.today().addDays(31);
+        m2.endDate   = Date.today().addDays(60);
+        SchemeDefinitionController.SlabDto s2 = slab(); s2.qtyMin = 3; s2.benefitPerEa = 50;
+
+        Test.startTest();
+        Id id2 = SchemeDefinitionController.saveSchemeWithSlabs(m2, new List<SchemeDefinitionController.SlabDto>{ s2 }, null);
+        Test.stopTest();
+        System.assertNotEquals(null, id2, 'non-overlapping active scheme should be allowed');
+    }
+
+    @isTest
+    static void validateActiveDuplicate_allowsWhenExistingIsInactive() {
+        Scheme_Product_Group__c g = makeGroup('DupInactive', 'PriceDivision');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_QPS, g.Id);
+        m.isActive = false;
+        SchemeDefinitionController.SlabDto s = slab(); s.qtyMin = 3; s.benefitPerEa = 40;
+        SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+
+        SchemeDefinitionController.MasterDto m2 = masterFor(TYPE_QPS, g.Id);
+        SchemeDefinitionController.SlabDto s2 = slab(); s2.qtyMin = 3; s2.benefitPerEa = 50;
+
+        Test.startTest();
+        Id id2 = SchemeDefinitionController.saveSchemeWithSlabs(m2, new List<SchemeDefinitionController.SlabDto>{ s2 }, null);
+        Test.stopTest();
+        System.assertNotEquals(null, id2, 'active scheme should be allowed when existing one is inactive');
+    }
+
+    @isTest
+    static void validateActiveDuplicate_blocksReactivatingOldWhenNewActiveOverlaps() {
+        Scheme_Product_Group__c g = makeGroup('DupReactivate', 'PriceDivision');
+        SchemeDefinitionController.MasterDto mA = masterFor(TYPE_QPS, g.Id);
+        SchemeDefinitionController.SlabDto sA = slab(); sA.qtyMin = 3; sA.benefitPerEa = 40;
+        Id idA = SchemeDefinitionController.saveSchemeWithSlabs(mA, new List<SchemeDefinitionController.SlabDto>{ sA }, null);
+
+        // Deactivate A so a new active overlapping scheme can be created.
+        update new Scheme__c(Id = idA, IsActive__c = false);
+
+        SchemeDefinitionController.MasterDto mB = masterFor(TYPE_QPS, g.Id);
+        SchemeDefinitionController.SlabDto sB = slab(); sB.qtyMin = 3; sB.benefitPerEa = 50;
+        SchemeDefinitionController.saveSchemeWithSlabs(mB, new List<SchemeDefinitionController.SlabDto>{ sB }, null);
+
+        // Try to re-activate A while active overlapping B exists.
+        SchemeDefinitionController.MasterDto mA2 = masterFor(TYPE_QPS, g.Id);
+        mA2.isActive = true;
+        SchemeDefinitionController.SlabDto sA2 = slab(); sA2.qtyMin = 3; sA2.benefitPerEa = 40;
+
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            SchemeDefinitionController.saveSchemeWithSlabs(mA2, new List<SchemeDefinitionController.SlabDto>{ sA2 }, idA);
+        } catch (AuraHandledException ex) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected rejection when re-activating old scheme while new active overlapping one exists');
+    }
+
+    @isTest
+    static void validateActiveDuplicate_allowsResavingSameActiveRecord() {
+        Scheme_Product_Group__c g = makeGroup('DupSelfResave', 'PriceDivision');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_QPS, g.Id);
+        SchemeDefinitionController.SlabDto s = slab(); s.qtyMin = 3; s.benefitPerEa = 40;
+        Id id = SchemeDefinitionController.saveSchemeWithSlabs(m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+
+        SchemeDefinitionController.MasterDto m2 = masterFor(TYPE_QPS, g.Id);
+        SchemeDefinitionController.SlabDto s2 = slab(); s2.qtyMin = 3; s2.benefitPerEa = 45;
+
+        Test.startTest();
+        Id id2 = SchemeDefinitionController.saveSchemeWithSlabs(m2, new List<SchemeDefinitionController.SlabDto>{ s2 }, id);
+        Test.stopTest();
+        System.assertEquals(id, id2, 're-saving the same active record should be allowed (self excluded)');
+    }
+
     private static Area__c makeTerritory(String name, String region, String area) {
         Area__c t = new Area__c(
             Name = name,
