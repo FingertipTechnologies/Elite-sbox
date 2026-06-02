@@ -30,623 +30,623 @@
         </template>
 
         <div class="home">
-            <div class="tasks scroll-wrapper">
-
-                <div class="slds-grid slds-wrap">
-                    <template lwc:if={showAccountSearch}>
-                        <template lwc:if={showAreaSearch}>
-                            <!--<div class={customClass_Grid}>
-                            
-                                <lightning-combobox
-                                    value={areaFilter}
-                                    options={areaOptions}
-                                    onchange={handleAreaChange}
-                                    data-index={index}
-                                    name="AreaSelection"
-                                ></lightning-combobox>
-                            
-                        </div>-->
+            <!-- Skeleton while account data loads after a customer is selected -->
+            <template lwc:if={isContentLoading}>
+                <div class="tasks content-loading">
+                    <c-loading-screen size="4"></c-loading-screen>
+                </div>
+            </template>
+            <template if:false={isContentLoading}>
+                <div class="tasks scroll-wrapper">
+                    <div class="slds-grid slds-wrap">
+                        <template lwc:if={showAccountSearch}>
+                            <template lwc:if={showAreaSearch}>
+                                <!--<div class={customClass_Grid}>
+                                
+                                    <lightning-combobox
+                                        value={areaFilter}
+                                        options={areaOptions}
+                                        onchange={handleAreaChange}
+                                        data-index={index}
+                                        name="AreaSelection"
+                                    ></lightning-combobox>
+                                
+                            </div>-->
+                            </template>
                         </template>
-                    </template>
-                    <template lwc:if={isOrderTrue}>
-                        <template lwc:if={showAreaSearch}>
-                            <template lwc:if={showAccountSearch}>
-                                <div class={customClass_Grid}>
-                                    <div class="slds-m-right_xx-small slds-form-element">
-                                        <div class="slds-form-element__control">
-                                            <div
-                                                class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open">
+                        <template lwc:if={isOrderTrue}>
+                            <template lwc:if={showAreaSearch}>
+                                <template lwc:if={showAccountSearch}>
+                                    <div class={customClass_Grid}>
+                                        <div class="slds-m-right_xx-small slds-form-element">
+                                            <div class="slds-form-element__control">
+                                                <div
+                                                    class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open">
 
-                                                <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
-                                                    role="none">
-                                                    <lightning-input type="search"
-                                                        class="fieldWidth spaceMargin search-input" autocomplete="off"
-                                                        placeholder="Search Customer...." value={accNam}
-                                                        onchange={handleSearch} onblur={handleOnBlur}>
-                                                    </lightning-input>
-                                                </div>
-
-
-                                                <template lwc:if={accountData}>
-                                                    <div id="listbox-id-11"
-                                                        class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid"
-                                                        role="listbox" aria-label="Placeholder for Dropdown Items"
-                                                        tabindex="0" aria-busy="false">
-                                                        <template for:each={accountData} for:item="srch">
-                                                            <ul key={srch.Id} class="slds-listbox slds-listbox_vertical"
-                                                                role="presentation">
-                                                                <li role="presentation" class="slds-listbox__item">
-                                                                    <div class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small"
-                                                                        role="option" onclick={selectObjName}
-                                                                        data-id={srch.Id} data-name={srch.Name}>
-                                                                        <lightning-icon icon-name="action:new_account"
-                                                                            size="xx-small">
-                                                                        </lightning-icon>
-                                                                        &nbsp;&nbsp;
-                                                                        <span class="slds-media__body">
-                                                                            <span class="slds-truncate"
-                                                                                title={srch.Name}>
-                                                                                <span>{srch.SAP_Customer_Code__c}
-                                                                                    {srch.Name}
-                                                                                    {srch.Delivery_Plant__c}</span>
-                                                                            </span>
-                                                                            <br />
-                                                                            <span class="slds-truncate"
-                                                                                title={srch.Name}>
-                                                                                <span>{srch.Account_Type_Of__c}</span>
-                                                                            </span>
-                                                                        </span>
-                                                                    </div>
-                                                                </li>
-                                                            </ul>
-                                                        </template>
+                                                    <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+                                                        role="none">
+                                                        <lightning-input type="search"
+                                                            class="fieldWidth spaceMargin search-input" autocomplete="off"
+                                                            placeholder="Search Customer...." value={accNam}
+                                                            onchange={handleSearch} onblur={handleOnBlur}>
+                                                        </lightning-input>
                                                     </div>
-                                                </template>
+
+
+                                                    <template lwc:if={accountData}>
+                                                        <div id="listbox-id-11"
+                                                            class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid"
+                                                            role="listbox" aria-label="Placeholder for Dropdown Items"
+                                                            tabindex="0" aria-busy="false">
+                                                            <template for:each={accountData} for:item="srch">
+                                                                <ul key={srch.Id} class="slds-listbox slds-listbox_vertical"
+                                                                    role="presentation">
+                                                                    <li role="presentation" class="slds-listbox__item">
+                                                                        <div class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small"
+                                                                            role="option" onclick={selectObjName}
+                                                                            data-id={srch.Id} data-name={srch.Name}>
+                                                                            <lightning-icon icon-name="action:new_account"
+                                                                                size="xx-small">
+                                                                            </lightning-icon>
+                                                                            &nbsp;&nbsp;
+                                                                            <span class="slds-media__body">
+                                                                                <span class="slds-truncate"
+                                                                                    title={srch.Name}>
+                                                                                    <span>{srch.SAP_Customer_Code__c}
+                                                                                        {srch.Name}
+                                                                                        {srch.Delivery_Plant__c}</span>
+                                                                                </span>
+                                                                                <br />
+                                                                                <span class="slds-truncate"
+                                                                                    title={srch.Name}>
+                                                                                    <span>{srch.Account_Type_Of__c}</span>
+                                                                                </span>
+                                                                            </span>
+                                                                        </div>
+                                                                    </li>
+                                                                </ul>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                </template>
                             </template>
                         </template>
-                    </template>
 
-                    <template lwc:if={showAccountSearch}>
-                        <div class={customClass_Grid}>
-                            <lightning-input type="search" placeholder="Search SKU, MRP, or Unit Price...."
-                                onchange={onChangeProducts} class="fieldWidth" disabled={isFieldsDisabled}>
-                            </lightning-input>
-                        </div>
-                    </template>
-                </div>
-
-                <!-- Skeleton while account data loads after a customer is selected -->
-                <template lwc:if={isContentLoading}>
-                    <div class="content-loading">
-                        <c-loading-screen size="6"></c-loading-screen>
-                    </div>
-                </template>
-
-                <template if:false={isFieldsDisabled}>
-                    <template lwc:if={isAllOrder}>
-
-                        <template lwc:if={isCategorySelected}>
-                            <div class="product-header-row">
-                                <div class="col mrp">Total Quantity: <strong>{totalSelectedQuantity}</strong></div>
-                                <div class="col unit-price">Total Price: <strong>₹{totalSelectedAmount}</strong></div>
+                        <template lwc:if={showAccountSearch}>
+                            <div class={customClass_Grid}>
+                                <lightning-input type="search" placeholder="Search SKU, MRP, or Unit Price...."
+                                    onchange={onChangeProducts} class="fieldWidth" disabled={isFieldsDisabled}>
+                                </lightning-input>
                             </div>
+                        </template>
+                    </div>
+            
+                    <template if:false={isFieldsDisabled}>
+                        <template lwc:if={isAllOrder}>
 
-                            <template lwc:if={schemePro}>
-                                <div class="vertical-scroll-container">
-                                    <template for:each={displaySchemePro} for:item="itm" for:index="index">
-                                        <div key={itm.Id} class={itm.headerClass}>{itm.name}</div>
+                            <template lwc:if={isCategorySelected}>
+                                <div class="product-header-row">
+                                    <div class="col mrp">Total Quantity: <strong>{totalSelectedQuantity}</strong></div>
+                                    <div class="col unit-price">Total Price: <strong>₹{totalSelectedAmount}</strong></div>
+                                </div>
 
-                                        <!-- Product Rows with Card Layout -->
-                                        <template for:each={itm.products} for:item="item" for:index="index1">
-                                            <div class={itm.cardClass} key={item.Id}>
-                                                <!-- Left Side - Product Details -->
-                                                <div class="product-details">
-                                                    <div class="col sku-name"><strong>SKU : {item.name}</strong>
-                                                        <template lwc:if={isSecondaryAccount}>
-                                                            <template if:true={item.hasApplicableSchemes}>
-                                                                <lightning-icon icon-name="utility:ribbon" size="small"
-                                                                    class="scheme-indicator"
-                                                                    title="Has applicable schemes">
-                                                                </lightning-icon>
+                                <template lwc:if={schemePro}>
+                                    <div class="vertical-scroll-container">
+                                        <template for:each={displaySchemePro} for:item="itm" for:index="index">
+                                            <div key={itm.Id} class={itm.headerClass}>{itm.name}</div>
+
+                                            <!-- Product Rows with Card Layout -->
+                                            <template for:each={itm.products} for:item="item" for:index="index1">
+                                                <div class={itm.cardClass} key={item.Id}>
+                                                    <!-- Left Side - Product Details -->
+                                                    <div class="product-details">
+                                                        <div class="col sku-name"><strong>SKU : {item.name}</strong>
+                                                            <template lwc:if={isSecondaryAccount}>
+                                                                <template if:true={item.hasApplicableSchemes}>
+                                                                    <lightning-icon icon-name="utility:ribbon" size="small"
+                                                                        class="scheme-indicator"
+                                                                        title="Has applicable schemes">
+                                                                    </lightning-icon>
+                                                                </template>
                                                             </template>
-                                                        </template>
-                                                        <template if:true={item.hasSchemeGroupMatch}>
-                                                            <span class="scheme-star" title="Product is part of a running scheme">⭐</span>
-                                                            <lightning-button-icon
-                                                                icon-name={item.schemeExpandIcon}
-                                                                variant="bare"
-                                                                size="small"
-                                                                alternative-text="Show schemes"
-                                                                data-product-id={item.id}
-                                                                onclick={toggleProductSchemes}
-                                                                class="scheme-expand-btn">
-                                                            </lightning-button-icon>
-                                                        </template>
-                                                    </div>
-                                                    <div class="no-gap"><b>MRP : ₹{item.MRP} || Unit Price :
-                                                            ₹{item.UnitPricePriceBook}</b>
-                                                        <br />UOM : {item.uom} || Alternate UOM : {item.AlterNateUOM}
-                                                        (Conversion : 1 {item.AlterNateUOM} = {item.uomConversion}
-                                                        {item.uom})
-                                                    </div>
-                                                    <div class="col mrp no-gap">
-                                                        <b> Quantity : {item.value} || Total : {item.total}</b>
+                                                            <template if:true={item.hasSchemeGroupMatch}>
+                                                                <span class="scheme-star" title="Product is part of a running scheme">⭐</span>
+                                                                <lightning-button-icon
+                                                                    icon-name={item.schemeExpandIcon}
+                                                                    variant="bare"
+                                                                    size="small"
+                                                                    alternative-text="Show schemes"
+                                                                    data-product-id={item.id}
+                                                                    onclick={toggleProductSchemes}
+                                                                    class="scheme-expand-btn">
+                                                                </lightning-button-icon>
+                                                            </template>
+                                                        </div>
+                                                        <div class="no-gap"><b>MRP : ₹{item.MRP} || Unit Price :
+                                                                ₹{item.UnitPricePriceBook}</b>
+                                                            <br />UOM : {item.uom} || Alternate UOM : {item.AlterNateUOM}
+                                                            (Conversion : 1 {item.AlterNateUOM} = {item.uomConversion}
+                                                            {item.uom})
+                                                        </div>
+                                                        <div class="col mrp no-gap">
+                                                            <b> Quantity : {item.value} || Total : {item.total}</b>
 
-                                                        <template if:true={item.appliedScheme}>
-                                                            <div class="scheme-applied-banner">
-                                                                <div>Final Price: ₹{item.discountedUnitPrice} || Actual
-                                                                    Price : {item.UnitPricePriceBook}</div>
+                                                            <template if:true={item.appliedScheme}>
+                                                                <div class="scheme-applied-banner">
+                                                                    <div>Final Price: ₹{item.discountedUnitPrice} || Actual
+                                                                        Price : {item.UnitPricePriceBook}</div>
+                                                                </div>
+                                                            </template>
+
+                                                        </div>
+
+                                                    </div>
+
+                                                    <!-- Right Side - Quantity Inputs -->
+                                                    <div class="input-container">
+                                                        <template lwc:if={isPrimaryAccount}>
+                                                            <!-- Two input boxes: Crate + Each -->
+                                                            <div class="dual-input-container">
+                                                                <input type="number" class="qty-input" placeholder="Cases"
+                                                                    value={item.crateQty} data-id={index}
+                                                                    data-index={index1} oninput={handleCrateQtyChange} />
+                                                                <input type="number" class="qty-input" placeholder="EA"
+                                                                    value={item.eachQty} data-id={index} data-index={index1}
+                                                                    oninput={handleEachQtyChange} />
                                                             </div>
                                                         </template>
 
-                                                    </div>
-
-                                                </div>
-
-                                                <!-- Right Side - Quantity Inputs -->
-                                                <div class="input-container">
-                                                    <template lwc:if={isPrimaryAccount}>
-                                                        <!-- Two input boxes: Crate + Each -->
-                                                        <div class="dual-input-container">
-                                                            <input type="number" class="qty-input" placeholder="Cases"
-                                                                value={item.crateQty} data-id={index}
-                                                                data-index={index1} oninput={handleCrateQtyChange} />
+                                                        <template lwc:else>
+                                                            <!-- Single input box (Each only) -->
                                                             <input type="number" class="qty-input" placeholder="EA"
                                                                 value={item.eachQty} data-id={index} data-index={index1}
                                                                 oninput={handleEachQtyChange} />
-                                                        </div>
-                                                    </template>
-
-                                                    <template lwc:else>
-                                                        <!-- Single input box (Each only) -->
-                                                        <input type="number" class="qty-input" placeholder="EA"
-                                                            value={item.eachQty} data-id={index} data-index={index1}
-                                                            oninput={handleEachQtyChange} />
-                                                    </template>
-                                                </div>
-
-                                                <template if:true={item.isSchemeExpanded}>
-                                                    <div class="scheme-inline-list">
-                                                        <template for:each={item.coveringSchemes} for:item="cs">
-                                                            <div key={cs.id} class="coverage-scheme-card coverage-scheme-card--inline">
-                                                                <div class="coverage-scheme-card__head">
-                                                                    <strong class="coverage-scheme-card__name">{cs.name}</strong>
-                                                                </div>
-                                                                <div class="coverage-scheme-card__body">
-                                                                    <div class="kv-row">
-                                                                        <span class="kv-row__label">Scheme Type</span>
-                                                                        <span class="kv-row__value">{cs.schemeType}</span>
-                                                                    </div>
-                                                                    <template for:each={cs.slabRows} for:item="r">
-                                                                        <div key={r.label} class="kv-row kv-row--offer">
-                                                                            <span class="kv-row__label">{r.label}</span>
-                                                                            <span class="kv-row__value">{r.value}</span>
-                                                                        </div>
-                                                                    </template>
-                                                                    <div class="kv-row">
-                                                                        <span class="kv-row__label">Valid</span>
-                                                                        <span class="kv-row__value">{cs.validLabel}</span>
-                                                                    </div>
-                                                                    <template if:true={cs.productCategory}>
-                                                                        <div class="coverage-scheme-card__group">Category: {cs.productCategory}</div>
-                                                                    </template>
-                                                                    <template if:true={cs.productGroupName}>
-                                                                        <div class="coverage-scheme-card__group">Group: {cs.productGroupName}</div>
-                                                                        <template for:each={cs.products} for:item="p">
-                                                                            <div key={p.id} class="coverage-scheme-product">
-                                                                                <span class="coverage-scheme-product__name">{p.name}</span>
-                                                                                <span class="coverage-scheme-product__sku">{p.sku}</span>
-                                                                            </div>
-                                                                        </template>
-                                                                    </template>
-                                                                </div>
-                                                            </div>
                                                         </template>
                                                     </div>
-                                                </template>
 
-                                            </div>
-                                        </template>
-                                    </template>
-                                </div>
-                            </template>
-
-
-                        </template>
-
-
-
-                        <template lwc:if={productData}>
-                            <div class="task-head slds-align_absolute-center">Other</div>
-                            <template for:each={productData} for:item="item" for:index="i">
-                                <div class="task" key={item.Id}>
-                                    <div class="task-left">
-
-                                        <div class="task-desc">
-                                            <div class="task-title">{item.name}</div>
-                                            <div class="task-date">{item.createdDate}</div>
-                                        </div>
-
-
-                                    </div>
-                                    <div class="task-price">₹{item.MRP}</div>
-                                    <div class="task-inputs">
-                                        <span onclick={decProdPro} data-index={i} data-id={i}>
-                                            <svg class="decrement" width="24" height="24" viewBox="0 0 24 24"
-                                                fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path
-                                                    d="M3 12C3 10.8181 3.23279 9.64778 3.68508 8.55585C4.13738 7.46392 4.80031 6.47177 5.63604 5.63604C6.47177 4.80031 7.46392 4.13738 8.55585 3.68508C9.64778 3.23279 10.8181 3 12 3C13.1819 3 14.3522 3.23279 15.4442 3.68508C16.5361 4.13738 17.5282 4.80031 18.364 5.63604C19.1997 6.47177 19.8626 7.46392 20.3149 8.55585C20.7672 9.64778 21 10.8181 21 12C21 14.3869 20.0518 16.6761 18.364 18.364C16.6761 20.0518 14.3869 21 12 21C9.61305 21 7.32387 20.0518 5.63604 18.364C3.94821 16.6761 3 14.3869 3 12ZM12 1.5C9.21523 1.5 6.54451 2.60625 4.57538 4.57538C2.60625 6.54451 1.5 9.21523 1.5 12C1.5 14.7848 2.60625 17.4555 4.57538 19.4246C6.54451 21.3938 9.21523 22.5 12 22.5C14.7848 22.5 17.4555 21.3938 19.4246 19.4246C21.3938 17.4555 22.5 14.7848 22.5 12C22.5 9.21523 21.3938 6.54451 19.4246 4.57538C17.4555 2.60625 14.7848 1.5 12 1.5ZM8.25 11.25C8.05109 11.25 7.86032 11.329 7.71967 11.4697C7.57902 11.6103 7.5 11.8011 7.5 12C7.5 12.1989 7.57902 12.3897 7.71967 12.5303C7.86032 12.671 8.05109 12.75 8.25 12.75H15.75C15.9489 12.75 16.1397 12.671 16.2803 12.5303C16.421 12.3897 16.5 12.1989 16.5 12C16.5 11.8011 16.421 11.6103 16.2803 11.4697C16.1397 11.329 15.9489 11.25 15.75 11.25H8.25Z"
-                                                    fill="#2F5597" />
-                                            </svg>
-                                        </span>
-
-                                        <input type="number" class="task-input" value={item.value} data-index={index}
-                                            data-id={i} onchange={prodChangePro} />
-
-                                        <span onclick={incProdPro} data-id={index} data-index={i}>
-                                            <svg class="increment" width="24" height="24" viewBox="0 0 24 24"
-                                                fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path
-                                                    d="M12 22.5C6.21 22.5 1.5 17.79 1.5 12C1.5 6.21 6.21 1.5 12 1.5C17.79 1.5 22.5 6.21 22.5 12C22.5 17.79 17.79 22.5 12 22.5ZM12 3C7.035 3 3 7.035 3 12C3 16.965 7.035 21 12 21C16.965 21 21 16.965 21 12C21 7.035 16.965 3 12 3Z"
-                                                    fill="#2F5597" />
-                                                <path
-                                                    d="M12 17.25C11.58 17.25 11.25 16.92 11.25 16.5V7.5C11.25 7.08 11.58 6.75 12 6.75C12.42 6.75 12.75 7.08 12.75 7.5V16.5C12.75 16.92 12.42 17.25 12 17.25Z"
-                                                    fill="#2F5597" />
-                                                <path
-                                                    d="M16.5 12.75H7.5C7.08 12.75 6.75 12.42 6.75 12C6.75 11.58 7.08 11.25 7.5 11.25H16.5C16.92 11.25 17.25 11.58 17.25 12C17.25 12.42 16.92 12.75 16.5 12.75Z"
-                                                    fill="#2F5597" />
-                                            </svg>
-                                        </span>
-
-                                    </div>
-                                </div>
-
-                            </template>
-                        </template>
-                    </template>
-
-
-
-                    <template lwc:if={isSchemeView}>
-                        <!-- Running schemes applicable to this Account (all types, both Primary and Secondary) -->
-                        <template if:true={hasCoverageSchemes}>
-                            <div class="coverage-schemes">
-                                <div class="coverage-schemes__search">
-                                    <lightning-input
-                                        type="search"
-                                        placeholder="Search Scheme or SKU..."
-                                        value={coverageSearch}
-                                        onchange={handleCoverageSearch}
-                                        variant="label-hidden"
-                                        label="Search">
-                                    </lightning-input>
-                                </div>
-                                <template for:each={displayCoverageSchemes} for:item="cs">
-                                    <div key={cs.id} class="coverage-scheme-card">
-                                        <div class="coverage-scheme-card__head">
-                                            <strong class="coverage-scheme-card__name">{cs.name}</strong>
-                                            <span class="coverage-scheme-card__spacer"></span>
-                                            <lightning-button-icon
-                                                icon-name={cs.expandIcon}
-                                                variant="bare"
-                                                size="small"
-                                                alternative-text="Toggle"
-                                                data-scheme-id={cs.id}
-                                                onclick={toggleCoverageScheme}>
-                                            </lightning-button-icon>
-                                        </div>
-                                        <template if:true={cs.isExpanded}>
-                                            <div class="coverage-scheme-card__body">
-                                                <div class="kv-row">
-                                                    <span class="kv-row__label">Scheme Type</span>
-                                                    <span class="kv-row__value">{cs.schemeType}</span>
-                                                </div>
-                                                <template for:each={cs.slabRows} for:item="r">
-                                                    <div key={r.label} class="kv-row kv-row--offer">
-                                                        <span class="kv-row__label">{r.label}</span>
-                                                        <span class="kv-row__value">{r.value}</span>
-                                                    </div>
-                                                </template>
-                                                <div class="kv-row">
-                                                    <span class="kv-row__label">Valid</span>
-                                                    <span class="kv-row__value">{cs.validLabel}</span>
-                                                </div>
-                                                <template if:true={cs.productCategory}>
-                                                    <div class="coverage-scheme-card__group">Category: {cs.productCategory}</div>
-                                                </template>
-                                                <template if:true={cs.productGroupName}>
-                                                    <div class="coverage-scheme-card__group">Group: {cs.productGroupName}</div>
-                                                    <template for:each={cs.products} for:item="p">
-                                                        <div key={p.id} class="coverage-scheme-product">
-                                                            <span class="coverage-scheme-product__name">{p.name}</span>
-                                                            <span class="coverage-scheme-product__sku">{p.sku}</span>
+                                                    <template if:true={item.isSchemeExpanded}>
+                                                        <div class="scheme-inline-list">
+                                                            <template for:each={item.coveringSchemes} for:item="cs">
+                                                                <div key={cs.id} class="coverage-scheme-card coverage-scheme-card--inline">
+                                                                    <div class="coverage-scheme-card__head">
+                                                                        <strong class="coverage-scheme-card__name">{cs.name}</strong>
+                                                                    </div>
+                                                                    <div class="coverage-scheme-card__body">
+                                                                        <div class="kv-row">
+                                                                            <span class="kv-row__label">Scheme Type</span>
+                                                                            <span class="kv-row__value">{cs.schemeType}</span>
+                                                                        </div>
+                                                                        <template for:each={cs.slabRows} for:item="r">
+                                                                            <div key={r.label} class="kv-row kv-row--offer">
+                                                                                <span class="kv-row__label">{r.label}</span>
+                                                                                <span class="kv-row__value">{r.value}</span>
+                                                                            </div>
+                                                                        </template>
+                                                                        <div class="kv-row">
+                                                                            <span class="kv-row__label">Valid</span>
+                                                                            <span class="kv-row__value">{cs.validLabel}</span>
+                                                                        </div>
+                                                                        <template if:true={cs.productCategory}>
+                                                                            <div class="coverage-scheme-card__group">Category: {cs.productCategory}</div>
+                                                                        </template>
+                                                                        <template if:true={cs.productGroupName}>
+                                                                            <div class="coverage-scheme-card__group">Group: {cs.productGroupName}</div>
+                                                                            <template for:each={cs.products} for:item="p">
+                                                                                <div key={p.id} class="coverage-scheme-product">
+                                                                                    <span class="coverage-scheme-product__name">{p.name}</span>
+                                                                                    <span class="coverage-scheme-product__sku">{p.sku}</span>
+                                                                                </div>
+                                                                            </template>
+                                                                        </template>
+                                                                    </div>
+                                                                </div>
+                                                            </template>
                                                         </div>
                                                     </template>
-                                                </template>
-                                            </div>
+
+                                                </div>
+                                            </template>
                                         </template>
                                     </div>
                                 </template>
-                            </div>
-                        </template>
 
-                        <!-- Show a message for Primary Customers with custom styling -->
-                        <template lwc:if={isPrimaryAccount}>
-                            <div class="no-schemes-message">
-                                <lightning-icon icon-name="utility:error" size="small"
-                                    class="no-schemes-icon"></lightning-icon>
-                                <span class="no-schemes-text">No schemes are applicable for Primary Customers.</span>
-                            </div>
-                        </template>
 
-                        <!-- Show schemes for Secondary Customers -->
-                        <template lwc:if={isSecondaryAccount}>
-                            <template lwc:if={schemeOffer}>
+                            </template>
 
-                                <div class="scheme-container">
-                                    <template for:each={schemeOffer} for:item="scheme">
-                                        <div key={scheme.id} class="scheme-card">
-                                            <div class="scheme-header">
-                                                <strong>{scheme.name}</strong>
-                                                <div>{scheme.description}</div>
+
+
+                            <template lwc:if={productData}>
+                                <div class="task-head slds-align_absolute-center">Other</div>
+                                <template for:each={productData} for:item="item" for:index="i">
+                                    <div class="task" key={item.Id}>
+                                        <div class="task-left">
+
+                                            <div class="task-desc">
+                                                <div class="task-title">{item.name}</div>
+                                                <div class="task-date">{item.createdDate}</div>
                                             </div>
 
-                                            <template for:each={scheme.lineItems} for:item="item">
-                                                <div key={item.id}
-                                                    class="scheme-product-row {item.isSelected ? 'selected-product' : ''}">
-                                                    <div class="scheme-product-col product-name">🎯
-                                                        {item.offerProductName}</div>
 
-                                                    <template if:true={item.isFreeProduct}>
-                                                        <div class="scheme-product-col buy">🛒 Buy: {item.minQty}</div>
-                                                        <div class="scheme-product-col free">🎁 Free: {item.freeQty}
+                                        </div>
+                                        <div class="task-price">₹{item.MRP}</div>
+                                        <div class="task-inputs">
+                                            <span onclick={decProdPro} data-index={i} data-id={i}>
+                                                <svg class="decrement" width="24" height="24" viewBox="0 0 24 24"
+                                                    fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path
+                                                        d="M3 12C3 10.8181 3.23279 9.64778 3.68508 8.55585C4.13738 7.46392 4.80031 6.47177 5.63604 5.63604C6.47177 4.80031 7.46392 4.13738 8.55585 3.68508C9.64778 3.23279 10.8181 3 12 3C13.1819 3 14.3522 3.23279 15.4442 3.68508C16.5361 4.13738 17.5282 4.80031 18.364 5.63604C19.1997 6.47177 19.8626 7.46392 20.3149 8.55585C20.7672 9.64778 21 10.8181 21 12C21 14.3869 20.0518 16.6761 18.364 18.364C16.6761 20.0518 14.3869 21 12 21C9.61305 21 7.32387 20.0518 5.63604 18.364C3.94821 16.6761 3 14.3869 3 12ZM12 1.5C9.21523 1.5 6.54451 2.60625 4.57538 4.57538C2.60625 6.54451 1.5 9.21523 1.5 12C1.5 14.7848 2.60625 17.4555 4.57538 19.4246C6.54451 21.3938 9.21523 22.5 12 22.5C14.7848 22.5 17.4555 21.3938 19.4246 19.4246C21.3938 17.4555 22.5 14.7848 22.5 12C22.5 9.21523 21.3938 6.54451 19.4246 4.57538C17.4555 2.60625 14.7848 1.5 12 1.5ZM8.25 11.25C8.05109 11.25 7.86032 11.329 7.71967 11.4697C7.57902 11.6103 7.5 11.8011 7.5 12C7.5 12.1989 7.57902 12.3897 7.71967 12.5303C7.86032 12.671 8.05109 12.75 8.25 12.75H15.75C15.9489 12.75 16.1397 12.671 16.2803 12.5303C16.421 12.3897 16.5 12.1989 16.5 12C16.5 11.8011 16.421 11.6103 16.2803 11.4697C16.1397 11.329 15.9489 11.25 15.75 11.25H8.25Z"
+                                                        fill="#2F5597" />
+                                                </svg>
+                                            </span>
+
+                                            <input type="number" class="task-input" value={item.value} data-index={index}
+                                                data-id={i} onchange={prodChangePro} />
+
+                                            <span onclick={incProdPro} data-id={index} data-index={i}>
+                                                <svg class="increment" width="24" height="24" viewBox="0 0 24 24"
+                                                    fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path
+                                                        d="M12 22.5C6.21 22.5 1.5 17.79 1.5 12C1.5 6.21 6.21 1.5 12 1.5C17.79 1.5 22.5 6.21 22.5 12C22.5 17.79 17.79 22.5 12 22.5ZM12 3C7.035 3 3 7.035 3 12C3 16.965 7.035 21 12 21C16.965 21 21 16.965 21 12C21 7.035 16.965 3 12 3Z"
+                                                        fill="#2F5597" />
+                                                    <path
+                                                        d="M12 17.25C11.58 17.25 11.25 16.92 11.25 16.5V7.5C11.25 7.08 11.58 6.75 12 6.75C12.42 6.75 12.75 7.08 12.75 7.5V16.5C12.75 16.92 12.42 17.25 12 17.25Z"
+                                                        fill="#2F5597" />
+                                                    <path
+                                                        d="M16.5 12.75H7.5C7.08 12.75 6.75 12.42 6.75 12C6.75 11.58 7.08 11.25 7.5 11.25H16.5C16.92 11.25 17.25 11.58 17.25 12C17.25 12.42 16.92 12.75 16.5 12.75Z"
+                                                        fill="#2F5597" />
+                                                </svg>
+                                            </span>
+
+                                        </div>
+                                    </div>
+
+                                </template>
+                            </template>
+                        </template>
+
+
+
+                        <template lwc:if={isSchemeView}>
+                            <!-- Running schemes applicable to this Account (all types, both Primary and Secondary) -->
+                            <template if:true={hasCoverageSchemes}>
+                                <div class="coverage-schemes">
+                                    <div class="coverage-schemes__search">
+                                        <lightning-input
+                                            type="search"
+                                            placeholder="Search Scheme or SKU..."
+                                            value={coverageSearch}
+                                            onchange={handleCoverageSearch}
+                                            variant="label-hidden"
+                                            label="Search">
+                                        </lightning-input>
+                                    </div>
+                                    <template for:each={displayCoverageSchemes} for:item="cs">
+                                        <div key={cs.id} class="coverage-scheme-card">
+                                            <div class="coverage-scheme-card__head">
+                                                <strong class="coverage-scheme-card__name">{cs.name}</strong>
+                                                <span class="coverage-scheme-card__spacer"></span>
+                                                <lightning-button-icon
+                                                    icon-name={cs.expandIcon}
+                                                    variant="bare"
+                                                    size="small"
+                                                    alternative-text="Toggle"
+                                                    data-scheme-id={cs.id}
+                                                    onclick={toggleCoverageScheme}>
+                                                </lightning-button-icon>
+                                            </div>
+                                            <template if:true={cs.isExpanded}>
+                                                <div class="coverage-scheme-card__body">
+                                                    <div class="kv-row">
+                                                        <span class="kv-row__label">Scheme Type</span>
+                                                        <span class="kv-row__value">{cs.schemeType}</span>
+                                                    </div>
+                                                    <template for:each={cs.slabRows} for:item="r">
+                                                        <div key={r.label} class="kv-row kv-row--offer">
+                                                            <span class="kv-row__label">{r.label}</span>
+                                                            <span class="kv-row__value">{r.value}</span>
                                                         </div>
                                                     </template>
-
-                                                    <template if:true={item.isPerUOMDiscount}>
-                                                        <div class="scheme-product-col buy">💸 ₹{item.discountPerUOM}
-                                                            off / unit</div>
-                                                    </template>
-
-                                                    <template if:true={item.isSaleValueDiscount}>
-                                                        <div class="scheme-product-col buy">💰
-                                                            {item.discountPercentOnSale}% off above
-                                                            ₹{item.saleValueThreshold}</div>
-                                                    </template>
-
-                                                    <div class="scheme-product-col action">
-                                                        <template lwc:if={item.isSelected}>
-                                                            <span class="selected-icon">
-                                                                ✅ Selected
-                                                            </span>
-                                                        </template>
-
+                                                    <div class="kv-row">
+                                                        <span class="kv-row__label">Valid</span>
+                                                        <span class="kv-row__value">{cs.validLabel}</span>
                                                     </div>
+                                                    <template if:true={cs.productCategory}>
+                                                        <div class="coverage-scheme-card__group">Category: {cs.productCategory}</div>
+                                                    </template>
+                                                    <template if:true={cs.productGroupName}>
+                                                        <div class="coverage-scheme-card__group">Group: {cs.productGroupName}</div>
+                                                        <template for:each={cs.products} for:item="p">
+                                                            <div key={p.id} class="coverage-scheme-product">
+                                                                <span class="coverage-scheme-product__name">{p.name}</span>
+                                                                <span class="coverage-scheme-product__sku">{p.sku}</span>
+                                                            </div>
+                                                        </template>
+                                                    </template>
                                                 </div>
                                             </template>
                                         </div>
                                     </template>
                                 </div>
                             </template>
-                            <template lwc:else>
-                                <div class="slds-align_absolute-center"
-                                    style="padding: 1rem; font-weight: 500; color: #666;">
-                                    No Schemes are currently available.
-                                </div>
-                            </template>
-                        </template>
-                    </template>
 
-
-
-                    <!-- Added product -->
-                    <template lwc:if={isProductAdded}>
-                        <br />
-                        <div class="product-header-row">
-                            <div class="col sku-name">SKU Name</div>
-                            <div class="col mrp">MRP</div>
-                            <div class="col unit-price">Unit Price</div>
-                            <div class="col uom">UOM</div>
-                            <div class="col quantity">Quantity</div>
-                        </div>
-                        <template for:each={getSelectedProduct} for:item="item">
-                            <div class="product-data-row " key={item.Id}>
-                                <div class="col sku-name">{item.name}</div>
-                                <div class="col mrp">₹{item.MRP}</div>
-                                <div class="col unit-price">₹{item.UnitPricePriceBook}</div>
-                                <div class="col uom">{item.uom}</div>
-                                <div class="col quantity">{item.value}</div>
-                            </div>
-                        </template>
-                    </template>
-
-
-                    <!-- Summary product -->
-                    <template lwc:if={isSummaryProduct}>
-                        <div class="slds-grid slds-wrap" style="padding-bottom:70px">
-                            <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small">
-                                <lightning-input label="Delivery To" type="text" value={deliveryTo}
-                                    onchange={handleDeliveryToChange} required>
-                                </lightning-input>
-                            </div>
-                            <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small">
-                                <lightning-input type="date" label="Expected Delivery Date" value={expectedDeliveryDate}
-                                    onchange={handleExpectedDeliveryChange} required min={minExpectedDeliveryDate}>
-                                </lightning-input>
-                            </div>
+                            <!-- Show a message for Primary Customers with custom styling -->
                             <template lwc:if={isPrimaryAccount}>
+                                <div class="no-schemes-message">
+                                    <lightning-icon icon-name="utility:error" size="small"
+                                        class="no-schemes-icon"></lightning-icon>
+                                    <span class="no-schemes-text">No schemes are applicable for Primary Customers.</span>
+                                </div>
+                            </template>
+
+                            <!-- Show schemes for Secondary Customers -->
+                            <template lwc:if={isSecondaryAccount}>
+                                <template lwc:if={schemeOffer}>
+
+                                    <div class="scheme-container">
+                                        <template for:each={schemeOffer} for:item="scheme">
+                                            <div key={scheme.id} class="scheme-card">
+                                                <div class="scheme-header">
+                                                    <strong>{scheme.name}</strong>
+                                                    <div>{scheme.description}</div>
+                                                </div>
+
+                                                <template for:each={scheme.lineItems} for:item="item">
+                                                    <div key={item.id}
+                                                        class="scheme-product-row {item.isSelected ? 'selected-product' : ''}">
+                                                        <div class="scheme-product-col product-name">🎯
+                                                            {item.offerProductName}</div>
+
+                                                        <template if:true={item.isFreeProduct}>
+                                                            <div class="scheme-product-col buy">🛒 Buy: {item.minQty}</div>
+                                                            <div class="scheme-product-col free">🎁 Free: {item.freeQty}
+                                                            </div>
+                                                        </template>
+
+                                                        <template if:true={item.isPerUOMDiscount}>
+                                                            <div class="scheme-product-col buy">💸 ₹{item.discountPerUOM}
+                                                                off / unit</div>
+                                                        </template>
+
+                                                        <template if:true={item.isSaleValueDiscount}>
+                                                            <div class="scheme-product-col buy">💰
+                                                                {item.discountPercentOnSale}% off above
+                                                                ₹{item.saleValueThreshold}</div>
+                                                        </template>
+
+                                                        <div class="scheme-product-col action">
+                                                            <template lwc:if={item.isSelected}>
+                                                                <span class="selected-icon">
+                                                                    ✅ Selected
+                                                                </span>
+                                                            </template>
+
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <template lwc:else>
+                                    <div class="slds-align_absolute-center"
+                                        style="padding: 1rem; font-weight: 500; color: #666;">
+                                        No Schemes are currently available.
+                                    </div>
+                                </template>
+                            </template>
+                        </template>
+
+
+
+                        <!-- Added product -->
+                        <template lwc:if={isProductAdded}>
+                            <br />
+                            <div class="product-header-row">
+                                <div class="col sku-name">SKU Name</div>
+                                <div class="col mrp">MRP</div>
+                                <div class="col unit-price">Unit Price</div>
+                                <div class="col uom">UOM</div>
+                                <div class="col quantity">Quantity</div>
+                            </div>
+                            <template for:each={getSelectedProduct} for:item="item">
+                                <div class="product-data-row " key={item.Id}>
+                                    <div class="col sku-name">{item.name}</div>
+                                    <div class="col mrp">₹{item.MRP}</div>
+                                    <div class="col unit-price">₹{item.UnitPricePriceBook}</div>
+                                    <div class="col uom">{item.uom}</div>
+                                    <div class="col quantity">{item.value}</div>
+                                </div>
+                            </template>
+                        </template>
+
+
+                        <!-- Summary product -->
+                        <template lwc:if={isSummaryProduct}>
+                            <div class="slds-grid slds-wrap" style="padding-bottom:70px">
                                 <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small">
-                                    <lightning-input type="text" label="PO Number" value={poNum}
-                                        onchange={handlePoNumChange}>
+                                    <lightning-input label="Delivery To" type="text" value={deliveryTo}
+                                        onchange={handleDeliveryToChange} required>
                                     </lightning-input>
                                 </div>
                                 <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small">
-                                    <lightning-input type="date" label="PO Date" value={poDate}
-                                        onchange={handlePoDateChange} required={isModerTrade}>
+                                    <lightning-input type="date" label="Expected Delivery Date" value={expectedDeliveryDate}
+                                        onchange={handleExpectedDeliveryChange} required min={minExpectedDeliveryDate}>
                                     </lightning-input>
                                 </div>
-                             
-                            </template>
-                            <template lwc:if={isShowOwner}>
+                                <template lwc:if={isPrimaryAccount}>
+                                    <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small">
+                                        <lightning-input type="text" label="PO Number" value={poNum}
+                                            onchange={handlePoNumChange}>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small">
+                                        <lightning-input type="date" label="PO Date" value={poDate}
+                                            onchange={handlePoDateChange} required={isModerTrade}>
+                                        </lightning-input>
+                                    </div>
+                                
+                                </template>
+                                <template lwc:if={isShowOwner}>
+                                    <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small">
+                                        <c-lookup label="Owner" placeholder="Search User" object-api-name="User"
+                                            icon-name="standard:user" filter-value={acccountId}
+                                            filter-field="Order_Owner__c" onlookupselect={handleLookupChange} required>
+                                        </c-lookup>
+                                    </div>
+                                </template>
                                 <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small">
-                                    <c-lookup label="Owner" placeholder="Search User" object-api-name="User"
-                                        icon-name="standard:user" filter-value={acccountId}
-                                        filter-field="Order_Owner__c" onlookupselect={handleLookupChange} required>
-                                    </c-lookup>
-                                </div>
-                            </template>
-                            <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small">
 
-                                <!--<div class="slds-col slds-size_1-of-1 slds-m-top_medium">
-        <div class="slds-text-heading_small">Total Net Weight: {totalNetWeight} kg</div>
-    </div>-->
+                                    <!--<div class="slds-col slds-size_1-of-1 slds-m-top_medium">
+            <div class="slds-text-heading_small">Total Net Weight: {totalNetWeight} kg</div>
+        </div>-->
 
-                                <!-- NEW: Alternate UOM Grouping Display -->
-                                <div class="slds-col slds-size_1-of-1 slds-m-top_medium">
-                                    <lightning-card title="Package Summary" class="slds-m-top_medium">
-                                        <div class="custom-table-container">
-                                            <table class="slds-table custom-scroll-table">
-                                                <thead>
-                                                    <template lwc:if={isPrimaryAccount}>
-                                                        <tr>
-                                                            <th>Packaging Type</th>
-                                                            <th>Total Cases</th>
-                                                            <th>Total EA</th>
-                                                            <th>Number of Products</th>
-                                                        </tr>
-                                                    </template>
-                                                    <template lwc:else>
-                                                        <tr>
-                                                            <th>Packaging Type</th>
-                                                            <th>Total EA</th>
-                                                            <th>Number of Products</th>
-                                                        </tr>
-                                                    </template>
-                                                </thead>
-                                                <tbody>
-                                                    <template for:each={alternateUOMGroups} for:item="uomGroup">
+                                    <!-- NEW: Alternate UOM Grouping Display -->
+                                    <div class="slds-col slds-size_1-of-1 slds-m-top_medium">
+                                        <lightning-card title="Package Summary" class="slds-m-top_medium">
+                                            <div class="custom-table-container">
+                                                <table class="slds-table custom-scroll-table">
+                                                    <thead>
                                                         <template lwc:if={isPrimaryAccount}>
-                                                            <tr key={uomGroup.alternateUOM}>
-                                                                <td>{uomGroup.alternateUOM}</td>
-                                                                <td>{uomGroup.totalCaseQty}</td>
-                                                                <td>{uomGroup.totalEachQty}</td>
-                                                                <td>{uomGroup.products.length}</td>
+                                                            <tr>
+                                                                <th>Packaging Type</th>
+                                                                <th>Total Cases</th>
+                                                                <th>Total EA</th>
+                                                                <th>Number of Products</th>
                                                             </tr>
                                                         </template>
                                                         <template lwc:else>
-                                                            <tr key={uomGroup.alternateUOM}>
-                                                                <td>{uomGroup.alternateUOM}</td>
-                                                                <td>{uomGroup.totalEachQty}</td>
-                                                                <td>{uomGroup.products.length}</td>
+                                                            <tr>
+                                                                <th>Packaging Type</th>
+                                                                <th>Total EA</th>
+                                                                <th>Number of Products</th>
+                                                            </tr>
+                                                        </template>
+                                                    </thead>
+                                                    <tbody>
+                                                        <template for:each={alternateUOMGroups} for:item="uomGroup">
+                                                            <template lwc:if={isPrimaryAccount}>
+                                                                <tr key={uomGroup.alternateUOM}>
+                                                                    <td>{uomGroup.alternateUOM}</td>
+                                                                    <td>{uomGroup.totalCaseQty}</td>
+                                                                    <td>{uomGroup.totalEachQty}</td>
+                                                                    <td>{uomGroup.products.length}</td>
+                                                                </tr>
+                                                            </template>
+                                                            <template lwc:else>
+                                                                <tr key={uomGroup.alternateUOM}>
+                                                                    <td>{uomGroup.alternateUOM}</td>
+                                                                    <td>{uomGroup.totalEachQty}</td>
+                                                                    <td>{uomGroup.products.length}</td>
+                                                                </tr>
+                                                            </template>
+
+                                                        </template>
+                                                        <template lwc:if={isPrimaryAccount}>
+                                                            <tr class="plant-totals">
+                                                                <td colspan="3"><b>Total Net Weight</b></td>
+                                                                <td><b>{totalNetWeight} kg</b></td>
+                                                            </tr>
+                                                        </template>
+                                                        <template lwc:else>
+                                                            <tr class="plant-totals">
+                                                                <td colspan="2"><b>Total Net Weight</b></td>
+                                                                <td><b>{totalNetWeight} kg</b></td>
                                                             </tr>
                                                         </template>
 
-                                                    </template>
-                                                    <template lwc:if={isPrimaryAccount}>
-                                                        <tr class="plant-totals">
-                                                            <td colspan="3"><b>Total Net Weight</b></td>
-                                                            <td><b>{totalNetWeight} kg</b></td>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </lightning-card>
+                                    </div>
+                                    <br />
+                                    <template for:each={plantGroups} for:item="plantGroup">
+                                        <lightning-card title={plantGroup.plantName} key={plantGroup.plantName}
+                                            class="slds-m-top_medium">
+                                            <div class="custom-table-container">
+                                                <table class="slds-table custom-scroll-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Name</th>
+                                                            <th>Qty (EA)</th>
+                                                            <th>Price</th>
+                                                            <th>GST%</th>
+                                                            <th>GST Amt</th>
+                                                            <th>Net Value</th>
+                                                            <th>Case Qty</th>
+                                                            <th>In Kg</th>
                                                         </tr>
-                                                    </template>
-                                                    <template lwc:else>
+                                                    </thead>
+                                                    <tbody>
+                                                        <template for:each={plantGroup.products} for:item="item">
+                                                            <tr key={item.id}>
+                                                                <td>{item.name}</td>
+                                                                <td>{item.displayQty}</td>
+                                                                <td>₹{item.unitPrice} * {item.displayQty}</td>
+                                                                <td>{item.taxPercent}%</td>
+                                                                <td>₹{item.taxAmt}</td>
+                                                                <td>₹{item.netValue}</td>
+                                                                <td>{item.caseQuantity}</td>
+                                                                <td>{item.productNetWeight}</td>
+                                                            </tr>
+                                                        </template>
                                                         <tr class="plant-totals">
-                                                            <td colspan="2"><b>Total Net Weight</b></td>
-                                                            <td><b>{totalNetWeight} kg</b></td>
+                                                            <td><b>Plant Total</b></td>
+                                                            <td></td>
+                                                            <td><b>₹{plantGroup.plantSubTotal}</b></td>
+                                                            <td></td>
+                                                            <td><b>₹{plantGroup.plantTax}</b></td>
+                                                            <td><b>₹{plantGroup.plantTotal}</b></td>
+                                                            <td><b>{plantGroup.plantCaseQyt}</b></td>
+                                                            <td><b>{plantGroup.plantProductWeight} Kg</b></td>
                                                         </tr>
-                                                    </template>
-
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </lightning-card>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </lightning-card>
+                                    </template>
                                 </div>
                                 <br />
-                                <template for:each={plantGroups} for:item="plantGroup">
-                                    <lightning-card title={plantGroup.plantName} key={plantGroup.plantName}
-                                        class="slds-m-top_medium">
-                                        <div class="custom-table-container">
-                                            <table class="slds-table custom-scroll-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Name</th>
-                                                        <th>Qty (EA)</th>
-                                                        <th>Price</th>
-                                                        <th>GST%</th>
-                                                        <th>GST Amt</th>
-                                                        <th>Net Value</th>
-                                                        <th>Case Qty</th>
-                                                        <th>In Kg</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <template for:each={plantGroup.products} for:item="item">
-                                                        <tr key={item.id}>
-                                                            <td>{item.name}</td>
-                                                            <td>{item.displayQty}</td>
-                                                            <td>₹{item.unitPrice} * {item.displayQty}</td>
-                                                            <td>{item.taxPercent}%</td>
-                                                            <td>₹{item.taxAmt}</td>
-                                                            <td>₹{item.netValue}</td>
-                                                            <td>{item.caseQuantity}</td>
-                                                            <td>{item.productNetWeight}</td>
-                                                        </tr>
-                                                    </template>
-                                                    <tr class="plant-totals">
-                                                        <td><b>Plant Total</b></td>
-                                                        <td></td>
-                                                        <td><b>₹{plantGroup.plantSubTotal}</b></td>
-                                                        <td></td>
-                                                        <td><b>₹{plantGroup.plantTax}</b></td>
-                                                        <td><b>₹{plantGroup.plantTotal}</b></td>
-                                                        <td><b>{plantGroup.plantCaseQyt}</b></td>
-                                                        <td><b>{plantGroup.plantProductWeight} Kg</b></td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </lightning-card>
-                                </template>
-                            </div>
-                            <br />
-                            <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small">
-                                <div class="custom-table-container">
-                                    <table class="slds-table custom-scroll-table">
-                                        <thead>
-                                            <tr>
-                                                <th>No of Orders</th>
-                                                <th>Net Qty</th>
-                                                <th>Price</th>
-                                                <th>Net GST Amt</th>
-                                                <th>Net Value of Orders</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr class="plant-totals">
-                                                <td>{plantGroups.length}</td>
-                                                <td>{totalQnt}</td>
-                                                <td>₹{subTotalAmt}</td>
-                                                <td>₹{totalTaxAmt}</td>
-                                                <td><strong>₹{grandTotalAmt}</strong></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small">
+                                    <div class="custom-table-container">
+                                        <table class="slds-table custom-scroll-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>No of Orders</th>
+                                                    <th>Net Qty</th>
+                                                    <th>Price</th>
+                                                    <th>Net GST Amt</th>
+                                                    <th>Net Value of Orders</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr class="plant-totals">
+                                                    <td>{plantGroups.length}</td>
+                                                    <td>{totalQnt}</td>
+                                                    <td>₹{subTotalAmt}</td>
+                                                    <td>₹{totalTaxAmt}</td>
+                                                    <td><strong>₹{grandTotalAmt}</strong></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small" style="padding-bottom:100px">
+                                <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small" style="padding-bottom:100px">
 
-                                <div class="task-button pointer slds-m-top_x-small" onclick={handleGetLatLon}>
-                                    Save Orders
+                                    <div class="task-button pointer slds-m-top_x-small" onclick={handleGetLatLon}>
+                                        Save Orders
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </template>
+
                     </template>
-
-                </template>
-            </div>
+                </div>
+            </template>
             <div class="screen-3-bottom-bar">
                 <div class="bottom-bar-item pointer" onclick={updateOriginalProductData}>
                     <!-- <i class="material-symbols-outlined" style="font-size: 16px;">all_out</i> -->

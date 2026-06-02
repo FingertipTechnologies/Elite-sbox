@@ -2,9 +2,14 @@
 <ListView xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>All</fullName>
     <columns>NAME</columns>
-    <columns>Description__c</columns>
+    <columns>Sales_Channel__c</columns>
+    <columns>Scheme_Type__c</columns>
+    <columns>Scheme_Product_Group__c</columns>
+    <columns>Scheme_Product_Category__c</columns>
     <columns>Scheme_Start_Date__c</columns>
     <columns>Scheme_End_Date__c</columns>
+    <columns>Description__c</columns>
+    <columns>IsActive__c</columns>
     <columns>CREATEDBY_USER</columns>
     <columns>CREATED_DATE</columns>
     <filterScope>Everything</filterScope>

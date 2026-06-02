@@ -27,9 +27,22 @@
 .force-height {
     height: 30rem !important;
 }
-.content-loading {
-    min-height: 100vh;
-    min-height: 100dvh;
+
+@media (max-width: 768px) {
+    .scroll-wrapper {
+        height: calc(100dvh - 56px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 60px;
+    }
+}
+
+@media (max-width: 768px) {
+    .content-loading {
+        height: calc(100dvh - 56px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
 }
 .red-icon {
     --sds-c-icon-color-foreground: red;

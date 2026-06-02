@@ -14,7 +14,15 @@
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
-                <field>Scheme_Product_Category__c</field>
+                <field>Scheme_Type__c</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>Scheme_Start_Date__c</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>Scheme_End_Date__c</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
@@ -29,6 +37,10 @@
             <layoutItems>
                 <behavior>Edit</behavior>
                 <field>Scheme_Product_Group__c</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>Scheme_Product_Category__c</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
