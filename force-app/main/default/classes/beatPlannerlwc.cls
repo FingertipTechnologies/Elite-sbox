@@ -3283,11 +3283,9 @@ global with sharing class beatPlannerlwc {
                     item.Scheme_Item__c = (Id) String.valueOf(schemeItemObj);
                 }
 
-                // Scheme engine: applied Scheme__c lookup + discount (Free Quantity / QPS / FOC)
-                Object schemeObj = product.get('Scheme__c');
-                if (schemeObj != null && String.isNotBlank(String.valueOf(schemeObj))) {
-                    item.Scheme__c = (Id) String.valueOf(schemeObj);
-                }
+                // Scheme engine: net per-line discount (Free Quantity / QPS / FOC).
+                // The applied schemes themselves are recorded as Order_Scheme_Applied__c
+                // rows, since one order item can have multiple schemes applied.
                 Decimal discVal = asDecimal(product.get('Discount__c'));
                 if (discVal != null) {
                     item.Discount__c = discVal;

@@ -945,7 +945,6 @@ export default class ProductScreen4 extends LightningElement {
                 Before_Scheme_Unit_Price__c: item.UnitPricePriceBook,
                 After_Scheme_Unit_Price__c: item.discountedUnitPrice || item.UnitPricePriceBook,
                 Scheme_Item__c: item.schemeItemId || null,
-                Scheme__c: item._appliedSchemeId || null,
                 Discount__c: item._lineDiscount || 0,
                 Tax__c: item.taxPercent || 0,
                 Tax_Amount__c: parseFloat(item.taxAmt),
