@@ -1694,7 +1694,7 @@ global with sharing class beatPlannerlwc {
         List<Product__c> products = new List<Product__c>();
         if(acc.Customer_Type__c == 'Primary Customer'){
             products = [
-                SELECT Id, Name, Channel__c, Net_Weight__c,Product_Category_Name__c,Delivery_Plant__c,Alternate_UOM__c,Uom_Conversion__c, Product_Category1__c, List_Price__c,
+                SELECT Id, Name, Channel__c, Net_Weight__c,Product_Category_Name__c,Product_Sub_Group__c,Delivery_Plant__c,Alternate_UOM__c,Uom_Conversion__c, Product_Category1__c, List_Price__c,
                 MRP__c, Tax_Percent__c, Tax_Class__c, CreatedDate, UOM__c,
                 (SELECT Id, Unit_Price__c, MRP__c,Tax__c, UOM__c, Customer__c, Customer_Type__c, Region__c, Secondary_Customer_Category__c,Sales_Channel__c
                  FROM Price_Books__r where Customer_Type__c =:acc.Customer_Type__c and Customer__c =: acc.Id Order by LastModifiedDate Desc LIMIT 1),(select Id,Name,Bill_Date__c,Price_per_unit__c,Product__c from Invoice_items__r where Invoice__r.Store__c =:acc.Id and FOC_Price__c = false and Bill_Date__c >= 2025-09-22 Order By Bill_Date__c Desc LIMIT 1)
@@ -1704,7 +1704,7 @@ global with sharing class beatPlannerlwc {
         }
         else{
             products = [
-                SELECT Id, Name, Channel__c, Net_Weight__c,Product_Category_Name__c,Delivery_Plant__c,Alternate_UOM__c,Uom_Conversion__c, Product_Category1__c, List_Price__c,
+                SELECT Id, Name, Channel__c, Net_Weight__c,Product_Category_Name__c,Product_Sub_Group__c,Delivery_Plant__c,Alternate_UOM__c,Uom_Conversion__c, Product_Category1__c, List_Price__c,
                 MRP__c, Tax_Percent__c, Tax_Class__c, CreatedDate, UOM__c,
                 (SELECT Id, Unit_Price__c, MRP__c,Tax__c, UOM__c, Customer__c, Customer_Type__c, Region__c, Secondary_Customer_Category__c,Sales_Channel__c
                  FROM Price_Books__r where Customer_Type__c =:acc.Customer_Type__c and Sales_Channel__c IN: channelSet)
@@ -1745,6 +1745,7 @@ global with sharing class beatPlannerlwc {
             pd.id = p.Id;
             pd.name = p.Name;
             pd.category = p.Product_Category_Name__c;
+            pd.subGroup = p.Product_Sub_Group__c;
             pd.UnitPricePriceBook = 0;
             pd.originalUnitPrice = 0;
            
@@ -2347,8 +2348,9 @@ global with sharing class beatPlannerlwc {
         Set<Id> matchedSchemeIds = new Set<Id>();
         for (Scheme__c m : matched) matchedSchemeIds.add(m.Id);
         Map<Id, List<Scheme_Slab__c>> slabsByScheme = new Map<Id, List<Scheme_Slab__c>>();
+        Set<Id> focProductIds = new Set<Id>();
         for (Scheme_Slab__c sl : [
-            SELECT Scheme__c, Slab_Sequence__c, Slab_Type__c,
+            SELECT Id, Scheme__c, Slab_Sequence__c, Slab_Type__c,
             Qualifying_Qty_Min__c, Qualifying_Qty_Max__c,
             Qualifying_Value_Min__c, Qualifying_Value_Max__c,
             Free_Qty__c, Benefit_Amount_Per_EA__c, Benefit_Percent__c,
@@ -2359,8 +2361,18 @@ global with sharing class beatPlannerlwc {
         ]) {
             if (!slabsByScheme.containsKey(sl.Scheme__c)) slabsByScheme.put(sl.Scheme__c, new List<Scheme_Slab__c>());
             slabsByScheme.get(sl.Scheme__c).add(sl);
+            if (sl.FOC_Product__c != null) focProductIds.add(sl.FOC_Product__c);
         }
-        
+
+        // FOC giveaway products carry their own price/tax so the engine can add a free line.
+        Map<Id, Product__c> focProducts = new Map<Id, Product__c>();
+        if (!focProductIds.isEmpty()) {
+            focProducts = new Map<Id, Product__c>([
+                SELECT Id, Tax_Percent__c, List_Price__c, Price__c, MRP__c
+                FROM Product__c WHERE Id IN :focProductIds
+            ]);
+        }
+
         for (Scheme__c s : matched) {
             CoverageScheme cs = new CoverageScheme();
             cs.id               = s.Id;
@@ -2377,6 +2389,9 @@ global with sharing class beatPlannerlwc {
                 ? productsByGroup.get(s.Scheme_Product_Group__c)
                 : new List<CoverageProductRef>();
             cs.slabRows         = buildSlabRows(s.Scheme_Type__c, slabsByScheme.get(s.Id));
+            cs.groupProductIds  = new List<Id>();
+            for (CoverageProductRef p : cs.products) cs.groupProductIds.add(p.id);
+            cs.slabsRaw         = buildSlabsRaw(slabsByScheme.get(s.Id), focProducts);
             out.schemes.add(cs);
             for (CoverageProductRef p : cs.products) {
                 if (!out.productSchemeIds.containsKey(p.id)) out.productSchemeIds.put(p.id, new List<Id>());
@@ -2424,6 +2439,42 @@ global with sharing class beatPlannerlwc {
         if (allowed == null || have == null) return false;
         for (String v : have) { if (allowed.contains(v)) return true; }
         return false;
+    }
+
+    // Resolve a FOC product's own selling price (mirrors line-item price fallback).
+    private static Decimal resolveFocPrice(Product__c p) {
+        if (p == null) return 0;
+        if (p.List_Price__c != null && p.List_Price__c > 0) return p.List_Price__c;
+        if (p.Price__c != null && p.Price__c > 0) return p.Price__c;
+        if (p.MRP__c != null) return p.MRP__c;
+        return 0;
+    }
+
+    private static List<CoverageSlabRaw> buildSlabsRaw(List<Scheme_Slab__c> slabs, Map<Id, Product__c> focProducts) {
+        List<CoverageSlabRaw> rows = new List<CoverageSlabRaw>();
+        if (slabs == null || slabs.isEmpty()) return rows;
+        for (Scheme_Slab__c sl : slabs) {
+            CoverageSlabRaw r = new CoverageSlabRaw();
+            r.slabId          = sl.Id;
+            r.seq             = sl.Slab_Sequence__c;
+            r.slabType        = sl.Slab_Type__c;
+            r.qtyMin          = sl.Qualifying_Qty_Min__c;
+            r.qtyMax          = sl.Qualifying_Qty_Max__c;
+            r.valMin          = sl.Qualifying_Value_Min__c;
+            r.valMax          = sl.Qualifying_Value_Max__c;
+            r.freeQty         = sl.Free_Qty__c;
+            r.benefitAmtPerEA = sl.Benefit_Amount_Per_EA__c;
+            r.benefitPercent  = sl.Benefit_Percent__c;
+            r.focProductId    = sl.FOC_Product__c;
+            r.focProductName  = sl.FOC_Product__r == null ? null : sl.FOC_Product__r.Name;
+            if (sl.FOC_Product__c != null && focProducts != null && focProducts.containsKey(sl.FOC_Product__c)) {
+                Product__c fp  = focProducts.get(sl.FOC_Product__c);
+                r.focUnitPrice = resolveFocPrice(fp);
+                r.focTaxPercent = fp.Tax_Percent__c;
+            }
+            rows.add(r);
+        }
+        return rows;
     }
 
     private static List<CoverageSlabRow> buildSlabRows(String schemeType, List<Scheme_Slab__c> slabs) {
@@ -3004,6 +3055,10 @@ global with sharing class beatPlannerlwc {
             String plantName = (String)plantOrder.get('plantName');
             ord.Delivery_Plant__c = (plantName == 'All Products') ? null : plantName.replace('Delivery Plant : ', '').trim();
             ord.PDP_Other_Type__c = null;
+
+            // Scheme engine (productScreen4) header-level discounts
+            ord.Category_Discount__c = asDecimal(plantOrder.get('categoryDiscount'));
+            ord.Order_Value_Discount__c = asDecimal(plantOrder.get('orderValueDiscount'));
             
             // Set Account and Visit relationships (only for new orders)
             if (!isUpdate) {
@@ -3099,8 +3154,16 @@ global with sharing class beatPlannerlwc {
             if (!existingItems.isEmpty()) {
                 delete existingItems;
             }
+            // Order_Scheme_Applied__c is master-detail to Order__c, not Order_Item__c — clear it too
+            List<Order_Scheme_Applied__c> existingApplied = [SELECT Id FROM Order_Scheme_Applied__c WHERE Order_Request__c = :orderRecordId];
+            if (!existingApplied.isEmpty()) {
+                delete existingApplied;
+            }
         }
         
+        // Scheme engine: applied-scheme audit rows (Order_Scheme_Applied__c)
+        List<Order_Scheme_Applied__c> allAppliedSchemes = new List<Order_Scheme_Applied__c>();
+
         // Step 7: Process the products for each plant order
         for (Integer i = 0; i < plantOrders.size(); i++) {
             // Here, we retrieve the 'products' as a List<Object> and manually convert each to Map<String, Object>
@@ -3122,6 +3185,30 @@ global with sharing class beatPlannerlwc {
             Id orderId = createdOrders[i].Id;
             Integer orderItemNu = 0;
             List<Order_Item__c> orderItemsToSort = new List<Order_Item__c>();
+
+            // Build Order_Scheme_Applied__c audit rows for this order (header-level)
+            Object appliedRaw = plantOrders[i].get('appliedSchemes');
+            if (appliedRaw instanceof List<Object>) {
+                for (Object ao : (List<Object>) appliedRaw) {
+                    if (!(ao instanceof Map<String, Object>)) continue;
+                    Map<String, Object> a = (Map<String, Object>) ao;
+                    Order_Scheme_Applied__c osa = new Order_Scheme_Applied__c();
+                    osa.Order_Request__c = orderId;
+                    Object sId = a.get('schemeId');
+                    if (sId != null && String.isNotBlank(String.valueOf(sId))) osa.Scheme__c = (Id) String.valueOf(sId);
+                    Object slId = a.get('slabId');
+                    if (slId != null && String.isNotBlank(String.valueOf(slId))) osa.Scheme_Slab__c = (Id) String.valueOf(slId);
+                    osa.Scheme_Type__c = (String) a.get('schemeType');
+                    osa.Free_Qty__c = asDecimal(a.get('freeQty'));
+                    osa.Benefit_Amount__c = asDecimal(a.get('benefitAmount'));
+                    osa.Discount_Percent__c = asDecimal(a.get('discountPercent'));
+                    osa.Sequence__c = asDecimal(a.get('sequence'));
+                    Object focId = a.get('focProductId');
+                    if (focId != null && String.isNotBlank(String.valueOf(focId))) osa.FOC_Giveaway_Product__c = (Id) String.valueOf(focId);
+                    osa.Descritption__c = (String) a.get('description');
+                    allAppliedSchemes.add(osa);
+                }
+            }
             
             for (Map<String, Object> product : products) {
                 Order_Item__c item = new Order_Item__c();
@@ -3196,6 +3283,16 @@ global with sharing class beatPlannerlwc {
                     item.Scheme_Item__c = (Id) String.valueOf(schemeItemObj);
                 }
 
+                // Scheme engine: applied Scheme__c lookup + discount (Free Quantity / QPS / FOC)
+                Object schemeObj = product.get('Scheme__c');
+                if (schemeObj != null && String.isNotBlank(String.valueOf(schemeObj))) {
+                    item.Scheme__c = (Id) String.valueOf(schemeObj);
+                }
+                Decimal discVal = asDecimal(product.get('Discount__c'));
+                if (discVal != null) {
+                    item.Discount__c = discVal;
+                }
+
                 item.Tax__c = (Decimal)product.get('Tax__c');
                 item.Tax_Amount__c = (Decimal)product.get('Tax_Amount__c');
                 item.Total_Amount__c = (Decimal)product.get('Total_Amount__c');
@@ -3236,7 +3333,12 @@ global with sharing class beatPlannerlwc {
         
         // Step 9: Insert all Order_Items
         insert allOrderItems;
-        
+
+        // Step 9b: Insert applied-scheme audit rows
+        if (!allAppliedSchemes.isEmpty()) {
+            insert allAppliedSchemes;
+        }
+
         // Prepare response
         dt.orList = [
             SELECT Id, Name, Product__c, Product__r.Name, Order__r.Delivery_Plant__c,
@@ -3249,6 +3351,20 @@ global with sharing class beatPlannerlwc {
         return dt;
     }
     
+    // Safely coerce a JSON.deserializeUntyped value (Decimal/Integer/Double/String) into a Decimal.
+    private static Decimal asDecimal(Object o) {
+        if (o == null) return null;
+        if (o instanceof Decimal) return (Decimal) o;
+        if (o instanceof Integer) return Decimal.valueOf((Integer) o);
+        if (o instanceof Long)    return Decimal.valueOf((Long) o);
+        if (o instanceof Double)  return Decimal.valueOf(String.valueOf((Double) o));
+        if (o instanceof String) {
+            String s = (String) o;
+            return String.isBlank(s) ? null : Decimal.valueOf(s);
+        }
+        return null;
+    }
+
     public class OrderItemUOMComparator implements Comparator<Order_Item__c> {
         public Integer compare(Order_Item__c a, Order_Item__c b) {
             if (a.Alternate_UOM__c == b.Alternate_UOM__c) return 0;
@@ -4447,7 +4563,8 @@ global with sharing class beatPlannerlwc {
         @AuraEnabled public boolean appliedScheme;
         @AuraEnabled public Decimal total;
         @AuraEnabled public Decimal netWeight;
-        
+        @AuraEnabled public String subGroup;   // Product_Sub_Group__c, used for Category Value schemes
+
     }
     global class visitPlanData{
         @AuraEnabled public String appVisitPlanid;
@@ -4606,12 +4723,33 @@ global with sharing class beatPlannerlwc {
         @AuraEnabled public String productCategory { get; set; }
         @AuraEnabled public List<CoverageProductRef> products { get; set; }
         @AuraEnabled public List<CoverageSlabRow> slabRows { get; set; }
+        // Raw data consumed by the JS scheme engine (productScreen4)
+        @AuraEnabled public List<Id> groupProductIds { get; set; }
+        @AuraEnabled public List<CoverageSlabRaw> slabsRaw { get; set; }
     }
 
     global class CoverageSlabRow {
         @AuraEnabled public String label { get; set; }
         @AuraEnabled public String value { get; set; }
         public CoverageSlabRow(String l, String v) { this.label = l; this.value = v; }
+    }
+
+    // Raw numeric slab values for client-side scheme calculation.
+    global class CoverageSlabRaw {
+        @AuraEnabled public Id slabId { get; set; }
+        @AuraEnabled public Decimal seq { get; set; }
+        @AuraEnabled public String slabType { get; set; }
+        @AuraEnabled public Decimal qtyMin { get; set; }
+        @AuraEnabled public Decimal qtyMax { get; set; }
+        @AuraEnabled public Decimal valMin { get; set; }
+        @AuraEnabled public Decimal valMax { get; set; }
+        @AuraEnabled public Decimal freeQty { get; set; }
+        @AuraEnabled public Decimal benefitAmtPerEA { get; set; }
+        @AuraEnabled public Decimal benefitPercent { get; set; }
+        @AuraEnabled public Id focProductId { get; set; }
+        @AuraEnabled public String focProductName { get; set; }
+        @AuraEnabled public Decimal focUnitPrice { get; set; }
+        @AuraEnabled public Decimal focTaxPercent { get; set; }
     }
 
     global class CoverageDto {

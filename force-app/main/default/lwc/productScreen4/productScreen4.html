@@ -154,6 +154,9 @@
                                                                 <div class="scheme-applied-banner">
                                                                     <div>Final Price: ₹{item.discountedUnitPrice} || Actual
                                                                         Price : {item.UnitPricePriceBook}</div>
+                                                                    <template if:true={item.schemeLabel}>
+                                                                        <div>Scheme: {item.schemeLabel}</div>
+                                                                    </template>
                                                                 </div>
                                                             </template>
 
@@ -554,7 +557,11 @@
                                                     <tbody>
                                                         <template for:each={plantGroup.products} for:item="item">
                                                             <tr key={item.id}>
-                                                                <td>{item.name}</td>
+                                                                <td>{item.name}
+                                                                    <template if:true={item.isFOC}>
+                                                                        <span class="slds-badge slds-theme_success slds-m-left_xx-small">FREE</span>
+                                                                    </template>
+                                                                </td>
                                                                 <td>{item.displayQty}</td>
                                                                 <td>₹{item.unitPrice} * {item.displayQty}</td>
                                                                 <td>{item.taxPercent}%</td>
@@ -605,6 +612,32 @@
                                         </table>
                                     </div>
                                 </div>
+                                <template if:true={hasHeaderDiscounts}>
+                                    <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small">
+                                        <div class="custom-table-container">
+                                            <table class="slds-table custom-scroll-table">
+                                                <tbody>
+                                                    <template if:true={categoryValueDiscount}>
+                                                        <tr class="plant-totals">
+                                                            <td><b>Category Value Discount</b></td>
+                                                            <td>- ₹{categoryValueDiscount}</td>
+                                                        </tr>
+                                                    </template>
+                                                    <template if:true={orderValueDiscount}>
+                                                        <tr class="plant-totals">
+                                                            <td><b>Order Value Discount</b></td>
+                                                            <td>- ₹{orderValueDiscount}</td>
+                                                        </tr>
+                                                    </template>
+                                                    <tr class="plant-totals">
+                                                        <td><b>Net Payable</b></td>
+                                                        <td><strong>₹{netPayable}</strong></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </template>
                                 <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small" style="padding-bottom:100px">
 
                                     <div class="task-button pointer slds-m-top_x-small" onclick={handleGetLatLon}>
