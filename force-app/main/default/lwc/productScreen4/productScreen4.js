@@ -2016,7 +2016,7 @@ export default class ProductScreen4 extends LightningElement {
     // Record a step in a line's price-breakup ledger (Base -> Free Quantity -> QPS ...).
     _addPriceStep(m, label) {
         if (!Array.isArray(m._priceSteps)) m._priceSteps = [];
-        m._priceSteps.push({ label: label, price: this._round2(m._wkUnit).toFixed(2) });
+        m._priceSteps.push({ key: 'step-' + m._priceSteps.length, label: label, price: this._round2(m._wkUnit).toFixed(2) });
     }
 
     // True if any group product of this scheme is currently ordered (qty > 0).
@@ -2114,7 +2114,7 @@ export default class ProductScreen4 extends LightningElement {
                 existing.schemeLabel = scheme.name;
                 if (!existing._appliedSchemeId) existing._appliedSchemeId = scheme.id;
                 if (Array.isArray(existing._priceSteps)) {
-                    existing._priceSteps.push({ label: 'FOC Giveaway — ' + focQty + ' EA free', price: this._round2(existing._wkUnit).toFixed(2) });
+                    existing._priceSteps.push({ key: 'step-' + existing._priceSteps.length, label: 'FOC Giveaway — ' + focQty + ' EA free', price: this._round2(existing._wkUnit).toFixed(2) });
                 }
             } else {
                 this.focLines.push({
@@ -2202,7 +2202,7 @@ export default class ProductScreen4 extends LightningElement {
             p._focMergeQty = 0;
             p._focMergeDiscount = 0;
             p._lineDiscount = 0;
-            p._priceSteps = [{ label: 'Base Price', price: base.toFixed(2) }];
+            p._priceSteps = [{ key: 'base', label: 'Base Price', price: base.toFixed(2) }];
             p.discountedUnitPrice = base.toFixed(2);
             p.discountedPrice = base * (parseFloat(p.value) || 0);
         });

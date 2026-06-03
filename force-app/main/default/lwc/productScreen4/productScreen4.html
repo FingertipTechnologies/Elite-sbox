@@ -171,8 +171,8 @@
                                                                     </div>
                                                                     <template if:true={item.showBreakup}>
                                                                         <div class="scheme-breakup">
-                                                                            <template for:each={item.priceSteps} for:item="step" for:index="si">
-                                                                                <div key={si} class="scheme-breakup__row">
+                                                                            <template for:each={item.priceSteps} for:item="step">
+                                                                                <div key={step.key} class="scheme-breakup__row">
                                                                                     <span class="scheme-breakup__label">{step.label}</span>
                                                                                     <span class="scheme-breakup__price">₹{step.price}</span>
                                                                                 </div>
