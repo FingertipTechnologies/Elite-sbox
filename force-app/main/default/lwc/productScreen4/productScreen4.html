@@ -7,7 +7,7 @@
 
     <!-- When page loaded -->
     <template lwc:else>
-
+        <!--Cancel Button-->
         <template lwc:if={isOrderTrue}>
             <div class="slds-grid slds-wrap">
                 <div class="slds-col slds-size_1-of-2 slds-p-right_x-small">
@@ -15,17 +15,6 @@
                         class="custom-btn" stretch>
                     </lightning-button>
                 </div>
-                <!-- <div class="slds-col slds-size_1-of-2 slds-p-left_x-small">
-        <template lwc:if={isSummaryProduct}>
-            <lightning-button
-                variant="brand"
-                label="Save Order"
-                onclick={onSaveOrder}
-                class="custom-btn"
-                stretch>
-            </lightning-button>
-        </template>
-    </div>-->
             </div>
         </template>
 
@@ -36,24 +25,10 @@
                     <c-loading-screen size="4"></c-loading-screen>
                 </div>
             </template>
+            <!--Body-->
             <template if:false={isContentLoading}>
                 <div class="tasks scroll-wrapper">
                     <div class="slds-grid slds-wrap">
-                        <template lwc:if={showAccountSearch}>
-                            <template lwc:if={showAreaSearch}>
-                                <!--<div class={customClass_Grid}>
-                                
-                                    <lightning-combobox
-                                        value={areaFilter}
-                                        options={areaOptions}
-                                        onchange={handleAreaChange}
-                                        data-index={index}
-                                        name="AreaSelection"
-                                    ></lightning-combobox>
-                                
-                            </div>-->
-                            </template>
-                        </template>
                         <template lwc:if={isOrderTrue}>
                             <template lwc:if={showAreaSearch}>
                                 <template lwc:if={showAccountSearch}>
@@ -308,8 +283,6 @@
                             </template>
                         </template>
 
-
-
                         <template lwc:if={isSchemeView}>
                             <!-- Running schemes applicable to this Account (all types, both Primary and Secondary) -->
                             <template if:true={hasCoverageSchemes}>
@@ -440,8 +413,6 @@
                             </template>
                         </template>
 
-
-
                         <!-- Added product -->
                         <template lwc:if={isProductAdded}>
                             <br />
@@ -462,7 +433,6 @@
                                 </div>
                             </template>
                         </template>
-
 
                         <!-- Summary product -->
                         <template lwc:if={isSummaryProduct}>
@@ -647,6 +617,7 @@
                     </template>
                 </div>
             </template>
+            <!--Bottom Bar-->
             <div class="screen-3-bottom-bar">
                 <div class="bottom-bar-item pointer" onclick={updateOriginalProductData}>
                     <!-- <i class="material-symbols-outlined" style="font-size: 16px;">all_out</i> -->

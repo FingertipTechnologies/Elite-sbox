@@ -104,32 +104,15 @@ export default class ProductScreen4 extends LightningElement {
 
         // CASE 1: Create Mode + accountId (from related list New override)
         if (!this.orderRecordId && this.isOrderTrue && this.acccountId) {
-            //alert('1');
+            console.log('My Visit Order');
             this.isFieldsDisabled = false;
             this.forceHeight = true;
-
-            /*getAccountData({areaFilter: this.areaFilter })
-                .then(result => {
-                    this.accountDataOriginal = result.Account;
-                    this.listView = result.listViewRecords.Id;
-    
-                    const foundAcc = result.Account.find(acc => acc.Id === this.acccountId);
-                    if (foundAcc) {
-                        this.accNam = foundAcc.Name;
-                        this.isPrimaryAccount = foundAcc.Customer_Type__c === 'Primary Customer';
-                        this.isSecondaryAccount = acc.Customer_Type__c === 'Secondary Customer';
-                        this.getData();
-                    }
-                })
-                .catch(error => {
-                    console.error('Account fetch error:', error);
-                });*/
-
             return; // prevent going below
         }
 
         // CASE 2: Create Mode + No accountId
         if (!this.orderRecordId && this.isOrderTrue) {
+            console.log('Separate Order Tab');
             this.isFieldsDisabled = true;
             this.forceHeight = true;
             this.showAreaSearch = true;
@@ -139,6 +122,7 @@ export default class ProductScreen4 extends LightningElement {
 
         // CASE 3: Edit Mode
         if (this.orderRecordId && this.isOrderTrue) {
+            console.log('Edit Mode');
             this.isFieldsDisabled = false;
             this.showAreaSearch = false;
             this.getAccountData(); // for fetching account name
@@ -148,6 +132,7 @@ export default class ProductScreen4 extends LightningElement {
 
         // CASE 4: Non-order flow
         if (!this.isOrderTrue) {
+            console.log('My Visit Order 2');
             this.isFieldsDisabled = false;
             this.customClass_Grid = this.isDesktop
                 ? 'slds-col slds-size_1-of-2 custom_Css'
@@ -205,11 +190,6 @@ export default class ProductScreen4 extends LightningElement {
                 console.error('Error fetching accounts:', error);
             });
     }
-
-
-
-
-
 
 
     applyCategoryStyles(groupList) {

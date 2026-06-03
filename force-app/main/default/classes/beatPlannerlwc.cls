@@ -1477,6 +1477,103 @@ global with sharing class beatPlannerlwc {
         }
     }
     
+    //-----------------------------------------------Order Related Methods---------------------------------------
+    //Separate Order Tab first called to get 25 accounts
+    @AuraEnabled
+    public static data getAccountData(String areaFilter){
+        data dt = new data();
+        
+        // Fetch the ListView record as before
+        List<ListView> listViewRecords = [SELECT Id FROM ListView WHERE SObjectType = 'Order__c' AND Name = 'TODAY' LIMIT 1];
+        dt.ListViewDetails = (!listViewRecords.isEmpty()) ? listViewRecords[0] : null;
+        
+        // Modify the query to handle the case where areaFilter is null or empty
+        String areaFilterCondition = (String.isEmpty(areaFilter)) ? '' : areaFilter;
+        
+        if (String.isEmpty(areaFilterCondition)) {
+            // If no area filter is provided, get all accounts
+            dt.Account = [SELECT Id, Name, SAP_Customer_Code__c,Account_Type_Of__c,Account_Type_With_Code__c,Delivery_Plant__c FROM Account
+                          WHERE
+                          (
+                              (Customer_Type__c = 'Primary Customer' AND Customer_Status__c = 'Active')
+                              OR
+                              (Customer_Type__c = 'Secondary Customer' AND Customer_Status__c != 'Inactive')
+                          )
+                          LIMIT 20
+                         ];
+        } else {
+            // If area filter is provided, filter accounts by the related Product_Mapping__c area
+            dt.Account = [SELECT id, name, Customer_Type__c, customer_code__c,SAP_Customer_Code__c
+                          FROM Account
+                          WHERE Customer_Type__c = 'Primary Customer' and  Customer_Status__c != 'Inactive'
+                          AND Id IN (SELECT Customer__c FROM Product_Mapping__c WHERE Area__c = :areaFilter) limit 10];
+        }
+        
+        return dt;
+    }
+    
+    //Search Account by Name and Sap code
+    @AuraEnabled(cacheable=true)
+    public static List<Account> getAccountsByArea(String area, String searchTerm) {
+        // Initial query for Account records
+        String query = 
+            'SELECT Id, Name, Customer_Type__c, Account_Type_Of__c, SAP_Customer_Code__c, ' +
+            'Account_Type_With_Code__c, Delivery_Plant__c ' +
+            'FROM Account ' +
+            'WHERE ' +
+            '(' +
+            '(Customer_Type__c = \'Primary Customer\' AND Customer_Status__c = \'Active\') ' +
+            'OR ' +
+            '(Customer_Type__c = \'Secondary Customer\' AND Customer_Status__c != \'Inactive\')' +
+            ')';
+        
+        
+        
+        List<String> conditions = new List<String>();
+        Set<Id> accountIds = new Set<Id>();
+        
+        // Add area filter if specified
+        if (String.isNotBlank(area)) {
+            // Query Product_Mapping__c to find related Customer__c accounts by area
+            List<Product_Mapping__c> productMappings = [SELECT Customer__c FROM Product_Mapping__c WHERE Area_Area_Name__c = :area];
+            
+            // Add the Customer__c ids to the set
+            for (Product_Mapping__c pm : productMappings) {
+                accountIds.add(pm.Customer__c);
+            }
+            
+            // If there are matching accounts, add the condition
+            if (!accountIds.isEmpty()) {
+                conditions.add('Id IN :accountIds');
+            }
+        }
+        
+        // Add search term filter if specified
+        if (String.isNotBlank(searchTerm)) {
+            String likeTerm = '%' + String.escapeSingleQuotes(searchTerm) + '%';
+            conditions.add('(Account_Type_With_Code__c LIKE :likeTerm)');
+        }
+        
+        // If no filters were added, just limit the records
+        if (conditions.isEmpty()) {
+            return [SELECT Id, Name, SAP_Customer_Code__c,Account_Type_Of__c,Account_Type_With_Code__c,Delivery_Plant__c FROM Account
+                    WHERE
+                    (
+                        (Customer_Type__c = 'Primary Customer' AND Customer_Status__c = 'Active')
+                        OR
+                        (Customer_Type__c = 'Secondary Customer' AND Customer_Status__c != 'Inactive')
+                    )
+                    LIMIT 25];
+        }
+        
+        // Combine the conditions into the query
+        query += ' AND ' + String.join(conditions, ' AND ') + ' LIMIT 25';
+        
+        // Return the results of the final query
+        return Database.query(query);
+    }
+    
+    //to get Products
     @AuraEnabled
     public static Data getSchemeWiseOrderData(String visitId, String AccountId, String orderRecordId) {
         Data responseData = new Data();
@@ -1530,12 +1627,13 @@ global with sharing class beatPlannerlwc {
         responseData.orderAccountId = accId;
         responseData.Account = new List<Account>{acc};
             responseData.isModerTrade = false;
-            if(acc.Primary_Customer_Type__c == 'Modern Trade'){
-                responseData.isModerTrade = true;
-            }
+        if(acc.Primary_Customer_Type__c == 'Modern Trade'){
+            responseData.isModerTrade = true;
+        }
             
             
         Set<String> channelSet = getProductsForSure(acc.Id,acc.Customer_Type__c);
+        system.debug('channelSet'+channelSet);
         Set<String> areList = getProductsForArea(acc.Id,acc.Customer_Type__c);
         List<Product_Mapping__c> prdMapList = new List<Product_Mapping__c>();
         Set<String> delivaryPlantSet = new Set<String> ();
@@ -1648,7 +1746,7 @@ global with sharing class beatPlannerlwc {
             pd.category = p.Product_Category_Name__c;
             pd.UnitPricePriceBook = 0;
             pd.originalUnitPrice = 0;
-            system.debug('childInvoiceItem '+p.Name+' - invoicepricebok '+p.Invoice_items__r);
+           
             if(p.Invoice_items__r.size() > 0){
                 pd.UnitPricePriceBook = p.Invoice_items__r[0].Price_per_unit__c;
                 pd.originalUnitPrice = p.Invoice_items__r[0].Price_per_unit__c;
@@ -1886,95 +1984,326 @@ global with sharing class beatPlannerlwc {
         responseData.schemessss = schemeList;
         return responseData;
     }
-    @AuraEnabled
-    public static data getAccountData(String areaFilter){
-        data dt = new data();
+   
+    //Get Sales Channel of Customer  
+    public static Set<String> getProductsForSure(String accountId, String customerType) 
+    {
         
-        // Fetch the ListView record as before
-        List<ListView> listViewRecords = [SELECT Id FROM ListView WHERE SObjectType = 'Order__c' AND Name = 'TODAY' LIMIT 1];
-        dt.ListViewDetails = (!listViewRecords.isEmpty()) ? listViewRecords[0] : null;
+        Id currentUserId = UserInfo.getUserId();
+        User us = [
+            SELECT Id, Name, Sales_Channel__c, Alternate_Sales_Channel__c 
+            FROM User 
+            WHERE Id = :currentUserId
+        ];
         
-        // Modify the query to handle the case where areaFilter is null or empty
-        String areaFilterCondition = (String.isEmpty(areaFilter)) ? '' : areaFilter;
-        
-        if (String.isEmpty(areaFilterCondition)) {
-            // If no area filter is provided, get all accounts
-            dt.Account = [SELECT id, name, Customer_Type__c, customer_code__c,SAP_Customer_Code__c
-                          FROM Account where Customer_Type__c = 'Primary Customer' and  Customer_Status__c != 'Inactive' limit 50
-                         ];
-        } else {
-            // If area filter is provided, filter accounts by the related Product_Mapping__c area
-            dt.Account = [SELECT id, name, Customer_Type__c, customer_code__c,SAP_Customer_Code__c
-                          FROM Account
-                          WHERE Customer_Type__c = 'Primary Customer' and  Customer_Status__c != 'Inactive'
-                          AND Id IN (SELECT Customer__c FROM Product_Mapping__c WHERE Area__c = :areaFilter) limit 50];
+        // Build the user's sales channel set
+        Set<String> salesChannelList = new Set<String>();
+        if (us.Alternate_Sales_Channel__c != null) {
+            salesChannelList.addAll(us.Alternate_Sales_Channel__c.split(';'));
+        } else if (us.Sales_Channel__c != null) {
+            salesChannelList.addAll(us.Sales_Channel__c.split(';'));
         }
         
-        return dt;
+        Set<String> channelSet = new Set<String>();
+        
+        if (customerType == 'Primary Custmer') {
+            channelSet = getPrimaryCustomerChannels(accountId, currentUserId, salesChannelList, us.Alternate_Sales_Channel__c);
+        } else if (customerType == 'Secondary Customer') {
+            channelSet = getSecondaryCustomerChannels(accountId, currentUserId, salesChannelList);
+        }
+        
+        // Final fallback — return user's sales channel if nothing resolved
+        if (channelSet.isEmpty()) {
+            channelSet = salesChannelList;
+        }
+        
+        return channelSet;
     }
-    
-    
-    @AuraEnabled(cacheable=true)
-    public static List<Account> getAccountsByArea(String area, String searchTerm) {
-        // Initial query for Account records
-        String query = 
-            'SELECT Id, Name, Customer_Type__c, Account_Type_Of__c, SAP_Customer_Code__c, ' +
-            'Account_Type_With_Code__c, Delivery_Plant__c ' +
-            'FROM Account ' +
-            'WHERE ' +
-            '(' +
-            '(Customer_Type__c = \'Primary Customer\' AND Customer_Status__c = \'Active\') ' +
-            'OR ' +
-            '(Customer_Type__c = \'Secondary Customer\' AND Customer_Status__c != \'Inactive\')' +
-            ')';
 
+    // PRIMARY: Direct query on Customer__c = accountId
+    private static Set<String> getPrimaryCustomerChannels(String accountId, Id currentUserId,Set<String> salesChannelList, String alternateSalesChannel) {
+        Set<String> channelSet = new Set<String>();
         
+        List<Product_Mapping__c> primaryMappings;
         
-        List<String> conditions = new List<String>();
-        Set<Id> accountIds = new Set<Id>();
-        
-        // Add area filter if specified
-        if (String.isNotBlank(area)) {
-            // Query Product_Mapping__c to find related Customer__c accounts by area
-            List<Product_Mapping__c> productMappings = [SELECT Customer__c FROM Product_Mapping__c WHERE Area_Area_Name__c = :area];
+        if (alternateSalesChannel == null) {
+            // When no alternate channel, filter by executive
+            primaryMappings = [
+                SELECT Chanel__c 
+                FROM Product_Mapping__c 
+                WHERE Customer__c = :accountId 
+                AND Exectuive__c = :currentUserId
+            ];
             
-            // Add the Customer__c ids to the set
-            for (Product_Mapping__c pm : productMappings) {
-                accountIds.add(pm.Customer__c);
+            if(primaryMappings.isEmpty())
+            {
+                primaryMappings = [
+                    SELECT Chanel__c 
+                    FROM Product_Mapping__c 
+                    WHERE Customer__c = :accountId 
+                    AND Chanel__c IN :salesChannelList
+                ];
             }
-            
-            // If there are matching accounts, add the condition
-            if (!accountIds.isEmpty()) {
-                conditions.add('Id IN :accountIds');
+        }
+        else {
+            // When alternate channel exists, broader query with channel filter
+            primaryMappings = [
+                SELECT Chanel__c 
+                FROM Product_Mapping__c 
+                WHERE Customer__c = :accountId 
+                AND Chanel__c IN :salesChannelList
+            ];
+        }
+        
+        for (Product_Mapping__c prodMap : primaryMappings) {
+            if (prodMap.Chanel__c != null) {
+                channelSet.add(prodMap.Chanel__c);
             }
         }
         
-        // Add search term filter if specified
-        if (String.isNotBlank(searchTerm)) {
-            String likeTerm = '%' + String.escapeSingleQuotes(searchTerm) + '%';
-            conditions.add('(Account_Type_With_Code__c LIKE :likeTerm)');
-        }
-        
-        // If no filters were added, just limit the records
-        if (conditions.isEmpty()) {
-            return [SELECT Id, Name, SAP_Customer_Code__c,Account_Type_Of__c,Account_Type_With_Code__c,Delivery_Plant__c FROM Account
-                    WHERE
-                    (
-                        (Customer_Type__c = 'Primary Customer' AND Customer_Status__c = 'Active')
-                        OR
-                        (Customer_Type__c = 'Secondary Customer' AND Customer_Status__c != 'Inactive')
-                    )
-                    LIMIT 50];
-        }
-        
-        // Combine the conditions into the query
-        query += ' AND ' + String.join(conditions, ' AND ') + ' LIMIT 50';
-        
-        // Return the results of the final query
-        return Database.query(query);
+        return channelSet;
     }
     
+    // SECONDARY: First get Primary Customer Ids, then resolve channels from those
+    private static Set<String> getSecondaryCustomerChannels( String accountId,  Id currentUserId,  Set<String> salesChannelList ) 
+    {
+        Set<String> channelSet = new Set<String>();
+        // Step 1: Get Primary Customer Ids linked to this Secondary Customer
+        List<Product_Mapping__c> secondaryMappings = [
+            SELECT Primary_Customer__c 
+            FROM Product_Mapping__c 
+            WHERE Customer__c = :accountId 
+            AND Exectuive__c = :currentUserId
+        ];
+        
+        if(secondaryMappings.isEmpty())
+        {
+            secondaryMappings = [
+                SELECT Primary_Customer__c 
+                FROM Product_Mapping__c 
+                WHERE Customer__c = :accountId 
+                AND Exectuive__r.Sales_Channel__c IN :salesChannelList
+            ];
+        }
+        
+        system.debug('secondaryMappings '+secondaryMappings);
+        
+        Set<String> primaryCustomerIds = new Set<String>();
+        for (Product_Mapping__c prodMap : secondaryMappings) {
+            if (prodMap.Primary_Customer__c != null) {
+                primaryCustomerIds.add(prodMap.Primary_Customer__c);
+            }
+        }
+        
+        if (primaryCustomerIds.isEmpty()) {
+            return channelSet; // Nothing to resolve
+        }
+        
+        // Step 2: Query Product_Mapping__c using those Primary Customer Ids (with executive filter)
+        List<Product_Mapping__c> primaryChannelMappings = [
+            SELECT Chanel__c 
+            FROM Product_Mapping__c 
+            WHERE Customer__c IN :primaryCustomerIds 
+            AND Chanel__c IN :salesChannelList 
+            AND Exectuive__c = :currentUserId
+        ];
+        
+        // Step 3: Fallback — same query without executive filter
+        if (primaryChannelMappings.isEmpty()) {
+            primaryChannelMappings = [
+                SELECT Chanel__c 
+                FROM Product_Mapping__c 
+                WHERE Customer__c IN :primaryCustomerIds 
+                AND Chanel__c IN :salesChannelList
+            ];
+        }
+        
+        for (Product_Mapping__c prodMap : primaryChannelMappings) {
+            if (prodMap.Chanel__c != null) {
+                channelSet.add(prodMap.Chanel__c);
+            }
+        }
+        
+        return channelSet;
+    }
+        
+    //Area List to Filterout Price Books
+    public static Set<String> getProductsForArea(string accountId,string customerType) {
+        
+        if(customerType == 'Secondary Customer'){
+            Id currentUserId = UserInfo.getUserId();
+            User us = [SELECT Id, Name, Sales_Channel__c FROM User WHERE Id = :currentUserId];
+            
+            set<String> sendBackAreaList = new Set<String>();
+            Set<String> salesChannelList = new Set<String>();
+            salesChannelList.addAll(us.Sales_Channel__c.split(';'));
+            
+            Set<String> channelSet = new Set<String>();
+            Set<String> primaryCustomerIds = new Set<String>();
+            
+            List<Product_Mapping__c> prodMappingsFromPrimary = [SELECT Chanel__c, Primary_Customer__c ,Area__c,Area__r.Area__c
+                                                                FROM Product_Mapping__c 
+                                                                WHERE Exectuive__c = :currentUserId 
+                                                                AND Customer__c = :accountId];
+            
+            // Populate channelSet and primaryCustomerIds
+            for(Product_Mapping__c prodMap : prodMappingsFromPrimary) {
+                if (prodMap.Chanel__c != null) {
+                    channelSet.add(prodMap.Chanel__c);
+                }
+                if(prodMap.Area__c != null){
+                    sendBackAreaList.add(prodMap.Area__r.Area__c);
+                }
+                if (prodMap.Primary_Customer__c != null) {
+                    primaryCustomerIds.add(prodMap.Primary_Customer__c);
+                }
+                
+            }
+            
+            if (!sendBackAreaList.isEmpty()) {
+                return sendBackAreaList;
+            } else {
+                List<Product_Mapping__c> secondaryProductMappings = [
+                    SELECT Chanel__c, Primary_Customer__c ,Area__c,Area__r.Area__c
+                    FROM Product_Mapping__c 
+                    WHERE Customer__c IN :primaryCustomerIds 
+                    AND Chanel__c IN :salesChannelList 
+                    AND Exectuive__c = :currentUserId
+                ];
+                
+                // If no records found, use a broader query
+                if (secondaryProductMappings.isEmpty()) {
+                    secondaryProductMappings = [
+                        SELECT Chanel__c, Primary_Customer__c,Area__c,Area__r.Area__c
+                        FROM Product_Mapping__c 
+                        WHERE Customer__c IN :primaryCustomerIds 
+                        AND Chanel__c IN :salesChannelList
+                    ];
+                }
+                
+                // Populate the channelSet again
+                for(Product_Mapping__c prodMap : secondaryProductMappings) {
+                    if (prodMap.Chanel__c != null) {
+                        channelSet.add(prodMap.Chanel__c);
+                    }
+                    if(prodMap.Area__c != null){
+                        sendBackAreaList.add(prodMap.Area__r.Area__c);
+                    }
+                }
+                if (!sendBackAreaList.isEmpty()) {
+                    
+                    return sendBackAreaList;
+                } else {
+                    return null;
+                }
+            }
+            
+            
+        }
+        else{
+            return null;
+        }
+        
+        
+    }
     
+
+    /*
+    public static Set<String> getProductsForSure1(string accountId,string customerType) {
+        
+        Id currentUserId = UserInfo.getUserId();
+        User us = [SELECT Id, Name, Sales_Channel__c,Alternate_Sales_Channel__c FROM User WHERE Id = :currentUserId];
+        
+        Set<String> salesChannelList = new Set<String>();
+        if(us.Alternate_Sales_Channel__c != null)
+        {
+            salesChannelList.addAll(us.Alternate_Sales_Channel__c.split(';'));
+        }
+        else if(us.Sales_Channel__c != null){
+            salesChannelList.addAll(us.Sales_Channel__c.split(';'));
+        }
+        
+        
+        Set<String> channelSet = new Set<String>();
+        Set<String> primaryCustomerIds = new Set<String>();
+        if(us.Alternate_Sales_Channel__c == null){
+            List<Product_Mapping__c> prodMappingsFromPrimary = [SELECT Chanel__c, Primary_Customer__c 
+                                                                FROM Product_Mapping__c 
+                                                                WHERE Exectuive__c = :currentUserId 
+                                                                AND Customer__c = :accountId];
+            
+            // Populate channelSet and primaryCustomerIds
+            for(Product_Mapping__c prodMap : prodMappingsFromPrimary) {
+                if (prodMap.Chanel__c != null) {
+                    channelSet.add(prodMap.Chanel__c);
+                }
+                if (prodMap.Primary_Customer__c != null) {
+                    primaryCustomerIds.add(prodMap.Primary_Customer__c);
+                }
+            }
+        }
+        
+        if (!channelSet.isEmpty()) {
+            return channelSet;
+        }
+        else {
+            List<Product_Mapping__c> secondaryProductMappings = [
+                SELECT Chanel__c, Primary_Customer__c 
+                FROM Product_Mapping__c 
+                WHERE Customer__c IN :primaryCustomerIds 
+                AND Chanel__c IN :salesChannelList 
+                AND Exectuive__c = :currentUserId
+            ];
+            
+            // If no records found, use a broader query
+            if (secondaryProductMappings.isEmpty()) {
+                secondaryProductMappings = [
+                    SELECT Chanel__c, Primary_Customer__c 
+                    FROM Product_Mapping__c 
+                    WHERE Customer__c IN :primaryCustomerIds 
+                    AND Chanel__c IN :salesChannelList
+                ];
+            }
+            
+            // Populate the channelSet again
+            for(Product_Mapping__c prodMap : secondaryProductMappings) {
+                if (prodMap.Chanel__c != null) {
+                    channelSet.add(prodMap.Chanel__c);
+                }
+            }
+            if (!channelSet.isEmpty()) {
+                return channelSet;
+            } else {
+                List<Product_Mapping__c> primaryCustomerMapping = [
+                    SELECT Chanel__c, Primary_Customer__c 
+                    FROM Product_Mapping__c 
+                    WHERE Customer__c =:accountId 
+                    AND Chanel__c IN :salesChannelList 
+                ];
+                
+                // Populate the channelSet again
+                for(Product_Mapping__c prodMap : primaryCustomerMapping) {
+                    if (prodMap.Chanel__c != null) {
+                        channelSet.add(prodMap.Chanel__c);
+                    }
+                }
+                if (!channelSet.isEmpty()) {
+                    return channelSet;
+                }
+                else
+                {
+                    channelSet = salesChannelList;
+                    return channelSet;
+                }
+                
+                
+            }
+        }
+        
+        
+        
+    }
+	*/
     @AuraEnabled(cacheable=true)
     public static List<Map<String, String>> getAreaOptions() {
         // Create a list to hold the area options
@@ -2721,55 +3050,7 @@ global with sharing class beatPlannerlwc {
         // Prefer returning empty list over null (callers avoid null checks)
         return new List<Product_Mapping__c>();
     }
-    /* public static List<Product_Mapping__c> getProductMappins1(string accountId){
-Id currentUserId = UserInfo.getUserId();
-User us = [SELECT Id, Name, Sales_Channel__c FROM User WHERE Id = :currentUserId];
-
-Set<String> salesChannelList = new Set<String>();
-if(us.Sales_Channel__c != null)
-{
-salesChannelList.addAll(us.Sales_Channel__c.split(';'));
-}
-
-List<Product_Mapping__c> prodMapping = new List<Product_Mapping__c>();
-Set<String> channelSet = new Set<String>();
-Set<String> primaryCustomerIds = new Set<String>();
-
-List<Product_Mapping__c> prodMappingsFromPrimary = new List<Product_Mapping__c>();
-
-prodMappingsFromPrimary = [SELECT Chanel__c, Primary_Customer__c,Order_Type__c,Division__c,Distribution_Channel__c,Parent_Depot__c,Child_Depot__c 
-FROM Product_Mapping__c 
-WHERE Exectuive__c = :currentUserId 
-AND Customer__c = :accountId];
-
-// If no results, try broader query (just account and sales channels)
-if(prodMappingsFromPrimary.isEmpty() && !salesChannelList.isEmpty()) {
-prodMappingsFromPrimary = [
-SELECT Chanel__c, Primary_Customer__c, Order_Type__c, Division__c,
-Distribution_Channel__c, Parent_Depot__c, Child_Depot__c 
-FROM Product_Mapping__c 
-WHERE Customer__c = :accountId 
-AND Chanel__c IN :salesChannelList
-AND Chanel__c != null LIMIT 1
-];
-}
-
-// Populate channelSet and primaryCustomerIds
-for(Product_Mapping__c prodMap : prodMappingsFromPrimary) {
-if (prodMap.Chanel__c != null) {
-prodMapping.add(prodMap);
-}
-}
-
-if (!prodMapping.isEmpty()) {
-return prodMapping;
-}else{
-return null;
-} 
-
-
-}
-    */    
+    
     public static Set<String> getPDPDays(string accountId,string customerType) {
         
         Id currentUserId = UserInfo.getUserId();
@@ -3176,59 +3457,7 @@ return null;
     global static data getExpenseLineData(Integer offset, Integer islimit) {
         
         data dta = new data();
-        /* List<expenseData> expenseData = new List<expenseData>();
-
-List<Expenses_line_item__c> lineData = [SELECT Id, Name, Expense__c,Type__c,  Description__c,Allowance_Type__c, Amount__c,Calculated_KM__c,
-Colleague_Name_2__c,Created_date__c,Daily_log_km_travelled__c,Expense_Date__c,Area_Name__c,
-Expense_Type__c,City__c,Mode_of_transport_Private__c,Mode_of_transport_Public__c
-FROM Expenses_line_item__c WHERE CreatedDate = THIS_MONTH AND createdByID =:userinfo.getUserId()
-LIMIT 1
-];
-for(Expenses_line_item__c exp:lineData){
-
-List<cls_expenseItems> itemsList = new List<cls_expenseItems>();
-cls_expenseItems ot = new cls_expenseItems();
-expenseData dt = new expenseData();
-Expense__c ex =[SELECT Id, Name, Expense_Date__c, CreatedDate,  Approval_Status__c,Amount__c,Creation_Date__c,DA_Amount__c,
-Total_Amount__c,LineItem_Count__c,Total_DA_amount__c,Total_Expense_Amount__c,Total_Km__c,Total_other_amount__c,Total_TA_amount__c,
-Comments__c, CreatedById, OwnerId, Owner.Name,Total_Amount_TA__c,Total_Amount_DA__c
-FROM Expense__c
-WHERE id=:exp.Expense__c
-ORDER BY CreatedDate DESC ];
-if(ex != null){
-
-dt.Id = ex.Id;
-dt.expenseName = ex.Name;
-dt.expenseDate = ex.Expense_Date__c;
-//dt.modeOfTransport = ex.Mode_of_transport__c;
-dt.comments = ex.Comments__c;
-dt.createdBy = ex.CreatedById;
-dt.createdDate = ex.CreatedDate;
-dt.executiveName = ex.Owner.Name;
-dt.executiveId = ex.OwnerId;
-dt.TAAMount = ex.Total_Amount_TA__c;
-dt.totalOtherAmount = ex.Total_other_amount__c;
-dt.totalKm = ex.Total_Km__c;
-dt.DtAmount = ex.Total_Amount_DA__c;
-dt.lineItemCount = ex.LineItem_Count__c;
-dt.TotalAmount = ex.Total_Amount__c;
-}
-String formattedExpenseDate = exp.Expense_Date__c != null ? DateTime.newInstance(exp.Expense_Date__c.year(), exp.Expense_Date__c.month(), exp.Expense_Date__c.day()).format('dd/MM/yyyy') : '';
-ot.ExpenseDate = formattedExpenseDate;
-ot.type = exp.Type__c;
-ot.amount = exp.Amount__c;
-ot.description = exp.Description__c;
-ot.ExpIDs = exp.Id;
-ot.allowanceType = exp.Allowance_Type__c;
-ot.FromCity = exp.City__c;
-ot.ToCity = exp.Area_Name__c;
-ot.expenseType = exp.Expense_Type__c;
-itemsList.add(ot);
-dt.expenseItems = itemsList;
-expenseData.add(dt);
-}
-system.debug('expenseData '+expenseData);
-dta.expense = expenseData;*/
+  
         system.debug('dta '+dta);
         return dta;
     }
@@ -3238,70 +3467,6 @@ dta.expense = expenseData;*/
         
         // Wrapper class to hold data for Expenses and KPIs
         data dataWrapper = new data();
-        
-        /*  // List
-List<ExpenseData> expenseDataList = new List<ExpenseData>();
-//Map<Id, List<Expense_Line_Item__c>> expenseLineItemsMap = new Map<Id, List<Expense_Line_Item__c>>();
-
-// Query for Expenses with relevant fields and related Expense Line Items
-List<Expense__c> expenses = [
-SELECT Id, Name, Expense_Date__c, CreatedDate,  Approval_Status__c,Amount__c,Creation_Date__c,DA_Amount__c,
-Total_Amount__c,LineItem_Count__c,Total_DA_amount__c,Total_Expense_Amount__c,Total_Km__c,Total_other_amount__c,Total_TA_amount__c,
-Comments__c, CreatedById, OwnerId, Owner.Name,Total_Amount_DA__c,Total_Amount_TA__c,
-
-(SELECT Id, Name, Expense__c,Type__c,  Description__c,Allowance_Type__c, Amount__c,Calculated_KM__c,
-Colleague_Name_2__c,Created_date__c,Daily_log_km_travelled__c,Expense_Date__c,Area_Name__c,
-Expense_Type__c,City__c,Mode_of_transport_Private__c,Mode_of_transport_Public__c FROM Expenses_line_items__r)
-FROM Expense__c
-WHERE CreatedDate = THIS_MONTH AND  OwnerId =:userinfo.getUserId()
-LIMIT 1
-];
-system.debug('expenses '+expenses);
-list<id> expIDs = new List<id>();
-// Iterate through each Expense and populate the wrapper object
-for (Expense__c expense : expenses) {
-ExpenseData expenseData = new ExpenseData();
-expenseData.Id = expense.Id;
-expenseData.expenseName = expense.Name;
-expenseData.expenseDate = expense.Expense_Date__c;
-//expenseData.modeOfTransport = ex.Mode_of_transport__c;
-expenseData.comments = expense.Comments__c;
-expenseData.createdBy = expense.CreatedById;
-expenseData.createdDate = expense.CreatedDate;
-expenseData.executiveName = expense.Owner.Name;
-expenseData.executiveId = expense.OwnerId;
-expenseData.TAAMount = expense.Total_Amount_TA__c;
-expenseData.totalOtherAmount = expense.Total_other_amount__c;
-expenseData.totalKm = expense.Total_Km__c;
-expenseData.DtAmount = expense.Total_Amount_DA__c;
-expenseData.lineItemCount = expense.LineItem_Count__c;
-expenseData.TotalAmount = expense.Total_Amount__c;
-
-// If there are related Expense Line Items, map them to the expense
-if(expense.Expenses_Line_Items__r != null){
-List<cls_expenseItems> itemsList = new List<cls_expenseItems>();
-for(Expenses_Line_Item__c oi : expense.Expenses_Line_Items__r){
-String formattedExpenseDate = oi.Expense_Date__c != null ? DateTime.newInstance(oi.Expense_Date__c.year(), oi.Expense_Date__c.month(), oi.Expense_Date__c.day()).format('dd/MM/yyyy') : '';
-cls_expenseItems ot = new cls_expenseItems();
-ot.type = oi.Type__c;
-ot.ExpenseDate = formattedExpenseDate;
-ot.amount = oi.Amount__c;
-ot.allowanceType = oi.Allowance_Type__c;
-ot.FromCity = oi.City__c;
-ot.ToCity = oi.Area_Name__c;
-ot.expenseType = oi.Expense_Type__c;
-ot.description = oi.Description__c;
-itemsList.add(ot);
-
-}
-expenseData.expenseItems = itemsList;
-}
-
-// Add the expense data to the list
-expenseDataList.add(expenseData);
-}
-system.debug('expenseDataList' +expenseDataList); 
-dataWrapper.expense = expenseDataList;*/
         system.debug('dataWrapper'+dataWrapper);
         // Return the wrapper object
         return dataWrapper; 
@@ -3408,78 +3573,7 @@ dataWrapper.expense = expenseDataList;*/
         return dta; // Return the populated data object
     }
     
-    //Task Data 
-    /* @AuraEnabled
-global static list<taskData> getTaskData(String objectId) 
-{
-Id recordId = objectId; // Example ID
-Schema.SObjectType objType = recordId.getSObjectType();
-String objectName = objType.getDescribe().getName();
-System.debug('Object Name: ' + objectName);
-list<taskData> taskDataList = new list<taskData>();
-list<Outlet_Task__c> lstTask = new list<Outlet_Task__c>();
-if(objectName =='Account')
-{
-lstTask = [Select Id,Name,Lead__c,Account__c,Task_Status__c,Description__c from Outlet_Task__c where Account__c =:objectId ];
-}
-else
-{
-lstTask = [Select Id,Name,Lead__c,Account__c,Task_Status__c,Description__c from Outlet_Task__c where Lead__c =:objectId ];
-}
-for(Outlet_Task__c ts: lstTask)
-{
-taskData td = new taskData();
-td.id = ts.Id;
-td.name = ts.Name;
-td.status = ts.Task_Status__c;
-td.checked = ts.Task_Status__c  == 'Completed' ? true : false;
-td.classtoggle = ts.Task_Status__c  == 'Completed' ? 'toggle' : '';
-td.description = ts.Description__c;
-td.icon = 'action:approval';
-taskDataList.add(td);
-}
-return taskDataList;
 
-}
-@AuraEnabled
-public static void updateTask(String taskId,String Status) 
-{
-Task ts = new Task();
-ts.Id = taskId;
-ts.Status = Status;
-update ts;
-}
-@AuraEnabled
-public static list<taskData> deleteTask(String taskId, String objectId,String objectName) 
-{
-Task ts = [select id from Task where id =:taskId ];
-
-if(ts != null)
-{
-delete ts;
-}
-return getTaskData(objectId);
-}
-@AuraEnabled
-public static list<taskData> saveTask(String taskId, String taskName, Date taskDate, String taskStatus, String description, String objectId,String objectName) {
-system.debug('taskDate'+taskDate);
-Task ts = new Task();
-if(taskId != null && taskId != '')
-{
-ts.Id = taskId ;
-}
-ts.WhatId = objectId;
-ts.Subject = taskName;
-ts.ActivityDate = taskDate;
-ts.Status = taskStatus;
-ts.Description = description;
-upsert ts;
-
-return getTaskData(objectId);
-}
-*/
-    
-    
     /**Helper Methods **/  
     private static List<Map<String, String>> extractPicklistValues(String objectName, String fieldName) {
         // Get the global describe map
@@ -3513,324 +3607,7 @@ return getTaskData(objectId);
     }
     
     
-    public static Set<String> getProductsForSure(string accountId,string customerType) {
-        
-        Id currentUserId = UserInfo.getUserId();
-        User us = [SELECT Id, Name, Sales_Channel__c,Alternate_Sales_Channel__c FROM User WHERE Id = :currentUserId];
-        
-        Set<String> salesChannelList = new Set<String>();
-        if(us.Alternate_Sales_Channel__c != null)
-        {
-            salesChannelList.addAll(us.Alternate_Sales_Channel__c.split(';'));
-        }
-        else if(us.Sales_Channel__c != null){
-            salesChannelList.addAll(us.Sales_Channel__c.split(';'));
-        }
-        
-        
-        Set<String> channelSet = new Set<String>();
-        Set<String> primaryCustomerIds = new Set<String>();
-        if(us.Alternate_Sales_Channel__c == null){
-            List<Product_Mapping__c> prodMappingsFromPrimary = [SELECT Chanel__c, Primary_Customer__c 
-                                                                FROM Product_Mapping__c 
-                                                                WHERE Exectuive__c = :currentUserId 
-                                                                AND Customer__c = :accountId];
-            
-            // Populate channelSet and primaryCustomerIds
-            for(Product_Mapping__c prodMap : prodMappingsFromPrimary) {
-                if (prodMap.Chanel__c != null) {
-                    channelSet.add(prodMap.Chanel__c);
-                }
-                if (prodMap.Primary_Customer__c != null) {
-                    primaryCustomerIds.add(prodMap.Primary_Customer__c);
-                }
-            }
-        }
-        
-        if (!channelSet.isEmpty()) {
-            return channelSet;
-        }
-        else {
-            List<Product_Mapping__c> secondaryProductMappings = [
-                SELECT Chanel__c, Primary_Customer__c 
-                FROM Product_Mapping__c 
-                WHERE Customer__c IN :primaryCustomerIds 
-                AND Chanel__c IN :salesChannelList 
-                AND Exectuive__c = :currentUserId
-            ];
-            
-            // If no records found, use a broader query
-            if (secondaryProductMappings.isEmpty()) {
-                secondaryProductMappings = [
-                    SELECT Chanel__c, Primary_Customer__c 
-                    FROM Product_Mapping__c 
-                    WHERE Customer__c IN :primaryCustomerIds 
-                    AND Chanel__c IN :salesChannelList
-                ];
-            }
-            
-            // Populate the channelSet again
-            for(Product_Mapping__c prodMap : secondaryProductMappings) {
-                if (prodMap.Chanel__c != null) {
-                    channelSet.add(prodMap.Chanel__c);
-                }
-            }
-            if (!channelSet.isEmpty()) {
-                return channelSet;
-            } else {
-                List<Product_Mapping__c> primaryCustomerMapping = [
-                    SELECT Chanel__c, Primary_Customer__c 
-                    FROM Product_Mapping__c 
-                    WHERE Customer__c =:accountId 
-                    AND Chanel__c IN :salesChannelList 
-                ];
-                
-                // Populate the channelSet again
-                for(Product_Mapping__c prodMap : primaryCustomerMapping) {
-                    if (prodMap.Chanel__c != null) {
-                        channelSet.add(prodMap.Chanel__c);
-                    }
-                }
-                if (!channelSet.isEmpty()) {
-                    return channelSet;
-                }
-                else
-                {
-                    channelSet = salesChannelList;
-                    return channelSet;
-                }
-                
-               
-            }
-        }
-        
-        
-        
-    }
-    
-    
-    /*public static Set<String> getProductsForSure(String accountId, String customerType) 
-    {
-        
-        Id currentUserId = UserInfo.getUserId();
-        User us = [
-            SELECT Id, Name, Sales_Channel__c, Alternate_Sales_Channel__c 
-            FROM User 
-            WHERE Id = :currentUserId
-        ];
-        
-        // Build the user's sales channel set
-        Set<String> salesChannelList = new Set<String>();
-        if (us.Alternate_Sales_Channel__c != null) {
-            salesChannelList.addAll(us.Alternate_Sales_Channel__c.split(';'));
-        } else if (us.Sales_Channel__c != null) {
-            salesChannelList.addAll(us.Sales_Channel__c.split(';'));
-        }
-        
-        Set<String> channelSet = new Set<String>();
-        
-        if (customerType == 'Primary') {
-            channelSet = getPrimaryCustomerChannels(accountId, currentUserId, salesChannelList, us.Alternate_Sales_Channel__c);
-        } else if (customerType == 'Secondary') {
-            channelSet = getSecondaryCustomerChannels(accountId, currentUserId, salesChannelList);
-        }
-        
-        // Final fallback — return user's sales channel if nothing resolved
-        if (channelSet.isEmpty()) {
-            channelSet = salesChannelList;
-        }
-        
-        return channelSet;
-    }*/
-    
-    
-    // PRIMARY: Direct query on Customer__c = accountId
-    private static Set<String> getPrimaryCustomerChannels(String accountId, Id currentUserId,Set<String> salesChannelList, String alternateSalesChannel) {
-        Set<String> channelSet = new Set<String>();
-        
-        List<Product_Mapping__c> primaryMappings;
-        
-        if (alternateSalesChannel == null) {
-            // When no alternate channel, filter by executive
-            primaryMappings = [
-                SELECT Chanel__c 
-                FROM Product_Mapping__c 
-                WHERE Customer__c = :accountId 
-                AND Exectuive__c = :currentUserId
-            ];
-            
-            if(primaryMappings.isEmpty())
-            {
-                primaryMappings = [
-                    SELECT Chanel__c 
-                    FROM Product_Mapping__c 
-                    WHERE Customer__c = :accountId 
-                    AND Chanel__c IN :salesChannelList
-                ];
-            }
-        }
-        else {
-            // When alternate channel exists, broader query with channel filter
-            primaryMappings = [
-                SELECT Chanel__c 
-                FROM Product_Mapping__c 
-                WHERE Customer__c = :accountId 
-                AND Chanel__c IN :salesChannelList
-            ];
-        }
-        
-        for (Product_Mapping__c prodMap : primaryMappings) {
-            if (prodMap.Chanel__c != null) {
-                channelSet.add(prodMap.Chanel__c);
-            }
-        }
-        
-        return channelSet;
-    }
-    
-    
-    // SECONDARY: First get Primary Customer Ids, then resolve channels from those
-    private static Set<String> getSecondaryCustomerChannels( String accountId,  Id currentUserId,  Set<String> salesChannelList ) 
-    {
-        Set<String> channelSet = new Set<String>();
-        // Step 1: Get Primary Customer Ids linked to this Secondary Customer
-        List<Product_Mapping__c> secondaryMappings = [
-            SELECT Primary_Customer__c 
-            FROM Product_Mapping__c 
-            WHERE Customer__c = :accountId 
-            AND Exectuive__c = :currentUserId
-        ];
-        
-        if(secondaryMappings.isEmpty())
-        {
-            secondaryMappings = [
-                SELECT Primary_Customer__c 
-                FROM Product_Mapping__c 
-                WHERE Customer__c = :accountId 
-                AND Exectuive__r.Sales_Channel__c IN :salesChannelList
-            ];
-        }
-        
-        
-        Set<String> primaryCustomerIds = new Set<String>();
-        for (Product_Mapping__c prodMap : secondaryMappings) {
-            if (prodMap.Primary_Customer__c != null) {
-                primaryCustomerIds.add(prodMap.Primary_Customer__c);
-            }
-        }
-        
-        if (primaryCustomerIds.isEmpty()) {
-            return channelSet; // Nothing to resolve
-        }
-        
-        // Step 2: Query Product_Mapping__c using those Primary Customer Ids (with executive filter)
-        List<Product_Mapping__c> primaryChannelMappings = [
-            SELECT Chanel__c 
-            FROM Product_Mapping__c 
-            WHERE Customer__c IN :primaryCustomerIds 
-            AND Chanel__c IN :salesChannelList 
-            AND Exectuive__c = :currentUserId
-        ];
-        
-        // Step 3: Fallback — same query without executive filter
-        if (primaryChannelMappings.isEmpty()) {
-            primaryChannelMappings = [
-                SELECT Chanel__c 
-                FROM Product_Mapping__c 
-                WHERE Customer__c IN :primaryCustomerIds 
-                AND Chanel__c IN :salesChannelList
-            ];
-        }
-        
-        for (Product_Mapping__c prodMap : primaryChannelMappings) {
-            if (prodMap.Chanel__c != null) {
-                channelSet.add(prodMap.Chanel__c);
-            }
-        }
-        
-        return channelSet;
-    }
-    
-    public static Set<String> getProductsForArea(string accountId,string customerType) {
-        
-        if(customerType == 'Secondary Customer'){
-            Id currentUserId = UserInfo.getUserId();
-            User us = [SELECT Id, Name, Sales_Channel__c FROM User WHERE Id = :currentUserId];
-            
-            set<String> sendBackAreaList = new Set<String>();
-            Set<String> salesChannelList = new Set<String>();
-            salesChannelList.addAll(us.Sales_Channel__c.split(';'));
-            
-            Set<String> channelSet = new Set<String>();
-            Set<String> primaryCustomerIds = new Set<String>();
-            
-            List<Product_Mapping__c> prodMappingsFromPrimary = [SELECT Chanel__c, Primary_Customer__c ,Area__c,Area__r.Area__c
-                                                                FROM Product_Mapping__c 
-                                                                WHERE Exectuive__c = :currentUserId 
-                                                                AND Customer__c = :accountId];
-            
-            // Populate channelSet and primaryCustomerIds
-            for(Product_Mapping__c prodMap : prodMappingsFromPrimary) {
-                if (prodMap.Chanel__c != null) {
-                    channelSet.add(prodMap.Chanel__c);
-                }
-                if(prodMap.Area__c != null){
-                    sendBackAreaList.add(prodMap.Area__r.Area__c);
-                }
-                if (prodMap.Primary_Customer__c != null) {
-                    primaryCustomerIds.add(prodMap.Primary_Customer__c);
-                }
-                
-            }
-            
-            if (!sendBackAreaList.isEmpty()) {
-                return sendBackAreaList;
-            } else {
-                List<Product_Mapping__c> secondaryProductMappings = [
-                    SELECT Chanel__c, Primary_Customer__c ,Area__c,Area__r.Area__c
-                    FROM Product_Mapping__c 
-                    WHERE Customer__c IN :primaryCustomerIds 
-                    AND Chanel__c IN :salesChannelList 
-                    AND Exectuive__c = :currentUserId
-                ];
-                
-                // If no records found, use a broader query
-                if (secondaryProductMappings.isEmpty()) {
-                    secondaryProductMappings = [
-                        SELECT Chanel__c, Primary_Customer__c,Area__c,Area__r.Area__c
-                        FROM Product_Mapping__c 
-                        WHERE Customer__c IN :primaryCustomerIds 
-                        AND Chanel__c IN :salesChannelList
-                    ];
-                }
-                
-                // Populate the channelSet again
-                for(Product_Mapping__c prodMap : secondaryProductMappings) {
-                    if (prodMap.Chanel__c != null) {
-                        channelSet.add(prodMap.Chanel__c);
-                    }
-                    if(prodMap.Area__c != null){
-                        sendBackAreaList.add(prodMap.Area__r.Area__c);
-                    }
-                }
-                if (!sendBackAreaList.isEmpty()) {
-                    
-                    return sendBackAreaList;
-                } else {
-                    return null;
-                }
-            }
-            
-            
-        }
-        else{
-            return null;
-        }
-        
-        
-    }
-    
-    
+
     
     /** Fetch products based on executive and account linked channels */
     public static List<Product__c> getProducts(String accountId, String customerType) {
