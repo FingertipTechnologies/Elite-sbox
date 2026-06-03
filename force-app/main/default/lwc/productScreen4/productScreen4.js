@@ -1395,7 +1395,9 @@ export default class ProductScreen4 extends LightningElement {
                 // Recompute prices now that scheme data is available
                 this.applySchemeEngine();
             })
-            .catch(() => {
+            .catch((error) => {
+                // eslint-disable-next-line no-console
+                console.error('getSchemeCoverageForAccount failed', error);
                 this.coverageSchemes = [];
                 this.coverageProductSchemeIds = {};
             });
@@ -2189,6 +2191,17 @@ export default class ProductScreen4 extends LightningElement {
 
     applySchemeEngine() {
         if (!this.isSecondaryAccount) return;
+        try {
+            this._runSchemeEngine();
+        } catch (e) {
+            // Never let a pricing-engine error break the screen or wipe scheme coverage.
+            // eslint-disable-next-line no-console
+            console.error('applySchemeEngine failed', e);
+            try { this.recalculateTotals(); } catch (ignore) { /* noop */ }
+        }
+    }
+
+    _runSchemeEngine() {
         const items = this._allEngineItems();
 
         // Reset working state to base price (idempotent across runs)
