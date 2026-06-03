@@ -2240,10 +2240,30 @@ global with sharing class beatPlannerlwc {
         if (accountId == null) return out;
         
         Account acc = [
-            SELECT Id, Region__c, Secondary_Customer_Category__c, Customer_Type__c
+            SELECT Id, Secondary_Customer_Category__c, Customer_Type__c
             FROM Account WHERE Id = :accountId LIMIT 1
         ];
-        
+        // These schemes apply ONLY to Secondary Customers
+        if (acc.Customer_Type__c != 'Secondary Customer') return out;
+
+        Id currentUserId = UserInfo.getUserId();
+        User us = [SELECT Id, Sales_Channel__c, Alternate_Sales_Channel__c
+                   FROM User WHERE Id = :currentUserId];
+        Set<String> salesChannelList = new Set<String>();
+        if (us.Alternate_Sales_Channel__c != null) {
+            salesChannelList.addAll(us.Alternate_Sales_Channel__c.split(';'));
+        } else if (us.Sales_Channel__c != null) {
+            salesChannelList.addAll(us.Sales_Channel__c.split(';'));
+        }
+
+        // channels of this secondary customer (reuses existing resolver)
+        Set<String> channelSet = getSecondaryCustomerChannels(accountId, currentUserId, salesChannelList);
+        if (channelSet.isEmpty()) channelSet = salesChannelList;
+
+        // Region/Area/Territory from this customer's Product_Mapping rows
+        AccountGeo geo = getSecondaryCustomerGeo(accountId, currentUserId, salesChannelList);
+        if (geo == null) return out;   // no Product_Mapping at all -> no schemes
+
         Date today = Date.today();
         List<Scheme__c> candidates = [
             SELECT Id, Name, Scheme_Type__c, Sales_Channel__c,
@@ -2256,6 +2276,7 @@ global with sharing class beatPlannerlwc {
             WHERE IsActive__c = true
             AND Scheme_Start_Date__c <= :today
             AND Scheme_End_Date__c >= :today
+            AND Sales_Channel__c IN :channelSet
         ];
         if (candidates.isEmpty()) return out;
         
@@ -2285,15 +2306,18 @@ global with sharing class beatPlannerlwc {
             if (s.Scheme_Product_Group__c == null && String.isBlank(s.Scheme_Product_Category__c) && s.Scheme_Type__c != 'Order Value') continue;
             Map<String, Set<String>> lvls = appByScheme.containsKey(s.Id) ? appByScheme.get(s.Id) : new Map<String, Set<String>>();
             
-            Boolean regionOk = s.Apply_to_All_Regions__c == true || acc.Region__c == null
-                || (lvls.containsKey('Region') && lvls.get('Region').contains(acc.Region__c));
-            
+            Boolean regionOk = s.Apply_to_All_Regions__c == true
+                || (lvls.containsKey('Region')   && anyMatch(lvls.get('Region'),   geo.regions));
+
+            Boolean areaOk = s.Apply_to_All_Areas__c == true
+                || (lvls.containsKey('Area')     && anyMatch(lvls.get('Area'),     geo.areas));
+
+            Boolean territoryOk = s.Apply_to_All_Territories__c == true
+                || (lvls.containsKey('Territory') && anyMatch(lvls.get('Territory'), geo.territoryIds));
+
             Boolean outletOk = s.Apply_to_All_Outlet_Categories__c == true
                 || acc.Secondary_Customer_Category__c == null
                 || (lvls.containsKey('Outlet Category') && lvls.get('Outlet Category').contains(acc.Secondary_Customer_Category__c));
-            
-            Boolean areaOk = s.Apply_to_All_Areas__c == true || !lvls.containsKey('Area');
-            Boolean territoryOk = s.Apply_to_All_Territories__c == true || !lvls.containsKey('Territory');
             
             if (regionOk && outletOk && areaOk && territoryOk) {
                 matched.add(s);
@@ -2362,6 +2386,46 @@ global with sharing class beatPlannerlwc {
         return out;
     }
     
+    private class AccountGeo {
+        Set<String> regions      = new Set<String>();
+        Set<String> areas        = new Set<String>();
+        Set<String> territoryIds = new Set<String>();
+    }
+
+    // Region/Area/Territory for a Secondary Customer from its own Product_Mapping rows.
+    // Mirrors getSecondaryCustomerChannels: executive filter first, sales-channel fallback.
+    private static AccountGeo getSecondaryCustomerGeo(Id accountId, Id currentUserId,
+                                                      Set<String> salesChannelList) {
+        List<Product_Mapping__c> mappings = [
+            SELECT Area__c, Area_Area_Name__c, Region_Name__c
+            FROM Product_Mapping__c
+            WHERE Customer__c = :accountId AND Exectuive__c = :currentUserId
+        ];
+        if (mappings.isEmpty()) {
+            mappings = [
+                SELECT Area__c, Area_Area_Name__c, Region_Name__c
+                FROM Product_Mapping__c
+                WHERE Customer__c = :accountId
+                AND Exectuive__r.Sales_Channel__c IN :salesChannelList
+            ];
+        }
+        if (mappings.isEmpty()) return null;   // signal: no mapping -> no schemes
+
+        AccountGeo geo = new AccountGeo();
+        for (Product_Mapping__c pm : mappings) {
+            if (String.isNotBlank(pm.Region_Name__c))    geo.regions.add(pm.Region_Name__c);
+            if (String.isNotBlank(pm.Area_Area_Name__c)) geo.areas.add(pm.Area_Area_Name__c);
+            if (pm.Area__c != null)                      geo.territoryIds.add(String.valueOf(pm.Area__c));
+        }
+        return geo;
+    }
+
+    private static Boolean anyMatch(Set<String> allowed, Set<String> have) {
+        if (allowed == null || have == null) return false;
+        for (String v : have) { if (allowed.contains(v)) return true; }
+        return false;
+    }
+
     private static List<CoverageSlabRow> buildSlabRows(String schemeType, List<Scheme_Slab__c> slabs) {
         List<CoverageSlabRow> rows = new List<CoverageSlabRow>();
         if (slabs == null || slabs.isEmpty()) return rows;
