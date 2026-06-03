@@ -8674,6 +8674,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>Product_Mapping__c.Region_Name__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>Product_Mapping__c.Sales_Office__c</field>
         <readable>false</readable>
     </fieldPermissions>

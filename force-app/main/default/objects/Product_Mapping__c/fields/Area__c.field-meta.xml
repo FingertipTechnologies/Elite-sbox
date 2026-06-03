@@ -3,7 +3,7 @@
     <fullName>Area__c</fullName>
     <deleteConstraint>Restrict</deleteConstraint>
     <externalId>false</externalId>
-    <label>Area</label>
+    <label>Territory</label>
     <referenceTo>Area__c</referenceTo>
     <relationshipLabel>Product Mappings</relationshipLabel>
     <relationshipName>Product_Mappings</relationshipName>
