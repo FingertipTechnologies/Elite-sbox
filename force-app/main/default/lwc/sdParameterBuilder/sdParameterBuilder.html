@@ -161,11 +161,7 @@
                         variant="brand-outline">
                     </lightning-button>
                 </div>
-                <textarea
-                    class="sdp-soql"
-                    readonly
-                    rows="4"
-                    placeholder="Click Preview SOQL to generate the query used for the achievement calculation.">{soqlPreview}</textarea>
+                <pre class="sdp-soql">{soqlDisplay}</pre>
                 <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
                     This query is regenerated and stored on Save, and used by the achievement calculation.
                 </p>

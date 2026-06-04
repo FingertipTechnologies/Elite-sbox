@@ -161,6 +161,9 @@ export default class SdParameterBuilder extends LightningElement {
     get headerTitle() {
         return this.recordId ? 'Edit S&D Parameter' : 'New S&D Parameter';
     }
+    get soqlDisplay() {
+        return this.soqlPreview || 'Click Preview SOQL to generate the query used for the achievement calculation.';
+    }
 
     // ===== handlers =====
     handleField(event) {
