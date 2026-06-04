@@ -159,7 +159,7 @@
     <enableSharing>true</enableSharing>
     <enableStreamingApi>true</enableStreamingApi>
     <externalSharingModel>Private</externalSharingModel>
-    <label>NotUsed_Target</label>
+    <label>Not in Use</label>
     <nameField>
         <displayFormat>TR{00}</displayFormat>
         <label>Target</label>

@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Order_Value_Discount__c</fullName>
     <externalId>false</externalId>
-    <label>Order Value Discount</label>
+    <label>Order_Value_Discount</label>
     <precision>18</precision>
     <required>false</required>
     <scale>2</scale>

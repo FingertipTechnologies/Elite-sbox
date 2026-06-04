@@ -153,7 +153,7 @@
     <enableSharing>true</enableSharing>
     <enableStreamingApi>true</enableStreamingApi>
     <externalSharingModel>ReadWrite</externalSharingModel>
-    <label>NotUsed_Target Item</label>
+    <label>Not in Use</label>
     <nameField>
         <displayFormat>{0}</displayFormat>
         <label>Target Item Name</label>

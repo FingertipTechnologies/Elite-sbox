@@ -159,7 +159,7 @@
     <enableSharing>true</enableSharing>
     <enableStreamingApi>true</enableStreamingApi>
     <externalSharingModel>Private</externalSharingModel>
-    <label>NotUsed_Target Logic</label>
+    <label>Not in Use</label>
     <nameField>
         <label>Target Logic Name</label>
         <trackHistory>false</trackHistory>

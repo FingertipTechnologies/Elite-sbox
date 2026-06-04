@@ -6,7 +6,6 @@
     <columns>Delivery_To__c</columns>
     <columns>Expected_Delivery_Date__c</columns>
     <columns>Delivery_Plant__c</columns>
-    <columns>PDP_Other_Type__c</columns>
     <columns>Order_Type1__c</columns>
     <columns>Distributor__c</columns>
     <columns>Sales_Channel__c</columns>
@@ -16,6 +15,17 @@
     <columns>Order_Date__c</columns>
     <columns>Status__c</columns>
     <columns>CREATED_DATE</columns>
-    <filterScope>Everything</filterScope>
+    <columns>Owner_Name__c</columns>
+    <filterScope>Mine</filterScope>
+    <filters>
+        <field>Order_Type__c</field>
+        <operation>equals</operation>
+        <value>Secondary Order</value>
+    </filters>
+    <filters>
+        <field>CREATED_DATE</field>
+        <operation>equals</operation>
+        <value>LAST_MONTH</value>
+    </filters>
     <label>All</label>
 </ListView>
