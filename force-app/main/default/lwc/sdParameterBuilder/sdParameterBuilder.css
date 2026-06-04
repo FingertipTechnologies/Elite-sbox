@@ -1,17 +1,18 @@
-/* Modal sizing */
-.sdp-modal {
-    max-width: 760px;
-    width: 90%;
-    border-radius: 0.75rem;
-    overflow: hidden;
+/* Rendered inside an Aura overlayLibrary modal — fill the modal box edge to edge. */
+.sdp-card {
+    margin: -1rem -1.5rem;
 }
 
 /* Header */
 .sdp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
     background: linear-gradient(90deg, #0b5cab 0%, #1589ee 100%);
     color: #fff;
     padding: 1.1rem 1.5rem;
-    border-bottom: none;
+    border-radius: 0.25rem 0.25rem 0 0;
 }
 
 .sdp-header-inner {
@@ -42,7 +43,8 @@
     opacity: 0.9;
 }
 
-.slds-modal__close {
+.sdp-close {
+    --slds-c-button-text-color: #fff;
     color: #fff;
 }
 
@@ -73,7 +75,10 @@
 
 /* Footer */
 .sdp-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 1rem 1.5rem;
     background: #fafafb;
     border-top: 1px solid #eef1f6;
-    text-align: right;
+    border-radius: 0 0 0.25rem 0.25rem;
 }
