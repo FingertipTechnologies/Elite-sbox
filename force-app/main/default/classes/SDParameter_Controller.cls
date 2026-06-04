@@ -31,7 +31,7 @@ public with sharing class SDParameter_Controller {
     public static S_D_Parameter__c getParameter(Id parameterId) {
         return [
             SELECT Id, Name, Object__c, Operator__c, Field__c, User_Field__c, Date_Field__c,
-                   SKU_Field__c, Focused_Pack__c, Focused_Pack__r.Name, Sales_Channel__c,
+                   Focused_Pack__c, Focused_Pack__r.Name, Sales_Channel__c,
                    Filters__c, Filter_Logic__c, SOQL_Query__c, Is_Active__c
             FROM S_D_Parameter__c
             WHERE Id = :parameterId
@@ -98,7 +98,6 @@ public with sharing class SDParameter_Controller {
             String.isBlank(parameter.User_Field__c) ? 'OwnerId' : parameter.User_Field__c, selfRels);
         String dateField = stripSelfRel(parameter.Date_Field__c, selfRels);
         String measureField = stripSelfRel(parameter.Field__c, selfRels);
-        String skuField = stripSelfRel(parameter.SKU_Field__c, selfRels);
 
         // Aggregate expression: COUNT counts rows; SUM and Focus Pack sum the measure field.
         String agg;
@@ -114,10 +113,15 @@ public with sharing class SDParameter_Controller {
         List<String> conds = new List<String>();
 
         // Focus Pack: restrict to the pack's SKUs via a semi-join on Focused_Pack_Item__c.
+        // The match field is auto-detected from the object's lookup to the Product__c object
+        // (the same object Focused_Pack_Item__c.SKU__c points to) — no manual SKU field.
         if (isFocusPack) {
             if (parameter.Focused_Pack__c == null) return '-- Select a Focused Pack to generate the SOQL.';
-            if (String.isBlank(skuField)) return '-- Select a SKU Field to generate the SOQL.';
-            conds.add(skuField + ' IN (SELECT SKU__c FROM Focused_Pack_Item__c WHERE Focused_Pack__c = \''
+            String productField = detectProductField(parameter.Object__c);
+            if (String.isBlank(productField)) {
+                return '-- ' + parameter.Object__c + ' has no lookup to Product__c; cannot match the Focused Pack.';
+            }
+            conds.add(productField + ' IN (SELECT SKU__c FROM Focused_Pack_Item__c WHERE Focused_Pack__c = \''
                 + parameter.Focused_Pack__c + '\')');
         }
 
@@ -140,6 +144,35 @@ public with sharing class SDParameter_Controller {
     }
 
     // ---- helpers ---------------------------------------------------------
+
+    /**
+     * The object's product/SKU field for Focus-Pack matching: the lookup whose referenceTo
+     * is the Product__c object (the same object Focused_Pack_Item__c.SKU__c points to).
+     * Prefers a field named Product__c, then SKU__c, then the first Product__c-referencing
+     * lookup. Returns null if the object has none.
+     */
+    private static String detectProductField(String objectName) {
+        Schema.SObjectType t = Schema.getGlobalDescribe().get(objectName);
+        if (t == null) return null;
+        String preferred;
+        String fallback;
+        for (Schema.SObjectField f : t.getDescribe().fields.getMap().values()) {
+            Schema.DescribeFieldResult d = f.getDescribe();
+            if (d.getType() != Schema.DisplayType.Reference) continue;
+            Boolean toProduct = false;
+            for (Schema.SObjectType r : d.getReferenceTo()) {
+                if (r != null && r.getDescribe().getName() == 'Product__c') { toProduct = true; break; }
+            }
+            if (!toProduct) continue;
+            String api = d.getName();
+            if (api == 'Product__c' || api == 'SKU__c') {
+                preferred = api; // exact conventional names win
+            } else if (fallback == null) {
+                fallback = api;
+            }
+        }
+        return preferred != null ? preferred : fallback;
+    }
 
     /** Relationship names whose lookup points back to the same object (e.g. MasterRecord, Parent). */
     private static Set<String> selfRelationshipNames(String objectName) {

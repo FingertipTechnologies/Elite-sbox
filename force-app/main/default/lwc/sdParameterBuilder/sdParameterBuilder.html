@@ -98,18 +98,6 @@
                                 onchange={handleComboChange}>
                             </c-searchable-combobox>
                         </div>
-                        <template if:true={isFocusPackOperator}>
-                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
-                                <c-searchable-combobox
-                                    label="SKU Field"
-                                    placeholder="Search product/SKU field…"
-                                    options={fieldOptions}
-                                    value={param.SKU_Field__c}
-                                    data-field="SKU_Field__c"
-                                    onchange={handleComboChange}>
-                                </c-searchable-combobox>
-                            </div>
-                        </template>
                     </div>
                 </div>
 
