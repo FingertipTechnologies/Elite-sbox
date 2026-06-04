@@ -1,0 +1,12 @@
+.slds-dropdown {
+    max-height: 18rem;
+    overflow-y: auto;
+}
+
+.slds-listbox__option {
+    cursor: pointer;
+}
+
+.slds-listbox__option:hover {
+    background-color: #f3f3f3;
+}

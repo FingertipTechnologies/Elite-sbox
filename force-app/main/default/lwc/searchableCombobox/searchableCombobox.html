@@ -1,0 +1,54 @@
+<template>
+    <div class="slds-form-element">
+        <label class="slds-form-element__label" if:true={label}>
+            <abbr class="slds-required" title="required" if:true={required}>* </abbr>{label}
+        </label>
+        <div class="slds-form-element__control">
+            <div class={comboClass}>
+                <div
+                    class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+                    role="none">
+                    <input
+                        type="text"
+                        class="slds-input slds-combobox__input"
+                        placeholder={placeholder}
+                        value={displayText}
+                        onfocus={handleFocus}
+                        oninput={handleInput}
+                        onblur={handleBlur}
+                        disabled={disabled}
+                        autocomplete="off" />
+                    <span
+                        class="slds-icon_container slds-icon-utility-search slds-input__icon slds-input__icon_right">
+                        <lightning-icon icon-name="utility:search" size="x-small" alternative-text="Search">
+                        </lightning-icon>
+                    </span>
+                </div>
+                <div class="slds-dropdown slds-dropdown_length-7 slds-dropdown_fluid" role="listbox" if:true={isOpen}>
+                    <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                        <template for:each={filtered} for:item="opt">
+                            <li key={opt.value} role="presentation" class="slds-listbox__item">
+                                <div
+                                    class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small"
+                                    role="option"
+                                    data-value={opt.value}
+                                    onmousedown={handleSelect}>
+                                    <span class="slds-media__body">
+                                        <span class="slds-truncate" title={opt.label}>{opt.label}</span>
+                                    </span>
+                                </div>
+                            </li>
+                        </template>
+                        <template if:false={hasResults}>
+                            <li class="slds-listbox__item" role="presentation">
+                                <div class="slds-listbox__option slds-listbox__option_plain slds-media_small">
+                                    <span class="slds-text-color_weak">No matches</span>
+                                </div>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
