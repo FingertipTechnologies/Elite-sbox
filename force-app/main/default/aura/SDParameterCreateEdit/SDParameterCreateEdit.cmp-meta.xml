@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AuraDefinitionBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>59.0</apiVersion>
+    <description>Action-override wrapper that hosts sdParameterBuilder and navigates to the record detail on save (Primary PBIS - S&amp;D Parameter Setup).</description>
+</AuraDefinitionBundle>

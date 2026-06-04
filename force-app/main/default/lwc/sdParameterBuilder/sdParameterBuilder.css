@@ -1,0 +1,8 @@
+:host {
+    display: block;
+}
+
+.slds-text-title_caps {
+    font-weight: 700;
+    color: #514f4d;
+}
