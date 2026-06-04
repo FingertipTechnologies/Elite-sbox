@@ -6,6 +6,7 @@ import saveOrderItemData from '@salesforce/apex/beatPlannerlwc.upsertOrder';
 import saveStockItem from '@salesforce/apex/beatPlannerlwc.upsertStock';
 import getAreaOptions from '@salesforce/apex/beatPlannerlwc.getAreaOptions';
 import getSchemeCoverageForAccount from '@salesforce/apex/beatPlannerlwc.getSchemeCoverageForAccount';
+import getCurrentUserIsSSADSM from '@salesforce/apex/beatPlannerlwc.getCurrentUserIsSSADSM';
 import PLANNER_ICON from '@salesforce/resourceUrl/planner';
 import FORM_FACTOR from '@salesforce/client/formFactor';
 import GOOGLE_ICONS from '@salesforce/resourceUrl/googleIcons';
@@ -33,6 +34,7 @@ export default class ProductScreen4 extends LightningElement {
     @track isModerTrade = false;
     @track isPrimaryAccount = false;
     @track isSecondaryAccount = false;
+    isSSADSM = false;   // current user flagged SSA/DSM -> account picker shows Secondary only
     @track isShowOwner = false;
     @track productData = [];
     @track getSelectedProduct = [];
@@ -111,6 +113,15 @@ export default class ProductScreen4 extends LightningElement {
             ? 'slds-col slds-size_1-of-2 custom_Css'
             : 'slds-col slds-size_1-of-1';
 
+        // Resolve the SSA/DSM restriction once during load, then run the load flow
+        // so the account queries (getAccountData / getAccountsByArea) receive the flag.
+        getCurrentUserIsSSADSM()
+            .then(flag => { this.isSSADSM = (flag === true); })
+            .catch(() => { this.isSSADSM = false; })
+            .finally(() => { this.initLoadFlow(); });
+    }
+
+    initLoadFlow() {
         // CASE 1: Create Mode + accountId (from related list New override)
         if (!this.orderRecordId && this.isOrderTrue && this.acccountId) {
             console.log('My Visit Order');
@@ -187,7 +198,7 @@ export default class ProductScreen4 extends LightningElement {
         this.isLoading = true; // Show loading spinner
         // Call your Apex method to fetch accounts based on areaFilter
         //alert(this.areaFilter);
-        getAccountsByArea({ area: this.areaFilter, searchTerm: this.accNam })
+        getAccountsByArea({ area: this.areaFilter, searchTerm: this.accNam, onlySecondary: this.isSSADSM })
             .then(result => {
                 //alert('result '+result);
                 this.accountDataOriginal = result;  // Store the filtered accounts
@@ -255,7 +266,7 @@ export default class ProductScreen4 extends LightningElement {
     }
     getAccountData() {
         this.isPageLoaded = false;
-        getAccountData({ areaFilter: this.areaFilter })
+        getAccountData({ areaFilter: this.areaFilter, onlySecondary: this.isSSADSM })
             .then(result => {
                 this.accountDataOriginal = result.Account;
                 this.listView = result.listViewRecords.Id;

@@ -1480,52 +1480,78 @@ global with sharing class beatPlannerlwc {
     //-----------------------------------------------Order Related Methods---------------------------------------
     //Separate Order Tab first called to get 25 accounts
     @AuraEnabled
-    public static data getAccountData(String areaFilter){
+    public static data getAccountData(String areaFilter, Boolean onlySecondary){
         data dt = new data();
-        
+
         // Fetch the ListView record as before
         List<ListView> listViewRecords = [SELECT Id FROM ListView WHERE SObjectType = 'Order__c' AND Name = 'TODAY' LIMIT 1];
         dt.ListViewDetails = (!listViewRecords.isEmpty()) ? listViewRecords[0] : null;
-        
+
+        // SSA/DSM users (flag resolved during screen load and passed in) only see Secondary Customers
+        Boolean secOnly = (onlySecondary == true);
+
         // Modify the query to handle the case where areaFilter is null or empty
         String areaFilterCondition = (String.isEmpty(areaFilter)) ? '' : areaFilter;
-        
+
         if (String.isEmpty(areaFilterCondition)) {
-            // If no area filter is provided, get all accounts
-            dt.Account = [SELECT Id, Name, SAP_Customer_Code__c,Account_Type_Of__c,Account_Type_With_Code__c,Delivery_Plant__c FROM Account
-                          WHERE
-                          (
-                              (Customer_Type__c = 'Primary Customer' AND Customer_Status__c = 'Active')
-                              OR
-                              (Customer_Type__c = 'Secondary Customer' AND Customer_Status__c != 'Inactive')
-                          )
-                          LIMIT 20
-                         ];
+            if (secOnly) {
+                dt.Account = [SELECT Id, Name, SAP_Customer_Code__c,Account_Type_Of__c,Account_Type_With_Code__c,Delivery_Plant__c FROM Account
+                              WHERE Customer_Type__c = 'Secondary Customer' AND Customer_Status__c != 'Inactive'
+                              LIMIT 20];
+            } else {
+                // If no area filter is provided, get all accounts
+                dt.Account = [SELECT Id, Name, SAP_Customer_Code__c,Account_Type_Of__c,Account_Type_With_Code__c,Delivery_Plant__c FROM Account
+                              WHERE
+                              (
+                                  (Customer_Type__c = 'Primary Customer' AND Customer_Status__c = 'Active')
+                                  OR
+                                  (Customer_Type__c = 'Secondary Customer' AND Customer_Status__c != 'Inactive')
+                              )
+                              LIMIT 20
+                             ];
+            }
         } else {
             // If area filter is provided, filter accounts by the related Product_Mapping__c area
+            String custType = secOnly ? 'Secondary Customer' : 'Primary Customer';
             dt.Account = [SELECT id, name, Customer_Type__c, customer_code__c,SAP_Customer_Code__c
                           FROM Account
-                          WHERE Customer_Type__c = 'Primary Customer' and  Customer_Status__c != 'Inactive'
+                          WHERE Customer_Type__c = :custType and  Customer_Status__c != 'Inactive'
                           AND Id IN (SELECT Customer__c FROM Product_Mapping__c WHERE Area__c = :areaFilter) limit 10];
         }
-        
+
         return dt;
     }
     
+    // Whether the running user's Employee record is flagged SSA/DSM.
+    // Resolved once during screen load; productScreen4 passes the result into the
+    // account queries so those methods don't re-query the user.
+    @AuraEnabled(cacheable=true)
+    public static Boolean getCurrentUserIsSSADSM() {
+        List<Employee__c> emps = [
+            SELECT Id, Is_SSA_DSM__c
+            FROM Employee__c
+            WHERE User__c = :UserInfo.getUserId()
+            LIMIT 1
+        ];
+        return (!emps.isEmpty() && emps[0].Is_SSA_DSM__c == true);
+    }
+
     //Search Account by Name and Sap code
     @AuraEnabled(cacheable=true)
-    public static List<Account> getAccountsByArea(String area, String searchTerm) {
+    public static List<Account> getAccountsByArea(String area, String searchTerm, Boolean onlySecondary) {
+        // SSA/DSM users (flag resolved during screen load and passed in) only see Secondary Customers
+        Boolean secOnly = (onlySecondary == true);
+        String baseWhere = secOnly
+            ? '(Customer_Type__c = \'Secondary Customer\' AND Customer_Status__c != \'Inactive\')'
+            : '((Customer_Type__c = \'Primary Customer\' AND Customer_Status__c = \'Active\') ' +
+              'OR (Customer_Type__c = \'Secondary Customer\' AND Customer_Status__c != \'Inactive\'))';
+
         // Initial query for Account records
-        String query = 
+        String query =
             'SELECT Id, Name, Customer_Type__c, Account_Type_Of__c, SAP_Customer_Code__c, ' +
             'Account_Type_With_Code__c, Delivery_Plant__c ' +
             'FROM Account ' +
-            'WHERE ' +
-            '(' +
-            '(Customer_Type__c = \'Primary Customer\' AND Customer_Status__c = \'Active\') ' +
-            'OR ' +
-            '(Customer_Type__c = \'Secondary Customer\' AND Customer_Status__c != \'Inactive\')' +
-            ')';
+            'WHERE ' + baseWhere;
         
         
         
@@ -1556,14 +1582,7 @@ global with sharing class beatPlannerlwc {
         
         // If no filters were added, just limit the records
         if (conditions.isEmpty()) {
-            return [SELECT Id, Name, SAP_Customer_Code__c,Account_Type_Of__c,Account_Type_With_Code__c,Delivery_Plant__c FROM Account
-                    WHERE
-                    (
-                        (Customer_Type__c = 'Primary Customer' AND Customer_Status__c = 'Active')
-                        OR
-                        (Customer_Type__c = 'Secondary Customer' AND Customer_Status__c != 'Inactive')
-                    )
-                    LIMIT 25];
+            return Database.query(query + ' LIMIT 25');
         }
         
         // Combine the conditions into the query
