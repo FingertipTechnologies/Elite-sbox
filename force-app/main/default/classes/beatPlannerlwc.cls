@@ -1480,15 +1480,18 @@ global with sharing class beatPlannerlwc {
     //-----------------------------------------------Order Related Methods---------------------------------------
     //Separate Order Tab first called to get 25 accounts
     @AuraEnabled
-    public static data getAccountData(String areaFilter, Boolean onlySecondary){
+    public static data getAccountData(String areaFilter){
         data dt = new data();
 
         // Fetch the ListView record as before
         List<ListView> listViewRecords = [SELECT Id FROM ListView WHERE SObjectType = 'Order__c' AND Name = 'TODAY' LIMIT 1];
         dt.ListViewDetails = (!listViewRecords.isEmpty()) ? listViewRecords[0] : null;
 
-        // SSA/DSM users (flag resolved during screen load and passed in) only see Secondary Customers
-        Boolean secOnly = (onlySecondary == true);
+        // SSA/DSM users only see Secondary Customers. Resolve the flag here (initial
+        // account load) and return it so the client can reuse it for getAccountsByArea.
+        User u = [SELECT Id, Is_SSA_DSM__c FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
+        Boolean secOnly = (u.Is_SSA_DSM__c == true);
+        dt.isDSM_SSA = secOnly;
 
         // Modify the query to handle the case where areaFilter is null or empty
         String areaFilterCondition = (String.isEmpty(areaFilter)) ? '' : areaFilter;
@@ -1585,8 +1588,7 @@ global with sharing class beatPlannerlwc {
         Id currentUserId = UserInfo.getUserId();
         List<ListView> listViewRecords = [SELECT Id FROM ListView WHERE SObjectType = 'Order__c' AND Name = 'TODAY' LIMIT 1];
         responseData.ListViewDetails = (!listViewRecords.isEmpty()) ? listViewRecords[0]: null;
-        User us = [Select Id,Name,Minimum_Order_value__c,Profile.Name,Category__c,Is_SSA_DSM__c From User where Id=:currentUserId];
-        responseData.isDSM_SSA = (us.Is_SSA_DSM__c == true);
+        User us = [Select Id,Name,Minimum_Order_value__c,Profile.Name,Category__c From User where Id=:currentUserId];
         // Step 1: Determine Account
         String accId;
         if (visitId != null) {

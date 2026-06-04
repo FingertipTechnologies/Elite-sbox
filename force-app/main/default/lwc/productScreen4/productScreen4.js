@@ -260,8 +260,9 @@ export default class ProductScreen4 extends LightningElement {
     }
     getAccountData() {
         this.isPageLoaded = false;
-        getAccountData({ areaFilter: this.areaFilter, onlySecondary: this.isSSADSM })
+        getAccountData({ areaFilter: this.areaFilter })
             .then(result => {
+                this.isSSADSM = result.isDSM_SSA === true;
                 this.accountDataOriginal = result.Account;
                 this.listView = result.listViewRecords.Id;
             })
@@ -297,7 +298,6 @@ export default class ProductScreen4 extends LightningElement {
                 this.isModerTrade = result.isModerTrade;
                 this.productCatDropdown = result.productCatDropdown;
                 this.isShowOwner = result.isShowOwner;
-                this.isSSADSM = result.isDSM_SSA === true;
 
                 this.loadCoverage();
 
