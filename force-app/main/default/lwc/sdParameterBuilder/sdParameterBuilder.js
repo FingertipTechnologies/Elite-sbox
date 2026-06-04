@@ -29,6 +29,7 @@ export default class SdParameterBuilder extends LightningElement {
         Field__c: '',
         User_Field__c: '',
         Date_Field__c: '',
+        SKU_Field__c: '',
         Focused_Pack__c: '',
         Sales_Channel__c: '',
         Filter_Logic__c: '',
@@ -104,6 +105,7 @@ export default class SdParameterBuilder extends LightningElement {
                 Field__c: rec.Field__c || '',
                 User_Field__c: rec.User_Field__c || '',
                 Date_Field__c: rec.Date_Field__c || '',
+                SKU_Field__c: rec.SKU_Field__c || '',
                 Focused_Pack__c: rec.Focused_Pack__c || '',
                 Sales_Channel__c: rec.Sales_Channel__c || '',
                 Filter_Logic__c: rec.Filter_Logic__c || '',
@@ -191,7 +193,8 @@ export default class SdParameterBuilder extends LightningElement {
             Object__c: value,
             Field__c: '',
             User_Field__c: '',
-            Date_Field__c: ''
+            Date_Field__c: '',
+            SKU_Field__c: ''
         };
         this.filters = [];
         this.isLoading = true;
@@ -264,6 +267,10 @@ export default class SdParameterBuilder extends LightningElement {
         }
         if (this.isFocusPackOperator && !this.param.Focused_Pack__c) {
             this.toast('Required', 'Choose a Focused Pack', 'warning');
+            return false;
+        }
+        if (this.isFocusPackOperator && !this.param.SKU_Field__c) {
+            this.toast('Required', 'Choose a SKU field (product field matched to the Focused Pack)', 'warning');
             return false;
         }
         return true;

@@ -65,7 +65,12 @@
                 <field>Focused_Pack__c</field>
             </layoutItems>
         </layoutColumns>
-        <layoutColumns></layoutColumns>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>SKU_Field__c</field>
+            </layoutItems>
+        </layoutColumns>
         <style>TwoColumnsTopToBottom</style>
     </layoutSections>
     <layoutSections>

@@ -31,7 +31,7 @@ public with sharing class SDParameter_Controller {
     public static S_D_Parameter__c getParameter(Id parameterId) {
         return [
             SELECT Id, Name, Object__c, Operator__c, Field__c, User_Field__c, Date_Field__c,
-                   Focused_Pack__c, Focused_Pack__r.Name, Sales_Channel__c,
+                   SKU_Field__c, Focused_Pack__c, Focused_Pack__r.Name, Sales_Channel__c,
                    Filters__c, Filter_Logic__c, SOQL_Query__c, Is_Active__c
             FROM S_D_Parameter__c
             WHERE Id = :parameterId
@@ -113,13 +113,14 @@ public with sharing class SDParameter_Controller {
         List<String> conds = new List<String>();
 
         // Focus Pack: restrict to the pack's SKUs via a semi-join on Focused_Pack_Item__c.
-        // The match field is auto-detected from the object's lookup to the Product__c object
-        // (the same object Focused_Pack_Item__c.SKU__c points to) — no manual SKU field.
+        // The match field is the chosen SKU Field on the source object (e.g. Product__c);
+        // if left blank, fall back to auto-detecting the object's lookup to Product__c.
         if (isFocusPack) {
             if (parameter.Focused_Pack__c == null) return '-- Select a Focused Pack to generate the SOQL.';
-            String productField = detectProductField(parameter.Object__c);
+            String productField = stripSelfRel(parameter.SKU_Field__c, selfRels);
+            if (String.isBlank(productField)) productField = detectProductField(parameter.Object__c);
             if (String.isBlank(productField)) {
-                return '-- ' + parameter.Object__c + ' has no lookup to Product__c; cannot match the Focused Pack.';
+                return '-- Select a SKU Field (product field matched to the Focused Pack) to generate the SOQL.';
             }
             conds.add(productField + ' IN (SELECT SKU__c FROM Focused_Pack_Item__c WHERE Focused_Pack__c = \''
                 + parameter.Focused_Pack__c + '\')');

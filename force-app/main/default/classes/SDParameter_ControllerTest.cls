@@ -75,6 +75,7 @@ private class SDParameter_ControllerTest {
             Field__c = 'Amount__c',
             User_Field__c = 'OwnerId',
             Date_Field__c = 'CreatedDate',
+            SKU_Field__c = 'Product__c',
             Focused_Pack__c = fp.Id
         );
 
@@ -84,9 +85,9 @@ private class SDParameter_ControllerTest {
 
         System.assert(soql.contains('SUM(Amount__c)'), 'measure SUM expected: ' + soql);
         System.assert(soql.contains('FROM Invoice_item__c'), 'FROM line object expected');
-        // Product field auto-detected from the object's lookup to Product__c (SKU__c on Invoice_item__c)
+        // Uses the chosen SKU Field (Product__c) matched to the pack's items
         System.assert(
-            soql.contains(' IN (SELECT SKU__c FROM Focused_Pack_Item__c WHERE Focused_Pack__c = \'' + fp.Id + '\')'),
+            soql.contains('Product__c IN (SELECT SKU__c FROM Focused_Pack_Item__c WHERE Focused_Pack__c = \'' + fp.Id + '\')'),
             'Focus pack SKU semi-join expected: ' + soql
         );
         System.assert(soql.contains('CreatedDate >= :startDate'), 'period expected');
