@@ -2,9 +2,11 @@
  * Controller for the S&D Parameter Setup screen (Primary PBIS, Task 1).
  *
  * The setup LWC (sdParameterBuilder) reuses TAM_TargetCriteria_Controller.getAllObjects
- * and TAM_FieldMetadata_Service.getFields for the object/field pickers; this class adds
- * the create/edit persistence for S_D_Parameter__c, the Focused Pack option list, and
- * generation of the aggregate SOQL used by the achievement calculation (Task 4).
+ * for the object picker; field lists come from getObjectFields here (a thin wrapper over
+ * TAM_FieldMetadata_Service that drops self-referential relationship fields such as
+ * MasterRecord.* / Parent.*). This class also persists S_D_Parameter__c, supplies the
+ * Focused Pack option list, and generates the aggregate SOQL used by the achievement
+ * calculation (Task 4).
  */
 public with sharing class SDParameter_Controller {
 
@@ -28,13 +30,35 @@ public with sharing class SDParameter_Controller {
     @AuraEnabled(cacheable=false)
     public static S_D_Parameter__c getParameter(Id parameterId) {
         return [
-            SELECT Id, Name, Object__c, Operator__c, Field__c, User_Field__c,
+            SELECT Id, Name, Object__c, Operator__c, Field__c, User_Field__c, Date_Field__c,
                    Focused_Pack__c, Focused_Pack__r.Name, Sales_Channel__c,
                    Filters__c, Filter_Logic__c, SOQL_Query__c, Is_Active__c
             FROM S_D_Parameter__c
             WHERE Id = :parameterId
             LIMIT 1
         ];
+    }
+
+    /**
+     * Field list for the chosen object, minus self-referential relationship fields
+     * (MasterRecord.*, Parent.* on the same object) which are duplicates of the object's
+     * own fields. Genuine parent lookups (e.g. Order__r.*) are kept.
+     */
+    @AuraEnabled(cacheable=true)
+    public static List<TAM_FieldMetadata_Service.FieldInfo> getObjectFields(String objectName) {
+        List<TAM_FieldMetadata_Service.FieldInfo> all = TAM_FieldMetadata_Service.getFields(objectName);
+        Set<String> selfRels = selfRelationshipNames(objectName);
+        if (selfRels.isEmpty()) return all;
+
+        List<TAM_FieldMetadata_Service.FieldInfo> out = new List<TAM_FieldMetadata_Service.FieldInfo>();
+        for (TAM_FieldMetadata_Service.FieldInfo fi : all) {
+            if (fi.apiName != null && fi.apiName.contains('.')
+                && selfRels.contains(fi.apiName.substringBefore('.').toLowerCase())) {
+                continue; // drop e.g. MasterRecord.Customer_Type__c
+            }
+            out.add(fi);
+        }
+        return out;
     }
 
     /** Focused Pack options for the lookup shown on FOCUS_PACK_* operators. */
@@ -50,19 +74,21 @@ public with sharing class SDParameter_Controller {
     }
 
     /**
-     * Build the aggregate SOQL for a parameter from its configuration so the setup
-     * screen can preview the exact query the achievement engine will run.
-     * The filter WHERE clause is built with TAM_FilterEngine_Service (the same one
-     * the engine uses). The period date filter is injected at calculation time and
-     * is shown here as a :startDate / :endDate placeholder note.
+     * Build the aggregate SOQL for a parameter so the setup screen can preview the exact
+     * query the achievement engine will run, e.g.:
+     *   SELECT Order__r.OwnerId, SUM(Non_Taxable_Order_Value__c) total
+     *   FROM order_item__c
+     *   WHERE Order__r.Order_Date__c >= :startDate AND Order__r.Order_Date__c <= :endDate
+     *     AND Order__r.OwnerId IN :userIds
+     *   GROUP BY Order__r.OwnerId
+     * Filter conditions reuse TAM_FilterEngine_Service so preview == runtime.
      */
     @AuraEnabled
     public static String buildSoql(S_D_Parameter__c parameter) {
         if (parameter == null) return '';
         String op = parameter.Operator__c;
 
-        // Focus-Pack metrics are computed by the engine from the Focused Pack's SKUs,
-        // not a single aggregate over a configured object/field.
+        // Focus-Pack metrics are computed by the engine from the Focused Pack's SKUs.
         if (op == 'FOCUS_PACK_VOLUME' || op == 'FOCUS_PACK_REVENUE') {
             String measure = (op == 'FOCUS_PACK_VOLUME') ? 'quantity' : 'revenue';
             return '-- ' + op + ': computed by the achievement engine.\n'
@@ -73,27 +99,82 @@ public with sharing class SDParameter_Controller {
         if (String.isBlank(parameter.Object__c)) {
             return '-- Select an Object to generate the SOQL.';
         }
-        String userField = String.isBlank(parameter.User_Field__c) ? 'OwnerId' : parameter.User_Field__c;
+
+        Set<String> selfRels = selfRelationshipNames(parameter.Object__c);
+        String userField = stripSelfRel(
+            String.isBlank(parameter.User_Field__c) ? 'OwnerId' : parameter.User_Field__c, selfRels);
+        String dateField = stripSelfRel(parameter.Date_Field__c, selfRels);
+        String sumField = stripSelfRel(parameter.Field__c, selfRels);
 
         // Aggregate expression
         String agg;
         if (op == 'SUM') {
-            if (String.isBlank(parameter.Field__c)) return '-- Select a Field to SUM to generate the SOQL.';
-            agg = 'SUM(' + parameter.Field__c + ') total';
+            if (String.isBlank(sumField)) return '-- Select a Field to SUM to generate the SOQL.';
+            agg = 'SUM(' + sumField + ') total';
         } else { // COUNT
             agg = 'COUNT(Id) total';
         }
 
-        // WHERE — reuse the engine's filter builder so preview == runtime.
-        String where = TAM_FilterEngine_Service.buildWhereClause(parameter.Filters__c, parameter.Filter_Logic__c);
+        // Conditions: period, configured filters (self-rel stripped), then the user gate.
+        List<String> conds = new List<String>();
+        if (String.isNotBlank(dateField)) {
+            conds.add(dateField + ' >= :startDate');
+            conds.add(dateField + ' <= :endDate');
+        }
+        String where = TAM_FilterEngine_Service.buildWhereClause(
+            stripSelfRelFromFilters(parameter.Filters__c, selfRels), parameter.Filter_Logic__c);
+        if (String.isNotBlank(where)) conds.add(where);
+        conds.add(userField + ' IN :userIds');
 
-        String soql = 'SELECT ' + userField + ', ' + agg
-            + ' FROM ' + parameter.Object__c;
+        return 'SELECT ' + userField + ', ' + agg
+            + ' FROM ' + parameter.Object__c
+            + ' WHERE ' + String.join(conds, ' AND ')
+            + ' GROUP BY ' + userField;
+    }
 
-        if (String.isNotBlank(where)) soql += ' WHERE ' + where;
-        soql += ' GROUP BY ' + userField;
-        soql += '\n-- Period filter (:startDate .. :endDate) on the date field is applied at calculation time.';
+    // ---- helpers ---------------------------------------------------------
 
-        return soql;
+    /** Relationship names whose lookup points back to the same object (e.g. MasterRecord, Parent). */
+    private static Set<String> selfRelationshipNames(String objectName) {
+        Set<String> rels = new Set<String>();
+        Schema.SObjectType t = Schema.getGlobalDescribe().get(objectName);
+        if (t == null) return rels;
+        for (Schema.SObjectField f : t.getDescribe().fields.getMap().values()) {
+            Schema.DescribeFieldResult d = f.getDescribe();
+            if (d.getType() != Schema.DisplayType.Reference) continue;
+            for (Schema.SObjectType r : d.getReferenceTo()) {
+                if (r == t && String.isNotBlank(d.getRelationshipName())) {
+                    rels.add(d.getRelationshipName().toLowerCase());
+                }
+            }
+        }
+        return rels;
+    }
+
+    /** Drop a leading self-referential relationship prefix, e.g. MasterRecord.Customer_Type__c -> Customer_Type__c. */
+    private static String stripSelfRel(String fieldPath, Set<String> selfRels) {
+        if (String.isBlank(fieldPath) || !fieldPath.contains('.')) return fieldPath;
+        if (selfRels.contains(fieldPath.substringBefore('.').toLowerCase())) {
+            return fieldPath.substringAfter('.');
+        }
+        return fieldPath;
+    }
+
+    /** Rewrite each filter row's field to drop self-referential prefixes before building the WHERE. */
+    private static String stripSelfRelFromFilters(String jsonFilters, Set<String> selfRels) {
+        if (String.isBlank(jsonFilters) || selfRels.isEmpty()) return jsonFilters;
+        try {
+            Map<String, Object> root = (Map<String, Object>) JSON.deserializeUntyped(jsonFilters);
+            List<Object> rows = (List<Object>) root.get('filters');
+            if (rows == null) return jsonFilters;
+            for (Object r : rows) {
+                Map<String, Object> row = (Map<String, Object>) r;
+                Object fld = row.get('field');
+                if (fld != null) row.put('field', stripSelfRel((String) fld, selfRels));
+            }
+            return JSON.serialize(root);
+        } catch (Exception e) {
+            return jsonFilters; // leave untouched if anything unexpected
+        }
     }
 }

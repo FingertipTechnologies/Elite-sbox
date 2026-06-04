@@ -3,7 +3,7 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
 
 import getAllObjects from '@salesforce/apex/TAM_TargetCriteria_Controller.getAllObjects';
-import getFields from '@salesforce/apex/TAM_FieldMetadata_Service.getFields';
+import getFields from '@salesforce/apex/SDParameter_Controller.getObjectFields';
 import getFocusedPacks from '@salesforce/apex/SDParameter_Controller.getFocusedPacks';
 import getParameter from '@salesforce/apex/SDParameter_Controller.getParameter';
 import saveParameter from '@salesforce/apex/SDParameter_Controller.save';
@@ -28,6 +28,7 @@ export default class SdParameterBuilder extends LightningElement {
         Operator__c: 'SUM',
         Field__c: '',
         User_Field__c: '',
+        Date_Field__c: '',
         Focused_Pack__c: '',
         Sales_Channel__c: '',
         Filter_Logic__c: '',
@@ -102,6 +103,7 @@ export default class SdParameterBuilder extends LightningElement {
                 Operator__c: rec.Operator__c || 'SUM',
                 Field__c: rec.Field__c || '',
                 User_Field__c: rec.User_Field__c || '',
+                Date_Field__c: rec.Date_Field__c || '',
                 Focused_Pack__c: rec.Focused_Pack__c || '',
                 Sales_Channel__c: rec.Sales_Channel__c || '',
                 Filter_Logic__c: rec.Filter_Logic__c || '',
@@ -142,6 +144,11 @@ export default class SdParameterBuilder extends LightningElement {
             .filter((f) => f.isUserField)
             .map((f) => ({ label: `${f.label} (${f.apiName})`, value: f.apiName }));
     }
+    get dateFieldOptions() {
+        return this.fieldsMetadata
+            .filter((f) => f.type === 'Date' || f.type === 'DateTime')
+            .map((f) => ({ label: `${f.label} (${f.apiName})`, value: f.apiName }));
+    }
     get headerTitle() {
         return this.recordId ? 'Edit S&D Parameter' : 'New S&D Parameter';
     }
@@ -167,7 +174,7 @@ export default class SdParameterBuilder extends LightningElement {
     }
     handleObjectChange(event) {
         const value = event.detail.value;
-        this.param = { ...this.param, Object__c: value, Field__c: '', User_Field__c: '' };
+        this.param = { ...this.param, Object__c: value, Field__c: '', User_Field__c: '', Date_Field__c: '' };
         this.filters = [];
         this.isLoading = true;
         this.loadFields(value).finally(() => (this.isLoading = false));

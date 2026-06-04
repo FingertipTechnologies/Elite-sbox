@@ -88,6 +88,16 @@
                                 onchange={handleComboChange}>
                             </c-searchable-combobox>
                         </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <c-searchable-combobox
+                                label="Date Field"
+                                placeholder="Search date field for the period…"
+                                options={dateFieldOptions}
+                                value={param.Date_Field__c}
+                                data-field="Date_Field__c"
+                                onchange={handleComboChange}>
+                            </c-searchable-combobox>
+                        </div>
                     </div>
                 </div>
 
