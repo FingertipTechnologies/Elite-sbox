@@ -6,7 +6,6 @@ import saveOrderItemData from '@salesforce/apex/beatPlannerlwc.upsertOrder';
 import saveStockItem from '@salesforce/apex/beatPlannerlwc.upsertStock';
 import getAreaOptions from '@salesforce/apex/beatPlannerlwc.getAreaOptions';
 import getSchemeCoverageForAccount from '@salesforce/apex/beatPlannerlwc.getSchemeCoverageForAccount';
-import getCurrentUserIsSSADSM from '@salesforce/apex/beatPlannerlwc.getCurrentUserIsSSADSM';
 import PLANNER_ICON from '@salesforce/resourceUrl/planner';
 import FORM_FACTOR from '@salesforce/client/formFactor';
 import GOOGLE_ICONS from '@salesforce/resourceUrl/googleIcons';
@@ -113,12 +112,7 @@ export default class ProductScreen4 extends LightningElement {
             ? 'slds-col slds-size_1-of-2 custom_Css'
             : 'slds-col slds-size_1-of-1';
 
-        // Resolve the SSA/DSM restriction once during load, then run the load flow
-        // so the account queries (getAccountData / getAccountsByArea) receive the flag.
-        getCurrentUserIsSSADSM()
-            .then(flag => { this.isSSADSM = (flag === true); })
-            .catch(() => { this.isSSADSM = false; })
-            .finally(() => { this.initLoadFlow(); });
+        this.initLoadFlow();
     }
 
     initLoadFlow() {
@@ -303,6 +297,7 @@ export default class ProductScreen4 extends LightningElement {
                 this.isModerTrade = result.isModerTrade;
                 this.productCatDropdown = result.productCatDropdown;
                 this.isShowOwner = result.isShowOwner;
+                this.isSSADSM = result.isDSM_SSA === true;
 
                 this.loadCoverage();
 

@@ -1522,20 +1522,6 @@ global with sharing class beatPlannerlwc {
         return dt;
     }
     
-    // Whether the running user is flagged SSA/DSM (User.Is_SSA_DSM__c).
-    // Resolved once during screen load; productScreen4 passes the result into the
-    // account queries so those methods don't re-query the user.
-    @AuraEnabled(cacheable=true)
-    public static Boolean getCurrentUserIsSSADSM() {
-        User u = [
-            SELECT Id, Is_SSA_DSM__c
-            FROM User
-            WHERE Id = :UserInfo.getUserId()
-            LIMIT 1
-        ];
-        return (u.Is_SSA_DSM__c == true);
-    }
-
     //Search Account by Name and Sap code
     @AuraEnabled(cacheable=true)
     public static List<Account> getAccountsByArea(String area, String searchTerm, Boolean onlySecondary) {
@@ -1599,7 +1585,8 @@ global with sharing class beatPlannerlwc {
         Id currentUserId = UserInfo.getUserId();
         List<ListView> listViewRecords = [SELECT Id FROM ListView WHERE SObjectType = 'Order__c' AND Name = 'TODAY' LIMIT 1];
         responseData.ListViewDetails = (!listViewRecords.isEmpty()) ? listViewRecords[0]: null;
-        User us = [Select Id,Name,Minimum_Order_value__c,Profile.Name,Category__c From User where Id=:currentUserId];
+        User us = [Select Id,Name,Minimum_Order_value__c,Profile.Name,Category__c,Is_SSA_DSM__c From User where Id=:currentUserId];
+        responseData.isDSM_SSA = (us.Is_SSA_DSM__c == true);
         // Step 1: Determine Account
         String accId;
         if (visitId != null) {
@@ -4218,6 +4205,7 @@ global with sharing class beatPlannerlwc {
         @AuraEnabled public String PoNum{get;set;}
         @AuraEnabled public Boolean isModerTrade{get;set;}
         @AuraEnabled public Boolean isShowOwner{get;set;}
+        @AuraEnabled public Boolean isDSM_SSA{get;set;}
         @AuraEnabled public Account currentAccountRec{get;set;}
         @AuraEnabled public List<SchemeStrategy> scheme { get; set; }
         @AuraEnabled public List<schemeData> schemessss{get;set;}
