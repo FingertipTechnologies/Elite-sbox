@@ -33,6 +33,7 @@ export default class ProductScreen4 extends LightningElement {
     @track isModerTrade = false;
     @track isPrimaryAccount = false;
     @track isSecondaryAccount = false;
+    isSSADSM = false;   // current user flagged SSA/DSM -> account picker shows Secondary only
     @track isShowOwner = false;
     @track productData = [];
     @track getSelectedProduct = [];
@@ -111,6 +112,10 @@ export default class ProductScreen4 extends LightningElement {
             ? 'slds-col slds-size_1-of-2 custom_Css'
             : 'slds-col slds-size_1-of-1';
 
+        this.initLoadFlow();
+    }
+
+    initLoadFlow() {
         // CASE 1: Create Mode + accountId (from related list New override)
         if (!this.orderRecordId && this.isOrderTrue && this.acccountId) {
             console.log('My Visit Order');
@@ -187,7 +192,7 @@ export default class ProductScreen4 extends LightningElement {
         this.isLoading = true; // Show loading spinner
         // Call your Apex method to fetch accounts based on areaFilter
         //alert(this.areaFilter);
-        getAccountsByArea({ area: this.areaFilter, searchTerm: this.accNam })
+        getAccountsByArea({ area: this.areaFilter, searchTerm: this.accNam, onlySecondary: this.isSSADSM })
             .then(result => {
                 //alert('result '+result);
                 this.accountDataOriginal = result;  // Store the filtered accounts
@@ -257,6 +262,7 @@ export default class ProductScreen4 extends LightningElement {
         this.isPageLoaded = false;
         getAccountData({ areaFilter: this.areaFilter })
             .then(result => {
+                this.isSSADSM = result.isDSM_SSA === true;
                 this.accountDataOriginal = result.Account;
                 this.listView = result.listViewRecords.Id;
             })
