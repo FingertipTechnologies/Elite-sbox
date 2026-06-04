@@ -140,6 +140,27 @@
                 </div>
             </template>
 
+            <!-- Section: Generated SOQL -->
+            <div class="sdp-section">
+                <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_x-small">
+                    <p class="sdp-section-label slds-m-bottom_none">Generated SOQL</p>
+                    <lightning-button
+                        label="Preview SOQL"
+                        icon-name="utility:preview"
+                        onclick={handlePreviewSoql}
+                        variant="brand-outline">
+                    </lightning-button>
+                </div>
+                <textarea
+                    class="sdp-soql"
+                    readonly
+                    rows="4"
+                    placeholder="Click Preview SOQL to generate the query used for the achievement calculation.">{soqlPreview}</textarea>
+                <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                    This query is regenerated and stored on Save, and used by the achievement calculation.
+                </p>
+            </div>
+
             <!-- Section: Status -->
             <div class="sdp-section sdp-section_last">
                 <lightning-input

@@ -69,6 +69,11 @@
         <field>S_D_Parameter__c.Is_Active__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>S_D_Parameter__c.SOQL_Query__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
     <tabSettings>
         <tab>S_D_Parameter__c</tab>
         <visibility>Visible</visibility>

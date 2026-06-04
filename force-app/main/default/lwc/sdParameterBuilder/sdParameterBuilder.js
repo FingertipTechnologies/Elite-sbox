@@ -7,6 +7,7 @@ import getFields from '@salesforce/apex/TAM_FieldMetadata_Service.getFields';
 import getFocusedPacks from '@salesforce/apex/SDParameter_Controller.getFocusedPacks';
 import getParameter from '@salesforce/apex/SDParameter_Controller.getParameter';
 import saveParameter from '@salesforce/apex/SDParameter_Controller.save';
+import buildSoql from '@salesforce/apex/SDParameter_Controller.buildSoql';
 
 import SD_OBJECT from '@salesforce/schema/S_D_Parameter__c';
 import CHANNEL_FIELD from '@salesforce/schema/S_D_Parameter__c.Sales_Channel__c';
@@ -35,6 +36,7 @@ export default class SdParameterBuilder extends LightningElement {
 
     @track filters = [];
     @track fieldsMetadata = [];
+    @track soqlPreview = '';
 
     operatorOptions = OPERATOR_OPTIONS;
     objectOptions = [];
@@ -113,6 +115,7 @@ export default class SdParameterBuilder extends LightningElement {
                     this.filters = [];
                 }
             }
+            this.soqlPreview = rec.SOQL_Query__c || '';
             return this.loadFields(rec.Object__c);
         });
     }
@@ -177,19 +180,35 @@ export default class SdParameterBuilder extends LightningElement {
         this.filters = event.detail.filters || event.detail || [];
     }
 
-    // ===== save / cancel =====
-    handleSave() {
-        if (!this.validate()) return;
-
+    // Build the S_D_Parameter__c payload from the current form state.
+    buildRecord() {
         const record = { ...this.param };
         if (this.recordId) record.Id = this.recordId;
         record.Filters__c = this.filters && this.filters.length ? JSON.stringify({ filters: this.filters }) : null;
         if (!record.Focused_Pack__c) record.Focused_Pack__c = null;
         if (!record.Sales_Channel__c) record.Sales_Channel__c = null;
+        return record;
+    }
+
+    // Preview the SOQL the achievement calc will run, from the current config.
+    handlePreviewSoql() {
+        buildSoql({ parameter: this.buildRecord() })
+            .then((soql) => {
+                this.soqlPreview = soql;
+            })
+            .catch((e) => this.toast('Error', this.errMessage(e), 'error'));
+    }
+
+    // ===== save / cancel =====
+    handleSave() {
+        if (!this.validate()) return;
+
+        const record = this.buildRecord();
 
         this.isLoading = true;
         saveParameter({ parameter: record })
             .then((saved) => {
+                this.soqlPreview = saved.SOQL_Query__c || this.soqlPreview;
                 this.toast('Success', 'S&D Parameter saved', 'success');
                 this.dispatchEvent(new CustomEvent('done', { detail: { recordId: saved.Id } }));
             })

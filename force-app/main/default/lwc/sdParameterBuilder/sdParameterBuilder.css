@@ -82,6 +82,21 @@
     margin-bottom: 0.6rem;
 }
 
+/* SOQL preview */
+.sdp-soql {
+    width: 100%;
+    font-family: "Consolas", "Monaco", monospace;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: #16325c;
+    background: #f4f6f9;
+    border: 1px solid #d8dde6;
+    border-radius: 0.25rem;
+    padding: 0.6rem 0.75rem;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
 /* Footer (pinned) */
 .sdp-footer {
     flex: 0 0 auto;
