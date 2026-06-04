@@ -1522,18 +1522,18 @@ global with sharing class beatPlannerlwc {
         return dt;
     }
     
-    // Whether the running user's Employee record is flagged SSA/DSM.
+    // Whether the running user is flagged SSA/DSM (User.Is_SSA_DSM__c).
     // Resolved once during screen load; productScreen4 passes the result into the
     // account queries so those methods don't re-query the user.
     @AuraEnabled(cacheable=true)
     public static Boolean getCurrentUserIsSSADSM() {
-        List<Employee__c> emps = [
+        User u = [
             SELECT Id, Is_SSA_DSM__c
-            FROM Employee__c
-            WHERE User__c = :UserInfo.getUserId()
+            FROM User
+            WHERE Id = :UserInfo.getUserId()
             LIMIT 1
         ];
-        return (!emps.isEmpty() && emps[0].Is_SSA_DSM__c == true);
+        return (u.Is_SSA_DSM__c == true);
     }
 
     //Search Account by Name and Sap code
