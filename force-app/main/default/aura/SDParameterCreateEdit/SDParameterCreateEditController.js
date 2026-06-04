@@ -1,25 +1,47 @@
 ({
+    // Build the LWC and show it inside a real overlay modal (floats over the app,
+    // dark backdrop, escapes the action-override page container).
     doInit: function (component) {
-        component.set('v.ready', true);
+        var recordId = component.get('v.recordId');
+        $A.createComponent(
+            'c:sdParameterBuilder',
+            {
+                recordId: recordId,
+                ondone: component.getReference('c.handleDone'),
+                onclose: component.getReference('c.handleClose')
+            },
+            function (content, status) {
+                if (status === 'SUCCESS') {
+                    component.find('overlayLib').showCustomModal({
+                        body: content,
+                        showCloseButton: false,
+                        cssClass: 'sdp-overlay-modal slds-modal_medium'
+                    }).then(function (overlay) {
+                        component.set('v.overlay', overlay);
+                    });
+                }
+            }
+        );
     },
 
-    // On save the LWC fires 'done' with the saved record Id; navigate to its detail page.
+    // Saved: close the modal and open the record detail.
     handleDone: function (component, event) {
         var recordId = event.getParam('recordId');
+        var overlay = component.get('v.overlay');
+        if (overlay) overlay.close();
         if (recordId) {
             var navEvt = $A.get('e.force:navigateToSObject');
             navEvt.setParams({ recordId: recordId, slideDevName: 'detail' });
             navEvt.fire();
-            window.setTimeout(function () {
-                $A.get('e.force:refreshView').fire();
-            }, 800);
         } else {
             $A.get('e.force:navigateToList').fire();
         }
     },
 
-    // Cancel: go back to the record (edit) or the object home (new).
+    // Cancelled / closed: close the modal and go back to the record or object home.
     handleClose: function (component) {
+        var overlay = component.get('v.overlay');
+        if (overlay) overlay.close();
         var recordId = component.get('v.recordId');
         if (recordId) {
             var navEvt = $A.get('e.force:navigateToSObject');

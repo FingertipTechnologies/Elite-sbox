@@ -1,8 +1,8 @@
 <template>
-    <div class="sdp-wrapper">
-        <article class="slds-card sdp-card">
-            <!-- Header -->
-            <div class="sdp-header">
+    <div class="sdp-card">
+        <!-- Header -->
+        <div class="sdp-header">
+            <div class="sdp-header-inner">
                 <div class="sdp-header-icon">
                     <lightning-icon icon-name="custom:custom63" size="small" variant="inverse"></lightning-icon>
                 </div>
@@ -11,149 +11,158 @@
                     <p class="sdp-subtitle">Define how this S&amp;D parameter's achievement is measured</p>
                 </div>
             </div>
+            <lightning-button-icon
+                icon-name="utility:close"
+                variant="bare-inverse"
+                size="large"
+                alternative-text="Close"
+                class="sdp-close"
+                onclick={handleCancel}>
+            </lightning-button-icon>
+        </div>
 
-            <div class="sdp-body">
-                <template if:true={isLoading}>
-                    <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
-                </template>
+        <!-- Body -->
+        <div class="sdp-body">
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </template>
 
-                <!-- Section: Basics -->
+            <!-- Section: Basics -->
+            <div class="sdp-section">
+                <p class="sdp-section-label">Parameter</p>
+                <div class="slds-grid slds-wrap slds-gutters">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <lightning-input
+                            label="Parameter Name"
+                            data-field="Name"
+                            value={param.Name}
+                            onchange={handleField}
+                            required>
+                        </lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <lightning-combobox
+                            label="Operator"
+                            value={param.Operator__c}
+                            options={operatorOptions}
+                            onchange={handleOperatorChange}
+                            required>
+                        </lightning-combobox>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Aggregate mapping (SUM / COUNT) -->
+            <template if:true={isAggregateOperator}>
                 <div class="sdp-section">
-                    <p class="sdp-section-label">Parameter</p>
+                    <p class="sdp-section-label">Source Mapping</p>
                     <div class="slds-grid slds-wrap slds-gutters">
                         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
-                            <lightning-input
-                                label="Parameter Name"
-                                data-field="Name"
-                                value={param.Name}
-                                onchange={handleField}
-                                required>
-                            </lightning-input>
+                            <c-searchable-combobox
+                                label="Object"
+                                placeholder="Search source object…"
+                                options={objectOptions}
+                                value={param.Object__c}
+                                onchange={handleObjectChange}>
+                            </c-searchable-combobox>
                         </div>
+                        <template if:true={isSum}>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <c-searchable-combobox
+                                    label="Field"
+                                    placeholder="Search field to SUM…"
+                                    options={fieldOptions}
+                                    value={param.Field__c}
+                                    data-field="Field__c"
+                                    onchange={handleComboChange}>
+                                </c-searchable-combobox>
+                            </div>
+                        </template>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <c-searchable-combobox
+                                label="User Field"
+                                placeholder="Search user field…"
+                                options={userFieldOptions}
+                                value={param.User_Field__c}
+                                data-field="User_Field__c"
+                                onchange={handleComboChange}>
+                            </c-searchable-combobox>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Filters -->
+                <div class="sdp-section">
+                    <p class="sdp-section-label">Filters</p>
+                    <c-tam-filter-builder
+                        fields-metadata={fieldsMetadata}
+                        value={filters}
+                        onfilterchange={handleFilterChange}>
+                    </c-tam-filter-builder>
+                    <lightning-textarea
+                        class="slds-m-top_small"
+                        label="Filter Logic"
+                        placeholder="e.g. 1 AND 2"
+                        data-field="Filter_Logic__c"
+                        value={param.Filter_Logic__c}
+                        onchange={handleField}>
+                    </lightning-textarea>
+                </div>
+            </template>
+
+            <!-- Section: Focus Pack mapping -->
+            <template if:true={isFocusPackOperator}>
+                <div class="sdp-section">
+                    <p class="sdp-section-label">Focus Pack</p>
+                    <div class="slds-grid slds-wrap slds-gutters">
                         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
                             <lightning-combobox
-                                label="Operator"
-                                value={param.Operator__c}
-                                options={operatorOptions}
-                                onchange={handleOperatorChange}
-                                required>
+                                label="Sales Channel"
+                                placeholder="Select channel"
+                                value={param.Sales_Channel__c}
+                                options={channelOptions}
+                                data-field="Sales_Channel__c"
+                                onchange={handleComboChange}>
                             </lightning-combobox>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Section: Aggregate mapping (SUM / COUNT) -->
-                <template if:true={isAggregateOperator}>
-                    <div class="sdp-section">
-                        <p class="sdp-section-label">Source Mapping</p>
-                        <div class="slds-grid slds-wrap slds-gutters">
-                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
-                                <c-searchable-combobox
-                                    label="Object"
-                                    placeholder="Search source object…"
-                                    options={objectOptions}
-                                    value={param.Object__c}
-                                    onchange={handleObjectChange}>
-                                </c-searchable-combobox>
-                            </div>
-                            <template if:true={isSum}>
-                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
-                                    <c-searchable-combobox
-                                        label="Field"
-                                        placeholder="Search field to SUM…"
-                                        options={fieldOptions}
-                                        value={param.Field__c}
-                                        data-field="Field__c"
-                                        onchange={handleComboChange}>
-                                    </c-searchable-combobox>
-                                </div>
-                            </template>
-                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
-                                <c-searchable-combobox
-                                    label="User Field"
-                                    placeholder="Search user field…"
-                                    options={userFieldOptions}
-                                    value={param.User_Field__c}
-                                    data-field="User_Field__c"
-                                    onchange={handleComboChange}>
-                                </c-searchable-combobox>
-                            </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <c-searchable-combobox
+                                label="Focused Pack"
+                                placeholder="Search Focused Pack…"
+                                options={focusedPackOptions}
+                                value={param.Focused_Pack__c}
+                                data-field="Focused_Pack__c"
+                                required
+                                onchange={handleComboChange}>
+                            </c-searchable-combobox>
                         </div>
                     </div>
-
-                    <!-- Section: Filters -->
-                    <div class="sdp-section">
-                        <p class="sdp-section-label">Filters</p>
-                        <c-tam-filter-builder
-                            fields-metadata={fieldsMetadata}
-                            value={filters}
-                            onfilterchange={handleFilterChange}>
-                        </c-tam-filter-builder>
-                        <lightning-textarea
-                            class="slds-m-top_small"
-                            label="Filter Logic"
-                            placeholder="e.g. 1 AND 2"
-                            data-field="Filter_Logic__c"
-                            value={param.Filter_Logic__c}
-                            onchange={handleField}>
-                        </lightning-textarea>
-                    </div>
-                </template>
-
-                <!-- Section: Focus Pack mapping -->
-                <template if:true={isFocusPackOperator}>
-                    <div class="sdp-section">
-                        <p class="sdp-section-label">Focus Pack</p>
-                        <div class="slds-grid slds-wrap slds-gutters">
-                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
-                                <lightning-combobox
-                                    label="Sales Channel"
-                                    placeholder="Select channel"
-                                    value={param.Sales_Channel__c}
-                                    options={channelOptions}
-                                    data-field="Sales_Channel__c"
-                                    onchange={handleComboChange}>
-                                </lightning-combobox>
-                            </div>
-                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
-                                <c-searchable-combobox
-                                    label="Focused Pack"
-                                    placeholder="Search Focused Pack…"
-                                    options={focusedPackOptions}
-                                    value={param.Focused_Pack__c}
-                                    data-field="Focused_Pack__c"
-                                    required
-                                    onchange={handleComboChange}>
-                                </c-searchable-combobox>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- Section: Status -->
-                <div class="sdp-section sdp-section_last">
-                    <lightning-input
-                        type="toggle"
-                        label="Active"
-                        message-toggle-active="Active"
-                        message-toggle-inactive="Inactive"
-                        checked={param.Is_Active__c}
-                        onchange={handleActive}>
-                    </lightning-input>
                 </div>
-            </div>
+            </template>
 
-            <!-- Footer -->
-            <div class="sdp-footer">
-                <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
-                <lightning-button
-                    variant="brand"
-                    label="Save"
-                    onclick={handleSave}
-                    disabled={isLoading}
-                    class="slds-m-left_x-small">
-                </lightning-button>
+            <!-- Section: Status -->
+            <div class="sdp-section sdp-section_last">
+                <lightning-input
+                    type="toggle"
+                    label="Active"
+                    message-toggle-active="Active"
+                    message-toggle-inactive="Inactive"
+                    checked={param.Is_Active__c}
+                    onchange={handleActive}>
+                </lightning-input>
             </div>
-        </article>
+        </div>
+
+        <!-- Footer -->
+        <div class="sdp-footer">
+            <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
+            <lightning-button
+                variant="brand"
+                label="Save"
+                onclick={handleSave}
+                disabled={isLoading}
+                class="slds-m-left_x-small">
+            </lightning-button>
+        </div>
     </div>
 </template>
