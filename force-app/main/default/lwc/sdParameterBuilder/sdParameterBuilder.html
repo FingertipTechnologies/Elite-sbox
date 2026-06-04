@@ -1,18 +1,31 @@
 <template>
-    <div class="sdp-wrapper">
-        <article class="slds-card sdp-card">
-            <!-- Header -->
-            <div class="sdp-header">
-                <div class="sdp-header-icon">
-                    <lightning-icon icon-name="custom:custom63" size="small" variant="inverse"></lightning-icon>
-                </div>
-                <div>
-                    <h1 class="sdp-title">{headerTitle}</h1>
-                    <p class="sdp-subtitle">Define how this S&amp;D parameter's achievement is measured</p>
-                </div>
-            </div>
+    <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="sdp-heading"
+        class="slds-modal slds-fade-in-open">
+        <div class="slds-modal__container sdp-modal">
 
-            <div class="sdp-body">
+            <!-- Header -->
+            <header class="slds-modal__header sdp-header">
+                <lightning-button-icon
+                    icon-name="utility:close"
+                    class="slds-modal__close"
+                    variant="bare-inverse"
+                    size="large"
+                    alternative-text="Close"
+                    onclick={handleCancel}>
+                </lightning-button-icon>
+                <div class="sdp-header-inner">
+                    <div class="sdp-header-icon">
+                        <lightning-icon icon-name="custom:custom63" size="small" variant="inverse"></lightning-icon>
+                    </div>
+                    <div>
+                        <h1 id="sdp-heading" class="sdp-title">{headerTitle}</h1>
+                        <p class="sdp-subtitle">Define how this S&amp;D parameter's achievement is measured</p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Body -->
+            <div class="slds-modal__content sdp-body">
                 <template if:true={isLoading}>
                     <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
                 </template>
@@ -144,7 +157,7 @@
             </div>
 
             <!-- Footer -->
-            <div class="sdp-footer">
+            <footer class="slds-modal__footer sdp-footer">
                 <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
                 <lightning-button
                     variant="brand"
@@ -153,7 +166,8 @@
                     disabled={isLoading}
                     class="slds-m-left_x-small">
                 </lightning-button>
-            </div>
-        </article>
-    </div>
+            </footer>
+        </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
 </template>
