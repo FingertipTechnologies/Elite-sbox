@@ -1,4 +1,4 @@
-/* Full-page screen (edge to edge, no grey gutters) */
+/* Full-page screen, white, rounded corners */
 :host {
     display: block;
     background: #fff;
@@ -8,14 +8,15 @@
 .pbp-page {
     width: 100%;
     margin: 0;
-    padding: 0;
+    padding: 0.75rem;
+    box-sizing: border-box;
 }
 
 .pbp-card {
     background: #fff;
-    border-radius: 0;
-    box-shadow: none;
-    overflow: visible;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
 }
 
 /* Header */
@@ -27,6 +28,8 @@
     background: linear-gradient(90deg, #0b5cab 0%, #1589ee 100%);
     color: #fff;
     padding: 1.1rem 1.5rem;
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
 }
 
 .pbp-header-inner {
