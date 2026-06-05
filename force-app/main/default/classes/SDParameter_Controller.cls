@@ -132,9 +132,9 @@ public with sharing class SDParameter_Controller {
             conds.add(dateField + ' <= :endDate');
         }
         // Configured filters (self-rel stripped)
-        String where = TAM_FilterEngine_Service.buildWhereClause(
+        String whereClause = TAM_FilterEngine_Service.buildWhereClause(
             stripSelfRelFromFilters(parameter.Filters__c, selfRels), parameter.Filter_Logic__c);
-        if (String.isNotBlank(where)) conds.add(where);
+        if (String.isNotBlank(whereClause)) conds.add(whereClause);
         // User gate
         conds.add(userField + ' IN :userIds');
 
