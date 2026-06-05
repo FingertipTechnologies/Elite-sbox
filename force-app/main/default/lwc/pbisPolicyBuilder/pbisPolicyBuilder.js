@@ -15,6 +15,14 @@ const BASIS_OPTIONS = [
     { label: 'Volume', value: 'Volume' }
 ];
 
+// Default slab bands seeded for every new profile card.
+const DEFAULT_SLABS = [
+    { Slab_Number__c: 1, Achievement_From__c: 90, Achievement_To__c: 94.99 },
+    { Slab_Number__c: 2, Achievement_From__c: 95, Achievement_To__c: 99.99 },
+    { Slab_Number__c: 3, Achievement_From__c: 100, Achievement_To__c: 109.99 },
+    { Slab_Number__c: 4, Achievement_From__c: 110, Achievement_To__c: null }
+];
+
 export default class PbisPolicyBuilder extends LightningElement {
     @api recordId;
 
@@ -26,14 +34,14 @@ export default class PbisPolicyBuilder extends LightningElement {
         Description__c: ''
     };
 
-    @track slabs = [];
+    @track profiles = []; // [{ key, Profile__c, slabs: [{...}] }]
 
     basisOptions = BASIS_OPTIONS;
     channelOptions = [];
     profileOptions = [];
     isLoading = false;
 
-    _rowSeq = 1;
+    _seq = 1;
     _policyRtId;
     _slabRtId;
 
@@ -43,7 +51,7 @@ export default class PbisPolicyBuilder extends LightningElement {
             this.isLoading = true;
             this.loadExisting().finally(() => (this.isLoading = false));
         } else {
-            this.addSlab();
+            this.addProfile();
         }
     }
 
@@ -65,7 +73,11 @@ export default class PbisPolicyBuilder extends LightningElement {
         if (data) this.profileOptions = data.values.map((v) => ({ label: v.label, value: v.value }));
     }
 
-    // ===== load =====
+    get headerTitle() {
+        return this.recordId ? 'Edit PBIS Policy' : 'New PBIS Policy';
+    }
+
+    // ===== load existing =====
     loadExisting() {
         return getPolicy({ policyId: this.recordId })
             .then((bundle) => {
@@ -77,24 +89,30 @@ export default class PbisPolicyBuilder extends LightningElement {
                     Is_Active__c: p.Is_Active__c === undefined ? true : p.Is_Active__c,
                     Description__c: p.Description__c || ''
                 };
-                this.slabs = (bundle.slabs || []).map((s) => ({
-                    key: `r${this._rowSeq++}`,
-                    Id: s.Id,
-                    Profile__c: s.Profile__c,
-                    Slab_Number__c: s.Slab_Number__c,
-                    Achievement_From__c: s.Achievement_From__c,
-                    Achievement_To__c: s.Achievement_To__c,
-                    Monthly_Incentive_Percent__c: s.Monthly_Incentive_Percent__c,
-                    Quarterly_Incentive_Percent__c: s.Quarterly_Incentive_Percent__c,
-                    Is_Active__c: s.Is_Active__c
+                // Group slabs into profile cards.
+                const byProfile = {};
+                (bundle.slabs || []).forEach((s) => {
+                    const key = s.Profile__c || '';
+                    if (!byProfile[key]) byProfile[key] = [];
+                    byProfile[key].push({
+                        key: `s${this._seq++}`,
+                        Id: s.Id,
+                        Slab_Number__c: s.Slab_Number__c,
+                        Achievement_From__c: s.Achievement_From__c,
+                        Achievement_To__c: s.Achievement_To__c,
+                        Monthly_Incentive_Percent__c: s.Monthly_Incentive_Percent__c,
+                        Quarterly_Incentive_Percent__c: s.Quarterly_Incentive_Percent__c,
+                        Is_Active__c: s.Is_Active__c
+                    });
+                });
+                this.profiles = Object.keys(byProfile).map((prof) => ({
+                    key: `p${this._seq++}`,
+                    Profile__c: prof,
+                    slabs: byProfile[prof].sort((a, b) => (a.Slab_Number__c || 0) - (b.Slab_Number__c || 0))
                 }));
-                if (this.slabs.length === 0) this.addSlab();
+                if (this.profiles.length === 0) this.addProfile();
             })
             .catch((e) => this.toast('Error', this.errMessage(e), 'error'));
-    }
-
-    get headerTitle() {
-        return this.recordId ? 'Edit PBIS Policy' : 'New PBIS Policy';
     }
 
     // ===== header handlers =====
@@ -111,38 +129,91 @@ export default class PbisPolicyBuilder extends LightningElement {
     handleActive(event) {
         this.policy = { ...this.policy, Is_Active__c: event.target.checked };
     }
+    handleDescription(event) {
+        this.policy = { ...this.policy, Description__c: event.target.value };
+    }
 
-    // ===== slab handlers =====
-    addSlab() {
-        this.slabs = [
-            ...this.slabs,
-            {
-                key: `r${this._rowSeq++}`,
-                Id: null,
-                Profile__c: '',
-                Slab_Number__c: this.slabs.length + 1,
-                Achievement_From__c: null,
-                Achievement_To__c: null,
-                Monthly_Incentive_Percent__c: null,
-                Quarterly_Incentive_Percent__c: null,
-                Is_Active__c: true
-            }
+    // ===== profile card handlers =====
+    freshSlabs() {
+        return DEFAULT_SLABS.map((d) => ({
+            key: `s${this._seq++}`,
+            Id: null,
+            Slab_Number__c: d.Slab_Number__c,
+            Achievement_From__c: d.Achievement_From__c,
+            Achievement_To__c: d.Achievement_To__c,
+            Monthly_Incentive_Percent__c: null,
+            Quarterly_Incentive_Percent__c: null,
+            Is_Active__c: true
+        }));
+    }
+    addProfile() {
+        this.profiles = [
+            ...this.profiles,
+            { key: `p${this._seq++}`, Profile__c: '', slabs: this.freshSlabs() }
         ];
     }
-    removeSlab(event) {
+    cloneProfile(event) {
         const key = event.currentTarget.dataset.key;
-        this.slabs = this.slabs.filter((s) => s.key !== key);
+        const src = this.profiles.find((p) => p.key === key);
+        if (!src) return;
+        const copy = {
+            key: `p${this._seq++}`,
+            Profile__c: '', // pick a new profile for the clone
+            slabs: src.slabs.map((s) => ({
+                ...s,
+                key: `s${this._seq++}`,
+                Id: null // new records
+            }))
+        };
+        const idx = this.profiles.findIndex((p) => p.key === key);
+        const next = [...this.profiles];
+        next.splice(idx + 1, 0, copy);
+        this.profiles = next;
+    }
+    removeProfile(event) {
+        const key = event.currentTarget.dataset.key;
+        this.profiles = this.profiles.filter((p) => p.key !== key);
+    }
+    handleProfileChange(event) {
+        const key = event.currentTarget.dataset.key;
+        const value = event.detail.value;
+        this.profiles = this.profiles.map((p) => (p.key === key ? { ...p, Profile__c: value } : p));
     }
     handleSlabValue(event) {
-        const key = event.currentTarget.dataset.key;
+        const pKey = event.currentTarget.dataset.profile;
+        const sKey = event.currentTarget.dataset.key;
         const field = event.currentTarget.dataset.field;
         const value = event.detail && event.detail.value !== undefined ? event.detail.value : event.target.value;
-        this.slabs = this.slabs.map((s) => (s.key === key ? { ...s, [field]: value } : s));
+        this.profiles = this.profiles.map((p) => {
+            if (p.key !== pKey) return p;
+            return { ...p, slabs: p.slabs.map((s) => (s.key === sKey ? { ...s, [field]: value } : s)) };
+        });
     }
-    handleSlabActive(event) {
-        const key = event.currentTarget.dataset.key;
-        const checked = event.target.checked;
-        this.slabs = this.slabs.map((s) => (s.key === key ? { ...s, Is_Active__c: checked } : s));
+    addSlab(event) {
+        const pKey = event.currentTarget.dataset.key;
+        this.profiles = this.profiles.map((p) => {
+            if (p.key !== pKey) return p;
+            const nextNum = p.slabs.length + 1;
+            return {
+                ...p,
+                slabs: [
+                    ...p.slabs,
+                    {
+                        key: `s${this._seq++}`, Id: null, Slab_Number__c: nextNum,
+                        Achievement_From__c: null, Achievement_To__c: null,
+                        Monthly_Incentive_Percent__c: null, Quarterly_Incentive_Percent__c: null,
+                        Is_Active__c: true
+                    }
+                ]
+            };
+        });
+    }
+    removeSlab(event) {
+        const pKey = event.currentTarget.dataset.profile;
+        const sKey = event.currentTarget.dataset.key;
+        this.profiles = this.profiles.map((p) =>
+            p.key !== pKey ? p : { ...p, slabs: p.slabs.filter((s) => s.key !== sKey) }
+        );
     }
 
     // ===== save / cancel =====
@@ -158,18 +229,21 @@ export default class PbisPolicyBuilder extends LightningElement {
         };
         if (this.recordId) policyRecord.Id = this.recordId;
 
-        const slabRecords = this.slabs.map((s) => {
-            const rec = {
-                Profile__c: s.Profile__c || null,
-                Slab_Number__c: s.Slab_Number__c || null,
-                Achievement_From__c: s.Achievement_From__c || null,
-                Achievement_To__c: s.Achievement_To__c || null,
-                Monthly_Incentive_Percent__c: s.Monthly_Incentive_Percent__c || null,
-                Quarterly_Incentive_Percent__c: s.Quarterly_Incentive_Percent__c || null,
-                Is_Active__c: s.Is_Active__c
-            };
-            if (s.Id) rec.Id = s.Id;
-            return rec;
+        const slabRecords = [];
+        this.profiles.forEach((p) => {
+            p.slabs.forEach((s) => {
+                const rec = {
+                    Profile__c: p.Profile__c || null,
+                    Slab_Number__c: s.Slab_Number__c || null,
+                    Achievement_From__c: s.Achievement_From__c || null,
+                    Achievement_To__c: s.Achievement_To__c || null,
+                    Monthly_Incentive_Percent__c: s.Monthly_Incentive_Percent__c || null,
+                    Quarterly_Incentive_Percent__c: s.Quarterly_Incentive_Percent__c || null,
+                    Is_Active__c: s.Is_Active__c
+                };
+                if (s.Id) rec.Id = s.Id;
+                slabRecords.push(rec);
+            });
         });
 
         this.isLoading = true;
@@ -195,11 +269,21 @@ export default class PbisPolicyBuilder extends LightningElement {
             this.toast('Required', 'Select at least one sales channel', 'warning');
             return false;
         }
-        for (const s of this.slabs) {
-            if (!s.Profile__c) {
-                this.toast('Required', 'Each slab needs a Profile', 'warning');
+        if (this.profiles.length === 0) {
+            this.toast('Required', 'Add at least one profile', 'warning');
+            return false;
+        }
+        const seen = new Set();
+        for (const p of this.profiles) {
+            if (!p.Profile__c) {
+                this.toast('Required', 'Each profile card needs a Profile selected', 'warning');
                 return false;
             }
+            if (seen.has(p.Profile__c)) {
+                this.toast('Duplicate', `Profile "${p.Profile__c}" is used more than once`, 'warning');
+                return false;
+            }
+            seen.add(p.Profile__c);
         }
         return true;
     }
