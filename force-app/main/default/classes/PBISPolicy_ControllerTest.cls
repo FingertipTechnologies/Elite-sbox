@@ -1,11 +1,11 @@
 @isTest
 private class PBISPolicy_ControllerTest {
 
-    private static PBIS_Incentive_Slab__c slab(Integer n, Decimal from, Decimal to, Decimal m, Decimal q) {
+    private static PBIS_Incentive_Slab__c slab(Integer n, Decimal frm, Decimal upto, Decimal m, Decimal q) {
         return new PBIS_Incentive_Slab__c(
             Slab_Number__c = n,
-            Achievement_From__c = from,
-            Achievement_To__c = to,
+            Achievement_From__c = frm,
+            Achievement_To__c = upto,
             Monthly_Incentive_Percent__c = m,
             Quarterly_Incentive_Percent__c = q,
             Is_Active__c = true
