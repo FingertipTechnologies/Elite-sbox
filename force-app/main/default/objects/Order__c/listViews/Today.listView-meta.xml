@@ -3,9 +3,9 @@
     <fullName>Today</fullName>
     <columns>NAME</columns>
     <columns>Order_Type__c</columns>
-    <columns>Delivery_To__c</columns>
     <columns>Expected_Delivery_Date__c</columns>
     <columns>Delivery_Plant__c</columns>
+    <columns>OWNER.LAST_NAME</columns>
     <columns>PDP_Other_Type__c</columns>
     <columns>Order_Type1__c</columns>
     <columns>Distributor__c</columns>

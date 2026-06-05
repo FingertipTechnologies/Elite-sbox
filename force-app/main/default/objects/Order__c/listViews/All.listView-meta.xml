@@ -16,7 +16,7 @@
     <columns>Status__c</columns>
     <columns>CREATED_DATE</columns>
     <columns>Owner_Name__c</columns>
-    <filterScope>Mine</filterScope>
+    <filterScope>Everything</filterScope>
     <filters>
         <field>Order_Type__c</field>
         <operation>equals</operation>
@@ -25,7 +25,7 @@
     <filters>
         <field>CREATED_DATE</field>
         <operation>equals</operation>
-        <value>LAST_MONTH</value>
+        <value>THIS_MONTH</value>
     </filters>
     <label>All</label>
 </ListView>

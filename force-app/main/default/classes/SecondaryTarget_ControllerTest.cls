@@ -62,8 +62,15 @@ public class SecondaryTarget_ControllerTest {
         User u = [SELECT Id FROM User WHERE LastName = 'stctrl' LIMIT 1];
 
         Test.startTest();
-        List<Secondary_Target__c> list1 = SecondaryTarget_Controller.getTargets('', crit.Id, true);
+        List<Secondary_Target__c> list1 = SecondaryTarget_Controller.getTargets('', crit.Id, true, null);
         System.assertEquals(1, list1.size(), 'one active target for the criteria');
+
+        // Filter by User__c should also narrow correctly.
+        List<Secondary_Target__c> list2 = SecondaryTarget_Controller.getTargets('', crit.Id, true, u.Id);
+        System.assertEquals(1, list2.size(), 'user filter matches the seeded target');
+        System.assertEquals(0,
+            SecondaryTarget_Controller.getTargets('', crit.Id, true, UserInfo.getUserId()).size(),
+            'a different user should return no rows');
 
         Secondary_Target__c neu = new Secondary_Target__c(
             User__c = u.Id, Target_Criteria__c = crit.Id, Target_Value__c = 500,

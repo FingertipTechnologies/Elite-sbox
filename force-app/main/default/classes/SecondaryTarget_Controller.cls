@@ -6,7 +6,7 @@
 public with sharing class SecondaryTarget_Controller {
 
     @AuraEnabled(cacheable=false)
-    public static List<Secondary_Target__c> getTargets(String channel, String criteriaId, Boolean activeOnly) {
+    public static List<Secondary_Target__c> getTargets(String channel, String criteriaId, Boolean activeOnly, String userId) {
         String q =
             'SELECT Id, Name, User__c, User__r.Name, User_Name__c, Sales_Channel__c, Year__c, ' +
             'Start_Date__c, End_Date__c, Target_Criteria__c, Target_Criteria__r.Name, ' +
@@ -17,6 +17,7 @@ public with sharing class SecondaryTarget_Controller {
         List<String> wheres = new List<String>();
         if (String.isNotBlank(channel)) wheres.add('Sales_Channel__c = :channel');
         if (String.isNotBlank(criteriaId)) wheres.add('Target_Criteria__c = :criteriaId');
+        if (String.isNotBlank(userId)) wheres.add('User__c = :userId');
         if (activeOnly == true) wheres.add('Is_Active__c = true');
         if (!wheres.isEmpty()) q += ' WHERE ' + String.join(wheres, ' AND ');
         q += ' ORDER BY LastModifiedDate DESC LIMIT 500';
