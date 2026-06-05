@@ -1,0 +1,95 @@
+.pbp-card {
+    display: flex;
+    flex-direction: column;
+    max-height: 78vh;
+    overflow: hidden;
+    margin: -1rem -1.5rem;
+}
+
+/* Header */
+.pbp-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    background: linear-gradient(90deg, #0b5cab 0%, #1589ee 100%);
+    color: #fff;
+    padding: 1.1rem 1.5rem;
+}
+
+.pbp-header-inner {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.pbp-header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.18);
+    flex-shrink: 0;
+}
+
+.pbp-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.pbp-subtitle {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+/* Body */
+.pbp-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.5rem 1.5rem;
+    background: #fff;
+}
+
+.pbp-section {
+    padding: 0.75rem 0 1rem;
+    border-bottom: 1px solid #eef1f6;
+}
+
+.pbp-section-label {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #0b5cab;
+    margin-bottom: 0.6rem;
+}
+
+/* Slab table */
+.pbp-slab-head {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #514f4d;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid #e5e9f2;
+}
+
+.pbp-slab-row {
+    padding: 0.3rem 0;
+}
+
+/* Footer */
+.pbp-footer {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: flex-end;
+    padding: 1rem 1.5rem;
+    background: #fafafb;
+    border-top: 1px solid #eef1f6;
+}
