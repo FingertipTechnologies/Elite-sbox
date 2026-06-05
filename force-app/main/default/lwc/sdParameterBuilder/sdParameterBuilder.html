@@ -53,7 +53,7 @@
             </div>
 
             <!-- Section: Aggregate mapping (SUM / COUNT) -->
-            <template if:true={isAggregateOperator}>
+            <template if:true={showSourceMapping}>
                 <div class="sdp-section">
                     <p class="sdp-section-label">Source Mapping</p>
                     <div class="slds-grid slds-wrap slds-gutters">
@@ -66,7 +66,7 @@
                                 onchange={handleObjectChange}>
                             </c-searchable-combobox>
                         </div>
-                        <template if:true={isSum}>
+                        <template if:true={showMeasureField}>
                             <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
                                 <c-searchable-combobox
                                     label="Field"
@@ -88,6 +88,28 @@
                                 onchange={handleComboChange}>
                             </c-searchable-combobox>
                         </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <c-searchable-combobox
+                                label="Date Field"
+                                placeholder="Search date field for the period…"
+                                options={dateFieldOptions}
+                                value={param.Date_Field__c}
+                                data-field="Date_Field__c"
+                                onchange={handleComboChange}>
+                            </c-searchable-combobox>
+                        </div>
+                        <template if:true={isFocusPackOperator}>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <c-searchable-combobox
+                                    label="SKU Field"
+                                    placeholder="Search product/SKU field…"
+                                    options={fieldOptions}
+                                    value={param.SKU_Field__c}
+                                    data-field="SKU_Field__c"
+                                    onchange={handleComboChange}>
+                                </c-searchable-combobox>
+                            </div>
+                        </template>
                     </div>
                 </div>
 

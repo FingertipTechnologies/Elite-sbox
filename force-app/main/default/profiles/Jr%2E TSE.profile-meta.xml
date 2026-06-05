@@ -973,6 +973,10 @@
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>SDParameter_Controller</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>SMSAPIService</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -9343,6 +9347,66 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
+        <editable>true</editable>
+        <field>S_D_Parameter__c.Date_Field__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>S_D_Parameter__c.Field__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>S_D_Parameter__c.Filter_Logic__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>S_D_Parameter__c.Filters__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>S_D_Parameter__c.Focused_Pack__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>S_D_Parameter__c.Is_Active__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>S_D_Parameter__c.Object__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>S_D_Parameter__c.Operator__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>S_D_Parameter__c.SKU_Field__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>S_D_Parameter__c.SOQL_Query__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>S_D_Parameter__c.Sales_Channel__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>S_D_Parameter__c.User_Field__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
         <editable>false</editable>
         <field>Sale__c.Account__c</field>
         <readable>true</readable>
@@ -12828,6 +12892,9 @@
         <layout>Route__c-Route Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
+        <layout>S_D_Parameter__c-S %26 D Parameter Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
         <layout>Sale__c-Sale Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
@@ -14124,6 +14191,10 @@
     <tabVisibilities>
         <tab>Return__c</tab>
         <visibility>DefaultOn</visibility>
+    </tabVisibilities>
+    <tabVisibilities>
+        <tab>S_D_Parameter__c</tab>
+        <visibility>Hidden</visibility>
     </tabVisibilities>
     <tabVisibilities>
         <tab>Sale__c</tab>
