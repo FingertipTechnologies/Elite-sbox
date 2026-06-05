@@ -1,31 +1,7 @@
 ({
-    doInit: function (component) {
-        var recordId = component.get('v.recordId');
-        $A.createComponent(
-            'c:pbisPolicyBuilder',
-            {
-                recordId: recordId,
-                ondone: component.getReference('c.handleDone'),
-                onclose: component.getReference('c.handleClose')
-            },
-            function (content, status) {
-                if (status === 'SUCCESS') {
-                    component.find('overlayLib').showCustomModal({
-                        body: content,
-                        showCloseButton: false,
-                        cssClass: 'pbp-overlay-modal slds-modal_large'
-                    }).then(function (overlay) {
-                        component.set('v.overlay', overlay);
-                    });
-                }
-            }
-        );
-    },
-
+    // Saved: open the record detail page.
     handleDone: function (component, event) {
         var recordId = event.getParam('recordId');
-        var overlay = component.get('v.overlay');
-        if (overlay) overlay.close();
         if (recordId) {
             var navEvt = $A.get('e.force:navigateToSObject');
             navEvt.setParams({ recordId: recordId, slideDevName: 'detail' });
@@ -35,9 +11,8 @@
         }
     },
 
+    // Cancelled: back to the record (edit) or the object home (new).
     handleClose: function (component) {
-        var overlay = component.get('v.overlay');
-        if (overlay) overlay.close();
         var recordId = component.get('v.recordId');
         if (recordId) {
             var navEvt = $A.get('e.force:navigateToSObject');

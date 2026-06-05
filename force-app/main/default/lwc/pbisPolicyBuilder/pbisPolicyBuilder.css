@@ -1,14 +1,25 @@
+/* Full-page screen */
+:host {
+    display: block;
+    background: #f3f3f3;
+    min-height: 100%;
+}
+
+.pbp-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
 .pbp-card {
-    display: flex;
-    flex-direction: column;
-    max-height: 78vh;
+    background: #fff;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
     overflow: hidden;
-    margin: -1rem -1.5rem;
 }
 
 /* Header */
 .pbp-header {
-    flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -48,16 +59,17 @@
 
 /* Body */
 .pbp-body {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
+    position: relative;
     padding: 0.5rem 1.5rem;
-    background: #fff;
 }
 
 .pbp-section {
-    padding: 0.75rem 0 1rem;
+    padding: 1rem 0 1.25rem;
     border-bottom: 1px solid #eef1f6;
+}
+
+.pbp-section_last {
+    border-bottom: none;
 }
 
 .pbp-section-label {
@@ -69,9 +81,43 @@
     margin-bottom: 0.6rem;
 }
 
-/* Slab table */
+/* Keep the Active toggle clear of the dual-listbox (fixes the overlap) */
+.pbp-active {
+    margin-top: 1rem;
+    clear: both;
+}
+
+/* Profile card */
+.pbp-profile-card {
+    border: 1px solid #dfe3ea;
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1rem;
+    background: #fbfcfe;
+}
+
+.pbp-profile-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.pbp-profile-select {
+    flex: 1 1 auto;
+    max-width: 22rem;
+}
+
+.pbp-profile-actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* Slab grid */
 .pbp-slab-head {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 700;
     color: #514f4d;
     text-transform: uppercase;
@@ -81,12 +127,16 @@
 }
 
 .pbp-slab-row {
-    padding: 0.3rem 0;
+    padding: 0.2rem 0;
+}
+
+.pbp-slab-num {
+    font-weight: 700;
+    color: #16325c;
 }
 
 /* Footer */
 .pbp-footer {
-    flex: 0 0 auto;
     display: flex;
     justify-content: flex-end;
     padding: 1rem 1.5rem;
