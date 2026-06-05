@@ -32,7 +32,6 @@
         <style>TwoColumnsTopToBottom</style>
     </layoutSections>
     <relatedLists>
-        <fields>Name</fields>
         <fields>Profile__c</fields>
         <fields>Slab_Number__c</fields>
         <fields>Achievement_From__c</fields>
