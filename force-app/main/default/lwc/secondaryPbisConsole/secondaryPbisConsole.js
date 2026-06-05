@@ -60,12 +60,9 @@ export default class SecondaryPbisConsole extends LightningElement {
 
     connectedCallback() {
         const now = new Date();
-        // Default to the prior month — the typical PBIS run for "last month".
-        let y = now.getFullYear();
-        let m = now.getMonth(); // 0-indexed for "prior month"
-        if (m === 0) { y -= 1; m = 12; }
-        this.year = y;
-        this.month = m;
+        // Default to the current month.
+        this.year = now.getFullYear();
+        this.month = now.getMonth() + 1;
         this.loadTotals();
     }
 
