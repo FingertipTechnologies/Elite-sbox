@@ -30,15 +30,39 @@
 
             <!-- filters -->
             <div class="slds-grid slds-gutters slds-grid_vertical-align-end slds-m-bottom_small slds-wrap">
-                <div class="slds-col slds-size_1-of-2">
+                <div class="slds-col slds-size_1-of-3">
                     <lightning-combobox label="Filter by Criteria" value={selectedCriteria}
                         options={criteriaOptions} onchange={handleCriteriaFilter}></lightning-combobox>
                 </div>
-                <div class="slds-col slds-size_1-of-4 slds-p-bottom_x-small">
+                <div class="slds-col slds-size_1-of-3 slds-is-relative">
+                    <label class="slds-form-element__label">Filter by User</label>
+                    <lightning-input variant="label-hidden" value={filterUserLabel}
+                        onchange={handleFilterUserSearch}
+                        placeholder="Type to search active users (blank = all)"></lightning-input>
+                    <template if:true={showFilterUserResults}>
+                        <ul class="slds-dropdown slds-dropdown_fluid slds-dropdown_length-5" role="listbox">
+                            <template for:each={filterUserResults} for:item="u">
+                                <li key={u.value} class="slds-listbox__item" role="presentation">
+                                    <div class="slds-media slds-listbox__option slds-listbox__option_plain"
+                                        data-value={u.value} data-label={u.label}
+                                        onclick={handleFilterUserSelect}>
+                                        {u.label}
+                                    </div>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                    <template if:true={filterUserId}>
+                        <p class="slds-text-body_small slds-m-top_xx-small">
+                            <a onclick={handleFilterUserClear}>Clear user filter</a>
+                        </p>
+                    </template>
+                </div>
+                <div class="slds-col slds-size_1-of-6 slds-p-bottom_x-small">
                     <lightning-input type="checkbox" label="Active only"
                         checked={activeOnly} onchange={handleActiveToggle}></lightning-input>
                 </div>
-                <div class="slds-col slds-size_1-of-4 slds-text-align_right slds-p-bottom_x-small">
+                <div class="slds-col slds-size_1-of-6 slds-text-align_right slds-p-bottom_x-small">
                     <lightning-button label="Refresh" icon-name="utility:refresh"
                         onclick={handleRefresh}></lightning-button>
                 </div>

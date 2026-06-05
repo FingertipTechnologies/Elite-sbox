@@ -17,6 +17,10 @@ const COLUMNS = [
     { label: 'Type', fieldName: 'operator', type: 'text', initialWidth: 160 },
     { label: 'Focus Pack', fieldName: 'packName', type: 'text' },
     { label: 'Channel', fieldName: 'Sales_Channel__c', type: 'text', initialWidth: 100 },
+    { label: 'Start', fieldName: 'Start_Date__c', type: 'date-local', initialWidth: 110,
+      typeAttributes: { year: 'numeric', month: 'short', day: '2-digit' } },
+    { label: 'End', fieldName: 'End_Date__c', type: 'date-local', initialWidth: 110,
+      typeAttributes: { year: 'numeric', month: 'short', day: '2-digit' } },
     { label: 'Target', fieldName: 'Target_Value__c', type: 'number', initialWidth: 95,
       cellAttributes: { alignment: 'right' } },
     { label: 'Achieved', fieldName: 'Achievement_Value__c', type: 'number', initialWidth: 95,
@@ -56,6 +60,12 @@ export default class SecondaryTargetManager extends LightningElement {
     @track selectedCriteria = '';
     @track activeOnly = false;
     @track isLoading = false;
+
+    // user-filter (typeahead) state
+    @track filterUserId = null;
+    @track filterUserLabel = '';
+    @track filterUserResults = [];
+    @track showFilterUserResults = false;
 
     // operator lookup keyed by criteria Id (for focus-pack detection)
     operatorById = {};
@@ -116,7 +126,12 @@ export default class SecondaryTargetManager extends LightningElement {
 
     loadTargets() {
         this.isLoading = true;
-        getTargets({ channel: '', criteriaId: this.selectedCriteria, activeOnly: this.activeOnly })
+        getTargets({
+            channel: '',
+            criteriaId: this.selectedCriteria,
+            activeOnly: this.activeOnly,
+            userId: this.filterUserId
+        })
             .then(data => {
                 this.rows = (data || []).map(r => ({
                     ...r,
@@ -135,6 +150,45 @@ export default class SecondaryTargetManager extends LightningElement {
     handleCriteriaFilter(e) { this.selectedCriteria = e.detail.value; this.loadTargets(); }
     handleActiveToggle(e) { this.activeOnly = e.target.checked; this.loadTargets(); }
     handleRefresh() { this.loadTargets(); }
+
+    // user-filter typeahead
+    handleFilterUserSearch(e) {
+        const term = e.target.value;
+        this.filterUserLabel = term;
+        // editing clears the previously-selected user until they pick again
+        if (this.filterUserId) {
+            this.filterUserId = null;
+            this.loadTargets();
+        }
+        if (!term || term.length < 2) {
+            this.filterUserResults = [];
+            this.showFilterUserResults = false;
+            return;
+        }
+        searchUsers({ term })
+            .then(d => {
+                this.filterUserResults = (d || []).map(o => ({ label: o.label, value: o.value }));
+                this.showFilterUserResults = this.filterUserResults.length > 0;
+            })
+            .catch(() => { this.filterUserResults = []; this.showFilterUserResults = false; });
+    }
+
+    handleFilterUserSelect(e) {
+        const id = e.currentTarget.dataset.value;
+        const label = e.currentTarget.dataset.label;
+        this.filterUserId = id;
+        this.filterUserLabel = label;
+        this.showFilterUserResults = false;
+        this.loadTargets();
+    }
+
+    handleFilterUserClear() {
+        this.filterUserId = null;
+        this.filterUserLabel = '';
+        this.filterUserResults = [];
+        this.showFilterUserResults = false;
+        this.loadTargets();
+    }
 
     // ===== form =====
     handleNew() {

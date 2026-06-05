@@ -98,7 +98,6 @@ public with sharing class SDParameter_Controller {
             String.isBlank(parameter.User_Field__c) ? 'OwnerId' : parameter.User_Field__c, selfRels);
         String dateField = stripSelfRel(parameter.Date_Field__c, selfRels);
         String measureField = stripSelfRel(parameter.Field__c, selfRels);
-        String skuField = stripSelfRel(parameter.SKU_Field__c, selfRels);
 
         // Aggregate expression: COUNT counts rows; SUM and Focus Pack sum the measure field.
         String agg;
@@ -114,10 +113,16 @@ public with sharing class SDParameter_Controller {
         List<String> conds = new List<String>();
 
         // Focus Pack: restrict to the pack's SKUs via a semi-join on Focused_Pack_Item__c.
+        // The match field is the chosen SKU Field on the source object (e.g. Product__c);
+        // if left blank, fall back to auto-detecting the object's lookup to Product__c.
         if (isFocusPack) {
             if (parameter.Focused_Pack__c == null) return '-- Select a Focused Pack to generate the SOQL.';
-            if (String.isBlank(skuField)) return '-- Select a SKU Field to generate the SOQL.';
-            conds.add(skuField + ' IN (SELECT SKU__c FROM Focused_Pack_Item__c WHERE Focused_Pack__c = \''
+            String productField = stripSelfRel(parameter.SKU_Field__c, selfRels);
+            if (String.isBlank(productField)) productField = detectProductField(parameter.Object__c);
+            if (String.isBlank(productField)) {
+                return '-- Select a SKU Field (product field matched to the Focused Pack) to generate the SOQL.';
+            }
+            conds.add(productField + ' IN (SELECT SKU__c FROM Focused_Pack_Item__c WHERE Focused_Pack__c = \''
                 + parameter.Focused_Pack__c + '\')');
         }
 
@@ -127,9 +132,9 @@ public with sharing class SDParameter_Controller {
             conds.add(dateField + ' <= :endDate');
         }
         // Configured filters (self-rel stripped)
-        String whereConditon = TAM_FilterEngine_Service.buildWhereClause(
+        String whereClause = TAM_FilterEngine_Service.buildWhereClause(
             stripSelfRelFromFilters(parameter.Filters__c, selfRels), parameter.Filter_Logic__c);
-        if (String.isNotBlank(whereConditon)) conds.add(whereConditon);
+        if (String.isNotBlank(whereClause)) conds.add(whereClause);
         // User gate
         conds.add(userField + ' IN :userIds');
 
@@ -140,6 +145,35 @@ public with sharing class SDParameter_Controller {
     }
 
     // ---- helpers ---------------------------------------------------------
+
+    /**
+     * The object's product/SKU field for Focus-Pack matching: the lookup whose referenceTo
+     * is the Product__c object (the same object Focused_Pack_Item__c.SKU__c points to).
+     * Prefers a field named Product__c, then SKU__c, then the first Product__c-referencing
+     * lookup. Returns null if the object has none.
+     */
+    private static String detectProductField(String objectName) {
+        Schema.SObjectType t = Schema.getGlobalDescribe().get(objectName);
+        if (t == null) return null;
+        String preferred;
+        String fallback;
+        for (Schema.SObjectField f : t.getDescribe().fields.getMap().values()) {
+            Schema.DescribeFieldResult d = f.getDescribe();
+            if (d.getType() != Schema.DisplayType.Reference) continue;
+            Boolean toProduct = false;
+            for (Schema.SObjectType r : d.getReferenceTo()) {
+                if (r != null && r.getDescribe().getName() == 'Product__c') { toProduct = true; break; }
+            }
+            if (!toProduct) continue;
+            String api = d.getName();
+            if (api == 'Product__c' || api == 'SKU__c') {
+                preferred = api; // exact conventional names win
+            } else if (fallback == null) {
+                fallback = api;
+            }
+        }
+        return preferred != null ? preferred : fallback;
+    }
 
     /** Relationship names whose lookup points back to the same object (e.g. MasterRecord, Parent). */
     private static Set<String> selfRelationshipNames(String objectName) {

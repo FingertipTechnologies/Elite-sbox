@@ -98,18 +98,6 @@
                                 onchange={handleComboChange}>
                             </c-searchable-combobox>
                         </div>
-                        <template if:true={isFocusPackOperator}>
-                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
-                                <c-searchable-combobox
-                                    label="SKU Field"
-                                    placeholder="Search product/SKU field…"
-                                    options={fieldOptions}
-                                    value={param.SKU_Field__c}
-                                    data-field="SKU_Field__c"
-                                    onchange={handleComboChange}>
-                                </c-searchable-combobox>
-                            </div>
-                        </template>
                     </div>
                 </div>
 
@@ -158,6 +146,17 @@
                                 onchange={handleComboChange}>
                             </c-searchable-combobox>
                         </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <c-searchable-combobox
+                                label="SKU Field"
+                                placeholder="Search product/SKU field…"
+                                options={fieldOptions}
+                                value={param.SKU_Field__c}
+                                data-field="SKU_Field__c"
+                                required
+                                onchange={handleComboChange}>
+                            </c-searchable-combobox>
+                        </div>
                     </div>
                 </div>
             </template>
@@ -173,11 +172,7 @@
                         variant="brand-outline">
                     </lightning-button>
                 </div>
-                <textarea
-                    class="sdp-soql"
-                    readonly
-                    rows="4"
-                    placeholder="Click Preview SOQL to generate the query used for the achievement calculation.">{soqlPreview}</textarea>
+                <pre class="sdp-soql">{soqlDisplay}</pre>
                 <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
                     This query is regenerated and stored on Save, and used by the achievement calculation.
                 </p>
