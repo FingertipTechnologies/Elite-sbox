@@ -39,7 +39,7 @@
         <fields>Achievement_To__c</fields>
         <fields>Monthly_Incentive_Percent__c</fields>
         <fields>Quarterly_Incentive_Percent__c</fields>
-        <relatedList>PBIS_Incentive_Slab__c.Incentive_Slabs</relatedList>
+        <relatedList>PBIS_Incentive_Slab__c.PBIS_Policy__c</relatedList>
     </relatedLists>
     <showEmailCheckbox>false</showEmailCheckbox>
     <showHighlightsPanel>false</showHighlightsPanel>
