@@ -184,6 +184,11 @@ export default class PbisPolicyBuilder extends LightningElement {
         const sKey = event.currentTarget.dataset.key;
         const field = event.currentTarget.dataset.field;
         const value = event.detail && event.detail.value !== undefined ? event.detail.value : event.target.value;
+        // Clear this field's error as the user edits it.
+        if (event.currentTarget.setCustomValidity) {
+            event.currentTarget.setCustomValidity('');
+            event.currentTarget.reportValidity();
+        }
         this.profiles = this.profiles.map((p) => {
             if (p.key !== pKey) return p;
             return { ...p, slabs: p.slabs.map((s) => (s.key === sKey ? { ...s, [field]: value } : s)) };
@@ -219,6 +224,10 @@ export default class PbisPolicyBuilder extends LightningElement {
     // ===== save / cancel =====
     handleSave() {
         if (!this.validate()) return;
+        if (!this.validateSlabs()) {
+            this.toast('Fix slab errors', 'Please correct the highlighted slab fields', 'error');
+            return;
+        }
 
         const policyRecord = {
             Name: this.policy.Name,
@@ -286,6 +295,66 @@ export default class PbisPolicyBuilder extends LightningElement {
             seen.add(p.Profile__c);
         }
         return true;
+    }
+
+    // Field-level validation for the per-profile slab rows.
+    validateSlabs() {
+        let valid = true;
+        // Clear any previous slab field errors first.
+        this.template.querySelectorAll('lightning-input[data-key]').forEach((el) => {
+            el.setCustomValidity('');
+            el.reportValidity();
+        });
+
+        this.profiles.forEach((p) => {
+            if (!p.slabs || p.slabs.length === 0) {
+                this.toast('Required', 'Each profile needs at least one slab', 'warning');
+                valid = false;
+                return;
+            }
+            // How many slabs have no "To %" (the open-ended max band).
+            const emptyToCount = p.slabs.filter((s) => this.isBlank(s.Achievement_To__c)).length;
+
+            p.slabs.forEach((s) => {
+                // From % is required
+                if (this.isBlank(s.Achievement_From__c)) {
+                    valid = this.setSlabErr(s.key, 'Achievement_From__c', 'Enter From %');
+                }
+                // To %: blank is allowed for ONLY one (the max) slab; otherwise From < To
+                if (this.isBlank(s.Achievement_To__c)) {
+                    if (emptyToCount > 1) {
+                        valid = this.setSlabErr(s.key, 'Achievement_To__c',
+                            'Only one slab can be left without a max (To %)');
+                    }
+                } else if (!this.isBlank(s.Achievement_From__c) &&
+                           Number(s.Achievement_From__c) >= Number(s.Achievement_To__c)) {
+                    valid = this.setSlabErr(s.key, 'Achievement_To__c', 'To % must be greater than From %');
+                }
+                // Monthly % and Quarterly % are required for every slab row
+                if (this.isBlank(s.Monthly_Incentive_Percent__c)) {
+                    valid = this.setSlabErr(s.key, 'Monthly_Incentive_Percent__c', 'Enter Monthly %');
+                }
+                if (this.isBlank(s.Quarterly_Incentive_Percent__c)) {
+                    valid = this.setSlabErr(s.key, 'Quarterly_Incentive_Percent__c', 'Enter Quarterly %');
+                }
+            });
+        });
+        return valid;
+    }
+
+    setSlabErr(slabKey, field, message) {
+        const el = this.template.querySelector(
+            `lightning-input[data-key="${slabKey}"][data-field="${field}"]`
+        );
+        if (el) {
+            el.setCustomValidity(message);
+            el.reportValidity();
+        }
+        return false; // a field error means the form is invalid
+    }
+
+    isBlank(v) {
+        return v === null || v === undefined || v === '';
     }
 
     // ===== helpers =====
