@@ -39,7 +39,6 @@
     </types>
     <types>
         <members>PBIS_Target__c-PBIS_Target_Layout</members>
-        <members>S_D_Parameter__c-S &amp; D Parameter Layout</members>
         <name>Layout</name>
     </types>
     <types>
