@@ -1,23 +1,25 @@
-/* Full-page screen, white, rounded corners */
+/* Full-page screen, rounded corners.
+   :host is transparent so the page background shows in the gutter and the
+   card's rounded corners are visible (a white host would hide them). */
 :host {
     display: block;
-    background: #fff;
+    background: transparent;
     min-height: 100%;
 }
 
 .pbp-page {
     width: 100%;
-    border-radius: 0.75rem;
     margin: 0;
-    padding: 0.75rem;
+    padding: 1rem;
     box-sizing: border-box;
 }
 
 .pbp-card {
     background: #fff;
-    border-radius: 0.75rem;
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
-    overflow: hidden;
+    border: 1px solid #e0e5ee;
+    border-radius: 1rem !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    overflow: hidden !important;
 }
 
 /* Header */
@@ -28,10 +30,9 @@
     gap: 0.85rem;
     background: linear-gradient(90deg, #0b5cab 0%, #1589ee 100%);
     color: #fff;
-    margin: 1.5rem;
     padding: 1.1rem 1.5rem;
-    border-top-left-radius: 0.75rem;
-    border-top-right-radius: 0.75rem;
+    border-top-left-radius: 1rem !important;
+    border-top-right-radius: 1rem !important;
 }
 
 .pbp-header-inner {
