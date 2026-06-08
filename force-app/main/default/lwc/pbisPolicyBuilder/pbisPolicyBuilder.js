@@ -44,6 +44,14 @@ export default class PbisPolicyBuilder extends LightningElement {
     _seq = 1;
     _policyRtId;
     _slabRtId;
+    _validateTimer;
+
+    // Re-run slab validation shortly after an edit so errors appear in real time.
+    scheduleValidate() {
+        window.clearTimeout(this._validateTimer);
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        this._validateTimer = setTimeout(() => this.validateSlabs(true), 200);
+    }
 
     // ===== lifecycle =====
     connectedCallback() {
@@ -183,6 +191,7 @@ export default class PbisPolicyBuilder extends LightningElement {
             el.reportValidity();
         });
         this.profiles = this.profiles.map((p) => (p.key === key ? { ...p, Profile__c: value } : p));
+        this.scheduleValidate();
     }
     handleSlabValue(event) {
         const pKey = event.currentTarget.dataset.profile;
@@ -198,6 +207,7 @@ export default class PbisPolicyBuilder extends LightningElement {
             if (p.key !== pKey) return p;
             return { ...p, slabs: p.slabs.map((s) => (s.key === sKey ? { ...s, [field]: value } : s)) };
         });
+        this.scheduleValidate();
     }
     addSlab(event) {
         const pKey = event.currentTarget.dataset.key;
@@ -291,7 +301,8 @@ export default class PbisPolicyBuilder extends LightningElement {
     }
 
     // Field-level validation for the profiles and their slab rows.
-    validateSlabs() {
+    // silent = true suppresses toasts (used for live validation on edit).
+    validateSlabs(silent) {
         let valid = true;
         // Clear any previous field errors first.
         this.template.querySelectorAll('lightning-input[data-key]').forEach((el) => {
@@ -317,7 +328,7 @@ export default class PbisPolicyBuilder extends LightningElement {
 
         this.profiles.forEach((p) => {
             if (!p.slabs || p.slabs.length === 0) {
-                this.toast('Required', 'Each profile needs at least one slab', 'warning');
+                if (!silent) this.toast('Required', 'Each profile needs at least one slab', 'warning');
                 valid = false;
                 return;
             }
