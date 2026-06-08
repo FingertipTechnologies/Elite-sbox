@@ -24,8 +24,8 @@ using the standard **Setup → Data Import Wizard → Custom objects → PBIS Ta
 | `S_D_Parameter_N_Target` | `S_D_Parameter_N_Target__c` | number |
 
 `Designation__c` is a formula (`TEXT(User__r.Title)`) and is **not** imported — it
-populates from the matched User. The achievement / slab / value columns are computed
-in Task 4 and are left blank on import.
+populates from the matched User. The achievement / slab / incentive amount columns are
+computed in Task 4 and are left blank on import.
 
 ## Validation that fires on save
 - **Weightage Must Total 100** — the ten S&D Parameter weightages must sum to 100% (when any
