@@ -2,8 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>SKU_Field__c</fullName>
     <externalId>false</externalId>
-    <inlineHelpText>For Focus Pack operators: the product/SKU lookup field on the source object that is matched against the Focused Pack's items (Focused_Pack_Item__c.SKU__c), e.g. Product__c on Invoice_item__c.</inlineHelpText>
-    <label>SKU Field</label>
+    <label>SKU_Field</label>
     <length>255</length>
     <required>false</required>
     <trackHistory>false</trackHistory>

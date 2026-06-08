@@ -19,7 +19,7 @@ public with sharing class PBISPolicy_Controller {
     public static PolicyBundle getPolicy(Id policyId) {
         PolicyBundle b = new PolicyBundle();
         b.policy = [
-            SELECT Id, Name, Sales_Channels__c, Basis__c, Is_Active__c, Description__c
+            SELECT Id, Name, Sales_Channels__c, Basis__c, Is_Active__c
             FROM PBIS_Policy__c WHERE Id = :policyId LIMIT 1
         ];
         b.slabs = [

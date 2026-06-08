@@ -24,12 +24,15 @@
                 <behavior>Edit</behavior>
                 <field>Sales_Channels__c</field>
             </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>Description__c</field>
-            </layoutItems>
         </layoutColumns>
         <style>TwoColumnsTopToBottom</style>
+    </layoutSections>
+    <layoutSections>
+        <customLabel>false</customLabel>
+        <detailHeading>false</detailHeading>
+        <editHeading>false</editHeading>
+        <layoutColumns/>
+        <style>CustomLinks</style>
     </layoutSections>
     <relatedLists>
         <fields>Profile__c</fields>

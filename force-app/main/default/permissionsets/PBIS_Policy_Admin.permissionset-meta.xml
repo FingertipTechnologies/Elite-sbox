@@ -1,33 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Primary PBIS Task 2: access to the PBIS Policy + Incentive Slab objects, the PBIS Policy tab and the PBISPolicy_Controller Apex class. Self-contained (no Task 1 dependency).</description>
-    <hasActivationRequired>false</hasActivationRequired>
-    <label>PBIS Policy Admin</label>
     <classAccesses>
         <apexClass>PBISPolicy_Controller</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <objectPermissions>
-        <allowCreate>true</allowCreate>
-        <allowDelete>true</allowDelete>
-        <allowEdit>true</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>PBIS_Policy__c</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
-    <objectPermissions>
-        <allowCreate>true</allowCreate>
-        <allowDelete>true</allowDelete>
-        <allowEdit>true</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>PBIS_Incentive_Slab__c</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
+    <description>Primary PBIS Task 2: access to the PBIS Policy + Incentive Slab objects, the PBIS Policy tab and the PBISPolicy_Controller Apex class. Self-contained (no Task 1 dependency).</description>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Policy__c.Sales_Channels__c</field>
+        <field>PBIS_Incentive_Slab__c.Achievement_From__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>PBIS_Incentive_Slab__c.Achievement_To__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>PBIS_Incentive_Slab__c.Is_Active__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>PBIS_Incentive_Slab__c.Monthly_Incentive_Percent__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>PBIS_Incentive_Slab__c.Profile__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>PBIS_Incentive_Slab__c.Quarterly_Incentive_Percent__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>PBIS_Incentive_Slab__c.Slab_Number__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -42,44 +52,29 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Policy__c.Description__c</field>
+        <field>PBIS_Policy__c.Sales_Channels__c</field>
         <readable>true</readable>
     </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>PBIS_Incentive_Slab__c.Profile__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>PBIS_Incentive_Slab__c.Slab_Number__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>PBIS_Incentive_Slab__c.Achievement_From__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>PBIS_Incentive_Slab__c.Achievement_To__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>PBIS_Incentive_Slab__c.Monthly_Incentive_Percent__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>PBIS_Incentive_Slab__c.Quarterly_Incentive_Percent__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>PBIS_Incentive_Slab__c.Is_Active__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>PBIS Policy Admin</label>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>PBIS_Incentive_Slab__c</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>PBIS_Policy__c</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
     <tabSettings>
         <tab>PBIS_Policy__c</tab>
         <visibility>Visible</visibility>

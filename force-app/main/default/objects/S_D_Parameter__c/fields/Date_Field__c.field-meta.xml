@@ -2,7 +2,6 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Date_Field__c</fullName>
     <externalId>false</externalId>
-    <inlineHelpText>Date/DateTime field used to scope the incentive period (between start and end). May be a parent field, e.g. Order__r.Order_Date__c.</inlineHelpText>
     <label>Date Field</label>
     <length>255</length>
     <required>false</required>

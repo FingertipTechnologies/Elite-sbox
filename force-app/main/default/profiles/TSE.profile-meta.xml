@@ -813,6 +813,14 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>PBISPolicy_Controller</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>PBISPolicy_ControllerTest</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>PJPItemHandler</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -7957,6 +7965,61 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
+        <editable>false</editable>
+        <field>PBIS_Incentive_Slab__c.Achievement_From__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>PBIS_Incentive_Slab__c.Achievement_To__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>PBIS_Incentive_Slab__c.Is_Active__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>PBIS_Incentive_Slab__c.Monthly_Incentive_Percent__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>PBIS_Incentive_Slab__c.Profile__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>PBIS_Incentive_Slab__c.Quarterly_Incentive_Percent__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>PBIS_Incentive_Slab__c.Slab_Number__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>PBIS_Policy__c.Basis__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>PBIS_Policy__c.Description__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>PBIS_Policy__c.Is_Active__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>PBIS_Policy__c.Sales_Channels__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
         <editable>true</editable>
         <field>PDP__c.Area__c</field>
         <readable>true</readable>
@@ -12790,6 +12853,12 @@
         <layout>Outstanding__c-Outstanding Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
+        <layout>PBIS_Incentive_Slab__c-PBIS_Incentive_Slab_Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>PBIS_Policy__c-PBIS_Policy_Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
         <layout>PDP__c-PDP Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
@@ -14175,6 +14244,10 @@
     <tabVisibilities>
         <tab>Order__c</tab>
         <visibility>DefaultOn</visibility>
+    </tabVisibilities>
+    <tabVisibilities>
+        <tab>PBIS_Policy__c</tab>
+        <visibility>Hidden</visibility>
     </tabVisibilities>
     <tabVisibilities>
         <tab>PDP__c</tab>
