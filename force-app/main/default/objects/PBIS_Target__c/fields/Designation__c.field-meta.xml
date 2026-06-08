@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Designation__c</fullName>
     <externalId>false</externalId>
-    <formula>TEXT(User__r.Title)</formula>
+    <formula>User__r.Title</formula>
     <label>Designation</label>
     <required>false</required>
     <type>Text</type>
