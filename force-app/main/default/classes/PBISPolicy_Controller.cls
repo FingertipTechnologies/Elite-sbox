@@ -62,8 +62,11 @@ public with sharing class PBISPolicy_Controller {
                 if (!toDelete.isEmpty()) delete toDelete;
             }
 
+            // Set the master-detail only on NEW slabs. PBIS_Policy__c is a
+            // non-reparentable master-detail (not updateable), so assigning it on an
+            // existing slab during update throws "Field is not writeable".
             for (PBIS_Incentive_Slab__c s : slabs) {
-                s.PBIS_Policy__c = policy.Id;
+                if (s.Id == null) s.PBIS_Policy__c = policy.Id;
             }
             if (!slabs.isEmpty()) upsert slabs;
 
