@@ -1,0 +1,56 @@
+name: Deploy PBIS Task 3 (manifest)
+
+# Manual, on-demand deploy of ONLY the Task 3 (PBIS Target wide upload) metadata
+# listed in manifest/pbis_task3.xml. That manifest also carries the Task 1 changes
+# Task 3 depends on (S&D Parameter Is_Mandatory__c / External_Id__c fields, the
+# SDParameter_Controller + test, the sdParameterBuilder LWC, the S&D Parameter
+# layout and the PBIS_Admin_Access permission set), so this single run brings the
+# sandbox up to date for both.
+#
+# Requires Task 1 (S_D_Parameter__c) and Task 2 (PBIS_Policy__c,
+# PBIS_Incentive_Slab__c) objects to already exist in the target org.
+#
+# Run it from the GitHub UI: Actions -> "Deploy PBIS Task 3 (manifest)" -> Run workflow
+# (pick the claude/dazzling-planck-eDPih branch). NOTE: a workflow_dispatch workflow
+# only appears in the Actions UI once this file exists on the repo's default branch.
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: 'Run SDParameter_ControllerTest during deploy'
+        type: boolean
+        default: false
+      check_only:
+        description: 'Validate only (dry run, no changes committed to the org)'
+        type: boolean
+        default: false
+
+jobs:
+  deploy-task3:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install --global @salesforce/cli
+          sf --version
+
+      - name: Authenticate to Salesforce
+        run: |
+          echo "${{ secrets.SALESFORCE_AUTH_URL }}" > authfile.txt
+          sf org login sfdx-url --sfdx-url-file authfile.txt --alias deployment-org --set-default
+
+      - name: Deploy Task 3 manifest
+        run: |
+          ARGS="--manifest manifest/pbis_task3.xml --target-org deployment-org --wait 30"
+          if [ "${{ inputs.check_only }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          if [ "${{ inputs.run_tests }}" = "true" ]; then
+            ARGS="$ARGS --test-level RunSpecifiedTests --tests SDParameter_ControllerTest"
+          fi
+          echo "sf project deploy start $ARGS"
+          sf project deploy start $ARGS
