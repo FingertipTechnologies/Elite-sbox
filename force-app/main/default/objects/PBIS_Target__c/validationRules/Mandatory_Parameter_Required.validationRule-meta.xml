@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Mandatory_Parameter_Required</fullName>
+    <active>true</active>
+    <description>At least one selected S&amp;D Parameter must be a mandatory (value/volume gate) parameter.</description>
+    <errorConditionFormula>AND(
+  Total_Weightage__c &gt; 0,
+  NOT(Has_Mandatory_Parameter__c)
+)</errorConditionFormula>
+    <errorMessage>Include the mandatory value/volume S&amp;D parameter in at least one slot.</errorMessage>
+</ValidationRule>

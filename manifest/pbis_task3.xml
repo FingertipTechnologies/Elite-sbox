@@ -21,7 +21,7 @@
     </types>
     <types>
         <members>PBIS_Target__c.Weightage_Must_Total_100</members>
-        <members>PBIS_Target__c.Mandatory_Component_Required</members>
+        <members>PBIS_Target__c.Mandatory_Parameter_Required</members>
         <name>ValidationRule</name>
     </types>
     <types>

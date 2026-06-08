@@ -19,21 +19,21 @@ using the standard **Setup → Data Import Wizard → Custom objects → PBIS Ta
 | `Start_Date` / `End_Date` | `Start_Date__c` / `End_Date__c` | yyyy-mm-dd |
 | `PBIS_Policy_Name` | `PBIS_Policy__c` | lookup — match **by Name** |
 | `Is_Active` | `Is_Active__c` | true / false |
-| `Component_N_Parameter_ExtId` | `Component_N_Parameter__c` | lookup to S&D Parameter — match **by External Id** (`Sales Channel | Name`) |
-| `Component_N_Weightage` | `Component_N_Weightage__c` | percent (the ten must total 100) |
-| `Component_N_Target` | `Component_N_Target__c` | number |
+| `S_D_Parameter_N_ExtId` | `S_D_Parameter_N__c` | lookup to S&D Parameter — match **by External Id** (`Sales Channel | Name`) |
+| `S_D_Parameter_N_Weightage` | `S_D_Parameter_N_Weightage__c` | percent (the ten must total 100) |
+| `S_D_Parameter_N_Target` | `S_D_Parameter_N_Target__c` | number |
 
 `Designation__c` is a formula (`TEXT(User__r.Title)`) and is **not** imported — it
 populates from the matched User. The achievement / slab / value columns are computed
 in Task 4 and are left blank on import.
 
 ## Validation that fires on save
-- **Weightage Must Total 100** — the ten component weightages must sum to 100% (when any
+- **Weightage Must Total 100** — the ten S&D Parameter weightages must sum to 100% (when any
   is entered).
-- **Mandatory Component Required** — at least one selected component must be a mandatory
-  (value/volume gate) S&D Parameter (`Is_Mandatory__c = true`), surfaced through the
-  `Has_Mandatory_Component__c` formula.
+- **Mandatory Parameter Required** — at least one selected S&D Parameter must be a mandatory
+  (value/volume gate) parameter (`Is_Mandatory__c = true`), surfaced through the
+  `Has_Mandatory_Parameter__c` formula.
 
 ## Prerequisite
 Run `scripts/apex/seed_sd_parameters.apex` first so each S&D Parameter has its
-`External_Id__c` populated (`Sales Channel | Name`) for the component lookups to match.
+`External_Id__c` populated (`Sales Channel | Name`) for the S&D Parameter lookups to match.

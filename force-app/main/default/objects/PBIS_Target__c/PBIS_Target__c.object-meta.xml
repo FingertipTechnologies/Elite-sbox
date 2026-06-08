@@ -3,7 +3,7 @@
     <allowInChatterGroups>false</allowInChatterGroups>
     <compactLayoutAssignment>SYSTEM</compactLayoutAssignment>
     <deploymentStatus>Deployed</deploymentStatus>
-    <description>Primary PBIS per-user/period target (Layer 3). Wide row imported via the Data Import Wizard: identity/period + up to 10 component (S&amp;D Parameter) weightages and targets. Achievement/incentive computed in Task 4.</description>
+    <description>Primary PBIS per-user/period target (Layer 3). Wide row imported via the Data Import Wizard: identity/period + up to 10 S&amp;D Parameter weightages and targets. Achievement/incentive computed in Task 4.</description>
     <enableActivities>false</enableActivities>
     <enableBulkApi>true</enableBulkApi>
     <enableFeeds>false</enableFeeds>

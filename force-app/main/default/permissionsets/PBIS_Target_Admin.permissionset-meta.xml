@@ -84,352 +84,352 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_1_Parameter__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_1__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_1_Weightage__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_1_Weightage__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_1_Target__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_1_Target__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_1_Achievement__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_1_Achievement__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_1_Achievement_Percent__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_1_Achievement_Percent__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_1_Qualified_Slab__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_1_Qualified_Slab__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_1_Value__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_1_Value__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_2_Parameter__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_2__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_2_Weightage__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_2_Weightage__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_2_Target__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_2_Target__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_2_Achievement__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_2_Achievement__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_2_Achievement_Percent__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_2_Achievement_Percent__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_2_Qualified_Slab__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_2_Qualified_Slab__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_2_Value__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_2_Value__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_3_Parameter__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_3__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_3_Weightage__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_3_Weightage__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_3_Target__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_3_Target__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_3_Achievement__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_3_Achievement__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_3_Achievement_Percent__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_3_Achievement_Percent__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_3_Qualified_Slab__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_3_Qualified_Slab__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_3_Value__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_3_Value__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_4_Parameter__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_4__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_4_Weightage__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_4_Weightage__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_4_Target__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_4_Target__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_4_Achievement__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_4_Achievement__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_4_Achievement_Percent__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_4_Achievement_Percent__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_4_Qualified_Slab__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_4_Qualified_Slab__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_4_Value__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_4_Value__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_5_Parameter__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_5__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_5_Weightage__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_5_Weightage__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_5_Target__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_5_Target__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_5_Achievement__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_5_Achievement__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_5_Achievement_Percent__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_5_Achievement_Percent__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_5_Qualified_Slab__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_5_Qualified_Slab__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_5_Value__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_5_Value__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_6_Parameter__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_6__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_6_Weightage__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_6_Weightage__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_6_Target__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_6_Target__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_6_Achievement__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_6_Achievement__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_6_Achievement_Percent__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_6_Achievement_Percent__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_6_Qualified_Slab__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_6_Qualified_Slab__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_6_Value__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_6_Value__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_7_Parameter__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_7__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_7_Weightage__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_7_Weightage__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_7_Target__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_7_Target__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_7_Achievement__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_7_Achievement__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_7_Achievement_Percent__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_7_Achievement_Percent__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_7_Qualified_Slab__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_7_Qualified_Slab__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_7_Value__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_7_Value__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_8_Parameter__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_8__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_8_Weightage__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_8_Weightage__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_8_Target__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_8_Target__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_8_Achievement__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_8_Achievement__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_8_Achievement_Percent__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_8_Achievement_Percent__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_8_Qualified_Slab__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_8_Qualified_Slab__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_8_Value__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_8_Value__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_9_Parameter__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_9__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_9_Weightage__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_9_Weightage__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_9_Target__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_9_Target__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_9_Achievement__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_9_Achievement__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_9_Achievement_Percent__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_9_Achievement_Percent__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_9_Qualified_Slab__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_9_Qualified_Slab__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_9_Value__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_9_Value__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_10_Parameter__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_10__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_10_Weightage__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_10_Weightage__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_10_Target__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_10_Target__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_10_Achievement__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_10_Achievement__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_10_Achievement_Percent__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_10_Achievement_Percent__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_10_Qualified_Slab__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_10_Qualified_Slab__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PBIS_Target__c.Component_10_Value__c</field>
+        <field>PBIS_Target__c.S_D_Parameter_10_Value__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -444,7 +444,7 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
-        <field>PBIS_Target__c.Has_Mandatory_Component__c</field>
+        <field>PBIS_Target__c.Has_Mandatory_Parameter__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <tabSettings>
