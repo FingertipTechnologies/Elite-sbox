@@ -31,7 +31,7 @@
             <div class="sdp-section">
                 <p class="sdp-section-label">Parameter</p>
                 <div class="slds-grid slds-wrap slds-gutters">
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                    <div class="slds-col slds-size_1-of-2">
                         <lightning-input
                             label="Parameter Name"
                             data-field="Name"
@@ -40,7 +40,7 @@
                             required>
                         </lightning-input>
                     </div>
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                    <div class="slds-col slds-size_1-of-2">
                         <lightning-combobox
                             label="Operator"
                             value={param.Operator__c}
@@ -57,7 +57,7 @@
                 <div class="sdp-section">
                     <p class="sdp-section-label">Source Mapping</p>
                     <div class="slds-grid slds-wrap slds-gutters">
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <div class="slds-col slds-size_1-of-2">
                             <c-searchable-combobox
                                 label="Object"
                                 placeholder="Search source object…"
@@ -67,7 +67,7 @@
                             </c-searchable-combobox>
                         </div>
                         <template if:true={showMeasureField}>
-                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <div class="slds-col slds-size_1-of-2">
                                 <c-searchable-combobox
                                     label="Field"
                                     placeholder="Search field to SUM…"
@@ -78,7 +78,7 @@
                                 </c-searchable-combobox>
                             </div>
                         </template>
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <div class="slds-col slds-size_1-of-2">
                             <c-searchable-combobox
                                 label="User Field"
                                 placeholder="Search user field…"
@@ -88,7 +88,7 @@
                                 onchange={handleComboChange}>
                             </c-searchable-combobox>
                         </div>
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <div class="slds-col slds-size_1-of-2">
                             <c-searchable-combobox
                                 label="Date Field"
                                 placeholder="Search date field for the period…"
@@ -125,7 +125,7 @@
                 <div class="sdp-section">
                     <p class="sdp-section-label">Focus Pack</p>
                     <div class="slds-grid slds-wrap slds-gutters">
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <div class="slds-col slds-size_1-of-2">
                             <lightning-combobox
                                 label="Sales Channel"
                                 placeholder="Select channel"
@@ -135,7 +135,7 @@
                                 onchange={handleComboChange}>
                             </lightning-combobox>
                         </div>
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <div class="slds-col slds-size_1-of-2">
                             <c-searchable-combobox
                                 label="Focused Pack"
                                 placeholder="Search Focused Pack…"
@@ -146,7 +146,7 @@
                                 onchange={handleComboChange}>
                             </c-searchable-combobox>
                         </div>
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <div class="slds-col slds-size_1-of-2">
                             <c-searchable-combobox
                                 label="SKU Field"
                                 placeholder="Search product/SKU field…"
@@ -180,21 +180,26 @@
 
             <!-- Section: Status -->
             <div class="sdp-section sdp-section_last">
-                <lightning-input
-                    type="checkbox"
-                    label="Mandatory parameter (value/volume gate)"
-                    checked={param.Is_Mandatory__c}
-                    onchange={handleMandatory}
-                    class="slds-m-bottom_x-small">
-                </lightning-input>
-                <lightning-input
-                    type="toggle"
-                    label="Active"
-                    message-toggle-active="Active"
-                    message-toggle-inactive="Inactive"
-                    checked={param.Is_Active__c}
-                    onchange={handleActive}>
-                </lightning-input>
+                <div class="slds-grid slds-wrap slds-gutters slds-grid_vertical-align-center">
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-input
+                            type="checkbox"
+                            label="Mandatory parameter (value/volume gate)"
+                            checked={param.Is_Mandatory__c}
+                            onchange={handleMandatory}>
+                        </lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-input
+                            type="toggle"
+                            label="Active"
+                            message-toggle-active="Active"
+                            message-toggle-inactive="Inactive"
+                            checked={param.Is_Active__c}
+                            onchange={handleActive}>
+                        </lightning-input>
+                    </div>
+                </div>
             </div>
         </div>
 
