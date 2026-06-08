@@ -177,6 +177,11 @@ export default class PbisPolicyBuilder extends LightningElement {
     handleProfileChange(event) {
         const key = event.currentTarget.dataset.key;
         const value = event.detail.value;
+        // Clear profile errors as the selection changes (duplicates are relative).
+        this.template.querySelectorAll('lightning-combobox[data-key]').forEach((el) => {
+            el.setCustomValidity('');
+            el.reportValidity();
+        });
         this.profiles = this.profiles.map((p) => (p.key === key ? { ...p, Profile__c: value } : p));
     }
     handleSlabValue(event) {
@@ -282,28 +287,32 @@ export default class PbisPolicyBuilder extends LightningElement {
             this.toast('Required', 'Add at least one profile', 'warning');
             return false;
         }
-        const seen = new Set();
-        for (const p of this.profiles) {
-            if (!p.Profile__c) {
-                this.toast('Required', 'Each profile card needs a Profile selected', 'warning');
-                return false;
-            }
-            if (seen.has(p.Profile__c)) {
-                this.toast('Duplicate', `Profile "${p.Profile__c}" is used more than once`, 'warning');
-                return false;
-            }
-            seen.add(p.Profile__c);
-        }
         return true;
     }
 
-    // Field-level validation for the per-profile slab rows.
+    // Field-level validation for the profiles and their slab rows.
     validateSlabs() {
         let valid = true;
-        // Clear any previous slab field errors first.
+        // Clear any previous field errors first.
         this.template.querySelectorAll('lightning-input[data-key]').forEach((el) => {
             el.setCustomValidity('');
             el.reportValidity();
+        });
+        this.template.querySelectorAll('lightning-combobox[data-key]').forEach((el) => {
+            el.setCustomValidity('');
+            el.reportValidity();
+        });
+
+        // Profile required + no duplicate profile across cards.
+        const seen = {};
+        this.profiles.forEach((p) => {
+            if (!p.Profile__c) {
+                valid = this.setProfileErr(p.key, 'Select a profile');
+            } else if (seen[p.Profile__c]) {
+                valid = this.setProfileErr(p.key, 'This profile is already used on another card');
+            } else {
+                seen[p.Profile__c] = true;
+            }
         });
 
         this.profiles.forEach((p) => {
@@ -316,30 +325,62 @@ export default class PbisPolicyBuilder extends LightningElement {
             const emptyToCount = p.slabs.filter((s) => this.isBlank(s.Achievement_To__c)).length;
 
             p.slabs.forEach((s) => {
-                // From % is required
+                // From % required + non-negative
                 if (this.isBlank(s.Achievement_From__c)) {
                     valid = this.setSlabErr(s.key, 'Achievement_From__c', 'Enter From %');
+                } else if (Number(s.Achievement_From__c) < 0) {
+                    valid = this.setSlabErr(s.key, 'Achievement_From__c', 'From % cannot be negative');
                 }
-                // To %: blank is allowed for ONLY one (the max) slab; otherwise From < To
+                // To %: blank allowed for ONLY one (the max) slab; otherwise From < To, non-negative
                 if (this.isBlank(s.Achievement_To__c)) {
                     if (emptyToCount > 1) {
                         valid = this.setSlabErr(s.key, 'Achievement_To__c',
                             'Only one slab can be left without a max (To %)');
                     }
+                } else if (Number(s.Achievement_To__c) < 0) {
+                    valid = this.setSlabErr(s.key, 'Achievement_To__c', 'To % cannot be negative');
                 } else if (!this.isBlank(s.Achievement_From__c) &&
                            Number(s.Achievement_From__c) >= Number(s.Achievement_To__c)) {
                     valid = this.setSlabErr(s.key, 'Achievement_To__c', 'To % must be greater than From %');
                 }
-                // Monthly % and Quarterly % are required for every slab row
+                // Monthly % and Quarterly % required + non-negative
                 if (this.isBlank(s.Monthly_Incentive_Percent__c)) {
                     valid = this.setSlabErr(s.key, 'Monthly_Incentive_Percent__c', 'Enter Monthly %');
+                } else if (Number(s.Monthly_Incentive_Percent__c) < 0) {
+                    valid = this.setSlabErr(s.key, 'Monthly_Incentive_Percent__c', 'Monthly % cannot be negative');
                 }
                 if (this.isBlank(s.Quarterly_Incentive_Percent__c)) {
                     valid = this.setSlabErr(s.key, 'Quarterly_Incentive_Percent__c', 'Enter Quarterly %');
+                } else if (Number(s.Quarterly_Incentive_Percent__c) < 0) {
+                    valid = this.setSlabErr(s.key, 'Quarterly_Incentive_Percent__c', 'Quarterly % cannot be negative');
                 }
             });
+
+            // Continuity: each slab's From must be greater than the previous slab's To,
+            // and the open-ended (no To) slab must be the last row.
+            for (let i = 1; i < p.slabs.length; i++) {
+                const prev = p.slabs[i - 1];
+                const cur = p.slabs[i];
+                if (this.isBlank(prev.Achievement_To__c)) {
+                    valid = this.setSlabErr(cur.key, 'Achievement_From__c',
+                        'The slab without a max (To %) must be the last slab');
+                } else if (!this.isBlank(cur.Achievement_From__c) &&
+                           Number(cur.Achievement_From__c) <= Number(prev.Achievement_To__c)) {
+                    valid = this.setSlabErr(cur.key, 'Achievement_From__c',
+                        'From % must be greater than the previous slab To % (' + prev.Achievement_To__c + ')');
+                }
+            }
         });
         return valid;
+    }
+
+    setProfileErr(profKey, message) {
+        const el = this.template.querySelector(`lightning-combobox[data-key="${profKey}"]`);
+        if (el) {
+            el.setCustomValidity(message);
+            el.reportValidity();
+        }
+        return false;
     }
 
     setSlabErr(slabKey, field, message) {
