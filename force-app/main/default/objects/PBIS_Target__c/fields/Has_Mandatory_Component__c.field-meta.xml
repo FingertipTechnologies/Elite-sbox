@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Has_Mandatory_Component__c</fullName>
+    <externalId>false</externalId>
+    <formula>OR(
+  Component_1_Parameter__r.Is_Mandatory__c,
+  Component_2_Parameter__r.Is_Mandatory__c,
+  Component_3_Parameter__r.Is_Mandatory__c,
+  Component_4_Parameter__r.Is_Mandatory__c,
+  Component_5_Parameter__r.Is_Mandatory__c,
+  Component_6_Parameter__r.Is_Mandatory__c,
+  Component_7_Parameter__r.Is_Mandatory__c,
+  Component_8_Parameter__r.Is_Mandatory__c,
+  Component_9_Parameter__r.Is_Mandatory__c,
+  Component_10_Parameter__r.Is_Mandatory__c
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <inlineHelpText>True when at least one selected component parameter is flagged mandatory.</inlineHelpText>
+    <label>Has Mandatory Component</label>
+    <type>Checkbox</type>
+</CustomField>

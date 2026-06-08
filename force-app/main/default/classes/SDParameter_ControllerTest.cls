@@ -14,6 +14,7 @@ private class SDParameter_ControllerTest {
             Operator__c = 'SUM',
             Field__c = 'Quantity__c',
             User_Field__c = 'OwnerId',
+            Is_Mandatory__c = true,
             Is_Active__c = true
         );
 
@@ -21,6 +22,9 @@ private class SDParameter_ControllerTest {
         S_D_Parameter__c saved = SDParameter_Controller.save(param);
         System.assertNotEquals(null, saved.Id, 'Insert should return an Id');
         System.assertEquals('SUM', saved.Operator__c);
+        System.assertEquals(true, saved.Is_Mandatory__c, 'Mandatory flag should persist');
+        System.assertEquals('Total Volume Achievement', saved.External_Id__c,
+            'External Id auto-set from Name (no channel)');
 
         saved.Operator__c = 'COUNT';
         S_D_Parameter__c updated = SDParameter_Controller.save(saved);

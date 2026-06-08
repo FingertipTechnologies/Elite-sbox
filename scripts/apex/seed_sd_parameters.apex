@@ -64,6 +64,11 @@ for (List<String> row : catalog) {
     rec.Sales_Channel__c = channelValue;
     rec.Operator__c = op;
     rec.Is_Active__c = true;
+    // The Total Value/Volume Achievement params are the mandatory value/volume gate.
+    rec.Is_Mandatory__c = pname.containsIgnoreCase('Total Volume Achievement')
+        || pname.containsIgnoreCase('Total Revenue Achievement');
+    // Stable external id for PBIS Target imports (matches SDParameter_Controller.save).
+    rec.External_Id__c = (channelValue != null ? channelValue + ' | ' : '') + pname;
 
     if (op == 'FOCUS_PACK_VOLUME' || op == 'FOCUS_PACK_REVENUE') {
         rec.Focused_Pack__c = (packName != null && packByName.containsKey(packName.toLowerCase()))

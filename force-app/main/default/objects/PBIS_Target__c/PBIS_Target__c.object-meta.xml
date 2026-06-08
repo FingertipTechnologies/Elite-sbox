@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <allowInChatterGroups>false</allowInChatterGroups>
+    <compactLayoutAssignment>SYSTEM</compactLayoutAssignment>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <description>Primary PBIS per-user/period target (Layer 3). Wide row imported via the Data Import Wizard: identity/period + up to 10 component (S&amp;D Parameter) weightages and targets. Achievement/incentive computed in Task 4.</description>
+    <enableActivities>false</enableActivities>
+    <enableBulkApi>true</enableBulkApi>
+    <enableFeeds>false</enableFeeds>
+    <enableHistory>true</enableHistory>
+    <enableLicensing>false</enableLicensing>
+    <enableReports>true</enableReports>
+    <enableSearch>true</enableSearch>
+    <enableSharing>true</enableSharing>
+    <enableStreamingApi>true</enableStreamingApi>
+    <externalSharingModel>Private</externalSharingModel>
+    <label>PBIS Target</label>
+    <nameField>
+        <displayFormat>PT-{0000}</displayFormat>
+        <label>PBIS Target Name</label>
+        <type>AutoNumber</type>
+    </nameField>
+    <pluralLabel>PBIS Targets</pluralLabel>
+    <searchLayouts></searchLayouts>
+    <sharingModel>ReadWrite</sharingModel>
+    <visibility>Public</visibility>
+</CustomObject>

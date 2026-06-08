@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Component_1_Qualified_Slab__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <externalId>false</externalId>
+    <inlineHelpText>Slab matched for component 1 in Task 4.</inlineHelpText>
+    <label>Component 1 Qualified Slab</label>
+    <referenceTo>PBIS_Incentive_Slab__c</referenceTo>
+    <relationshipLabel>PBIS Targets (Component 1 Slab)</relationshipLabel>
+    <relationshipName>PBIS_Targets_Comp_1_Slab</relationshipName>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

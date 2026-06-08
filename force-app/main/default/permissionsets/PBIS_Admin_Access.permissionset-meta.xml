@@ -81,6 +81,16 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>S_D_Parameter__c.Is_Mandatory__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>S_D_Parameter__c.External_Id__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>S_D_Parameter__c.SOQL_Query__c</field>
         <readable>true</readable>
     </fieldPermissions>

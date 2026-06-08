@@ -181,6 +181,13 @@
             <!-- Section: Status -->
             <div class="sdp-section sdp-section_last">
                 <lightning-input
+                    type="checkbox"
+                    label="Mandatory parameter (value/volume gate)"
+                    checked={param.Is_Mandatory__c}
+                    onchange={handleMandatory}
+                    class="slds-m-bottom_x-small">
+                </lightning-input>
+                <lightning-input
                     type="toggle"
                     label="Active"
                     message-toggle-active="Active"

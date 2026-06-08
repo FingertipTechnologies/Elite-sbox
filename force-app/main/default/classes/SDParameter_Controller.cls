@@ -19,6 +19,10 @@ public with sharing class SDParameter_Controller {
         try {
             // Always (re)generate and store the SOQL so it matches the current config.
             parameter.SOQL_Query__c = buildSoql(parameter);
+            // Stable external id (Sales Channel | Name) so PBIS Target imports can match this parameter.
+            parameter.External_Id__c =
+                (String.isNotBlank(parameter.Sales_Channel__c) ? parameter.Sales_Channel__c + ' | ' : '')
+                + parameter.Name;
             upsert parameter;
             return getParameter(parameter.Id);
         } catch (DmlException e) {
@@ -32,7 +36,7 @@ public with sharing class SDParameter_Controller {
         return [
             SELECT Id, Name, Object__c, Operator__c, Field__c, User_Field__c, Date_Field__c,
                    SKU_Field__c, Focused_Pack__c, Focused_Pack__r.Name, Sales_Channel__c,
-                   Filters__c, Filter_Logic__c, SOQL_Query__c, Is_Active__c
+                   Filters__c, Filter_Logic__c, SOQL_Query__c, Is_Mandatory__c, Is_Active__c
             FROM S_D_Parameter__c
             WHERE Id = :parameterId
             LIMIT 1

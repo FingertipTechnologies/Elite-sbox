@@ -33,6 +33,7 @@ export default class SdParameterBuilder extends LightningElement {
         Focused_Pack__c: '',
         Sales_Channel__c: '',
         Filter_Logic__c: '',
+        Is_Mandatory__c: false,
         Is_Active__c: true
     };
 
@@ -109,6 +110,7 @@ export default class SdParameterBuilder extends LightningElement {
                 Focused_Pack__c: rec.Focused_Pack__c || '',
                 Sales_Channel__c: rec.Sales_Channel__c || '',
                 Filter_Logic__c: rec.Filter_Logic__c || '',
+                Is_Mandatory__c: rec.Is_Mandatory__c === true,
                 Is_Active__c: rec.Is_Active__c === undefined ? true : rec.Is_Active__c
             };
             if (rec.Filters__c) {
@@ -174,6 +176,9 @@ export default class SdParameterBuilder extends LightningElement {
     }
     handleActive(event) {
         this.param = { ...this.param, Is_Active__c: event.target.checked };
+    }
+    handleMandatory(event) {
+        this.param = { ...this.param, Is_Mandatory__c: event.target.checked };
     }
     handleOperatorChange(event) {
         const value = event.detail.value;
