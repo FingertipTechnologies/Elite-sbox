@@ -34,7 +34,30 @@ export default class PbisPolicyBuilder extends LightningElement {
         Description__c: ''
     };
 
-    @track profiles = []; // [{ key, Profile__c, slabs: [{...}] }]
+    @track _profiles = []; // [{ key, Profile__c, expanded, slabs: [{...}] }]
+
+    // Decorate each profile card with its collapse state for the template.
+    get profiles() {
+        return this._profiles.map((p) => {
+            const expanded = p.expanded !== false;
+            const count = (p.slabs || []).length;
+            return {
+                ...p,
+                expanded,
+                collapseIcon: expanded ? 'utility:chevrondown' : 'utility:chevronright',
+                collapseAlt: expanded ? 'Collapse slabs' : 'Expand slabs',
+                slabCountLabel: count + (count === 1 ? ' slab' : ' slabs')
+            };
+        });
+    }
+
+    // Expand / collapse a single profile card.
+    toggleProfile(event) {
+        const key = event.currentTarget.dataset.key;
+        this._profiles = this._profiles.map((p) =>
+            p.key === key ? { ...p, expanded: p.expanded === false } : p
+        );
+    }
 
     basisOptions = BASIS_OPTIONS;
     channelOptions = [];
@@ -113,12 +136,12 @@ export default class PbisPolicyBuilder extends LightningElement {
                         Is_Active__c: s.Is_Active__c
                     });
                 });
-                this.profiles = Object.keys(byProfile).map((prof) => ({
+                this._profiles = Object.keys(byProfile).map((prof) => ({
                     key: `p${this._seq++}`,
                     Profile__c: prof,
                     slabs: byProfile[prof].sort((a, b) => (a.Slab_Number__c || 0) - (b.Slab_Number__c || 0))
                 }));
-                if (this.profiles.length === 0) this.addProfile();
+                if (this._profiles.length === 0) this.addProfile();
             })
             .catch((e) => this.toast('Error', this.errMessage(e), 'error'));
     }
@@ -155,14 +178,14 @@ export default class PbisPolicyBuilder extends LightningElement {
         }));
     }
     addProfile() {
-        this.profiles = [
-            ...this.profiles,
+        this._profiles = [
+            ...this._profiles,
             { key: `p${this._seq++}`, Profile__c: '', slabs: this.freshSlabs() }
         ];
     }
     cloneProfile(event) {
         const key = event.currentTarget.dataset.key;
-        const src = this.profiles.find((p) => p.key === key);
+        const src = this._profiles.find((p) => p.key === key);
         if (!src) return;
         const copy = {
             key: `p${this._seq++}`,
@@ -173,14 +196,14 @@ export default class PbisPolicyBuilder extends LightningElement {
                 Id: null // new records
             }))
         };
-        const idx = this.profiles.findIndex((p) => p.key === key);
-        const next = [...this.profiles];
+        const idx = this._profiles.findIndex((p) => p.key === key);
+        const next = [...this._profiles];
         next.splice(idx + 1, 0, copy);
-        this.profiles = next;
+        this._profiles = next;
     }
     removeProfile(event) {
         const key = event.currentTarget.dataset.key;
-        this.profiles = this.profiles.filter((p) => p.key !== key);
+        this._profiles = this._profiles.filter((p) => p.key !== key);
     }
     handleProfileChange(event) {
         const key = event.currentTarget.dataset.key;
@@ -190,7 +213,7 @@ export default class PbisPolicyBuilder extends LightningElement {
             el.setCustomValidity('');
             el.reportValidity();
         });
-        this.profiles = this.profiles.map((p) => (p.key === key ? { ...p, Profile__c: value } : p));
+        this._profiles = this._profiles.map((p) => (p.key === key ? { ...p, Profile__c: value } : p));
         this.scheduleValidate();
     }
     handleSlabValue(event) {
@@ -203,7 +226,7 @@ export default class PbisPolicyBuilder extends LightningElement {
             event.currentTarget.setCustomValidity('');
             event.currentTarget.reportValidity();
         }
-        this.profiles = this.profiles.map((p) => {
+        this._profiles = this._profiles.map((p) => {
             if (p.key !== pKey) return p;
             return { ...p, slabs: p.slabs.map((s) => (s.key === sKey ? { ...s, [field]: value } : s)) };
         });
@@ -211,7 +234,7 @@ export default class PbisPolicyBuilder extends LightningElement {
     }
     addSlab(event) {
         const pKey = event.currentTarget.dataset.key;
-        this.profiles = this.profiles.map((p) => {
+        this._profiles = this._profiles.map((p) => {
             if (p.key !== pKey) return p;
             const nextNum = p.slabs.length + 1;
             return {
@@ -231,7 +254,7 @@ export default class PbisPolicyBuilder extends LightningElement {
     removeSlab(event) {
         const pKey = event.currentTarget.dataset.profile;
         const sKey = event.currentTarget.dataset.key;
-        this.profiles = this.profiles.map((p) =>
+        this._profiles = this._profiles.map((p) =>
             p.key !== pKey ? p : { ...p, slabs: p.slabs.filter((s) => s.key !== sKey) }
         );
     }
@@ -240,6 +263,10 @@ export default class PbisPolicyBuilder extends LightningElement {
     handleSave() {
         if (!this.validate()) return;
         if (!this.validateSlabs()) {
+            // A collapsed card may hold the error; expand all so the inline
+            // messages render, then re-run validation against the live fields.
+            this._profiles = this._profiles.map((p) => ({ ...p, expanded: true }));
+            this.scheduleValidate();
             this.toast('Fix slab errors', 'Please correct the highlighted slab fields', 'error');
             return;
         }
@@ -254,7 +281,7 @@ export default class PbisPolicyBuilder extends LightningElement {
         if (this.recordId) policyRecord.Id = this.recordId;
 
         const slabRecords = [];
-        this.profiles.forEach((p) => {
+        this._profiles.forEach((p) => {
             p.slabs.forEach((s) => {
                 const rec = {
                     Profile__c: p.Profile__c || null,
@@ -293,7 +320,7 @@ export default class PbisPolicyBuilder extends LightningElement {
             this.toast('Required', 'Select at least one sales channel', 'warning');
             return false;
         }
-        if (this.profiles.length === 0) {
+        if (this._profiles.length === 0) {
             this.toast('Required', 'Add at least one profile', 'warning');
             return false;
         }
@@ -316,7 +343,7 @@ export default class PbisPolicyBuilder extends LightningElement {
 
         // Profile required + no duplicate profile across cards.
         const seen = {};
-        this.profiles.forEach((p) => {
+        this._profiles.forEach((p) => {
             if (!p.Profile__c) {
                 valid = this.setProfileErr(p.key, 'Select a profile');
             } else if (seen[p.Profile__c]) {
@@ -326,7 +353,7 @@ export default class PbisPolicyBuilder extends LightningElement {
             }
         });
 
-        this.profiles.forEach((p) => {
+        this._profiles.forEach((p) => {
             if (!p.slabs || p.slabs.length === 0) {
                 if (!silent) this.toast('Required', 'Each profile needs at least one slab', 'warning');
                 valid = false;
