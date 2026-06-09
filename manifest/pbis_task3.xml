@@ -6,8 +6,10 @@
   Depends on Task 1 (S_D_Parameter__c) and Task 2 (PBIS_Policy__c,
   PBIS_Incentive_Slab__c) already being present in the org. Also carries the
   Task 1 additions used by Task 3: the S&D Parameter Is_Mandatory__c and
-  External_Id__c fields (read by the PBIS Target Has_Mandatory_Component__c
-  formula and used to match component lookups in the Data Import Wizard).
+  External_Id__c fields (read by the PBIS Target Has_Mandatory_Parameter__c
+  formula and used to match S&D Parameter lookups in the Data Import Wizard),
+  plus the PBIS_Target trigger that auto-populates Gross Salary from the User
+  (User.Monthly_Gross_Salary_INR__c must exist in the target org).
 -->
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
@@ -27,7 +29,13 @@
     <types>
         <members>SDParameter_Controller</members>
         <members>SDParameter_ControllerTest</members>
+        <members>PBIS_TargetTriggerHandler</members>
+        <members>PBIS_TargetTriggerHandlerTest</members>
         <name>ApexClass</name>
+    </types>
+    <types>
+        <members>PBIS_TargetTrigger</members>
+        <name>ApexTrigger</name>
     </types>
     <types>
         <members>sdParameterBuilder</members>
