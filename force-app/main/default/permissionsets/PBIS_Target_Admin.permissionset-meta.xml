@@ -452,11 +452,6 @@
         <field>PBIS_Target__c.Profile__c</field>
         <readable>true</readable>
     </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>User.PBIS_Policy__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
     <classAccesses>
         <apexClass>PBISActuals_Service</apexClass>
         <enabled>true</enabled>

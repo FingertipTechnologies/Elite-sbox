@@ -30,10 +30,10 @@ public without sharing class PBISActuals_Service {
         List<PBIS_Target__c> targets = queryTargets(targetIds);
         if (targets.isEmpty()) return;
 
-        // Slabs for every policy referenced by the users in scope.
+        // Slabs for every policy referenced by the targets in scope.
         Set<Id> policyIds = new Set<Id>();
         for (PBIS_Target__c t : targets) {
-            Id policyId = userPolicyId(t);
+            Id policyId = targetPolicyId(t);
             if (policyId != null) policyIds.add(policyId);
         }
         Map<String, List<PBIS_Incentive_Slab__c>> slabsByKey = loadSlabs(policyIds);
@@ -48,14 +48,14 @@ public without sharing class PBISActuals_Service {
     private static void computeTarget(PBIS_Target__c t, Map<String, List<PBIS_Incentive_Slab__c>> slabsByKey) {
         List<String> notes = new List<String>();
 
-        Id policyId = userPolicyId(t);
+        Id policyId = targetPolicyId(t);
         String profile = (String) t.get('Profile__c');
         List<PBIS_Incentive_Slab__c> slabs =
             (policyId != null && String.isNotBlank(profile))
                 ? slabsByKey.get(policyId + '|' + profile)
                 : null;
 
-        if (policyId == null) notes.add('No PBIS Policy on the user');
+        if (policyId == null) notes.add('No PBIS Policy on the target');
         else if (slabs == null || slabs.isEmpty()) notes.add('No active slabs for this policy/profile');
 
         Decimal floor = (slabs != null && !slabs.isEmpty()) ? slabs[0].Achievement_From__c : null;
@@ -187,15 +187,14 @@ public without sharing class PBISActuals_Service {
         return byKey;
     }
 
-    private static Id userPolicyId(PBIS_Target__c t) {
-        SObject u = t.getSObject('User__r');
-        return u != null ? (Id) u.get('PBIS_Policy__c') : null;
+    private static Id targetPolicyId(PBIS_Target__c t) {
+        return (Id) t.get('PBIS_Policy__c');
     }
 
-    // Builds the full target query (header + all 10 slots + parent param/user fields).
+    // Builds the full target query (header + all 10 slots + parent param fields).
     private static List<PBIS_Target__c> queryTargets(Set<Id> ids) {
         List<String> fields = new List<String>{
-            'Id', 'User__c', 'User__r.PBIS_Policy__c', 'Profile__c', 'Gross_Salary__c',
+            'Id', 'User__c', 'PBIS_Policy__c', 'Profile__c', 'Gross_Salary__c',
             'Incentive_Period__c', 'Start_Date__c', 'End_Date__c'
         };
         for (Integer n = 1; n <= SLOTS; n++) {
