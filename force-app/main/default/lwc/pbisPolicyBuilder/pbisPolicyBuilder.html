@@ -71,11 +71,18 @@
                     <template for:each={profiles} for:item="prof">
                         <div key={prof.key} class="pbp-profile-card">
                             <div class="pbp-profile-head">
-                                <div class="pbp-profile-select">
-                                    <lightning-combobox label="Profile" options={profileOptions}
-                                        value={prof.Profile__c} data-key={prof.key} onchange={handleProfileChange}
-                                        placeholder="Select profile" required>
-                                    </lightning-combobox>
+                                <div class="pbp-profile-left">
+                                    <div class="pbp-profile-select">
+                                        <lightning-combobox label="Profile" options={profileOptions}
+                                            value={prof.Profile__c} data-key={prof.key} onchange={handleProfileChange}
+                                            placeholder="Select profile" required>
+                                        </lightning-combobox>
+                                    </div>
+                                    <lightning-button-icon icon-name={prof.collapseIcon} variant="border-filled"
+                                        size="medium" alternative-text={prof.collapseAlt} title={prof.collapseAlt}
+                                        data-key={prof.key} onclick={toggleProfile} class="pbp-collapse-btn">
+                                    </lightning-button-icon>
+                                    <span class="pbp-slab-count">{prof.slabCountLabel}</span>
                                 </div>
                                 <div class="pbp-profile-actions">
                                     <lightning-button label="Clone" icon-name="utility:copy" variant="neutral"
@@ -87,6 +94,7 @@
                                 </div>
                             </div>
 
+                            <template if:true={prof.expanded}>
                             <div class="pbp-slab-head slds-grid slds-gutters_x-small">
                                 <div class="slds-col slds-size_1-of-12">Slab</div>
                                 <div class="slds-col slds-size_3-of-12">From %</div>
@@ -138,6 +146,7 @@
                                     data-key={prof.key} onclick={addSlab}>
                                 </lightning-button>
                             </div>
+                            </template>
                         </div>
                     </template>
                 </div>

@@ -110,9 +110,27 @@
     margin-bottom: 0.75rem;
 }
 
-.pbp-profile-select {
+.pbp-profile-left {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
     flex: 1 1 auto;
+}
+
+.pbp-profile-select {
+    flex: 0 1 22rem;
     max-width: 22rem;
+}
+
+/* nudge the collapse chevron up so it lines up with the dropdown box, not its label */
+.pbp-collapse-btn {
+    margin-bottom: 0.15rem;
+}
+
+.pbp-slab-count {
+    font-size: 0.72rem;
+    color: #706e6b;
+    padding-bottom: 0.35rem;
 }
 
 .pbp-profile-actions {
