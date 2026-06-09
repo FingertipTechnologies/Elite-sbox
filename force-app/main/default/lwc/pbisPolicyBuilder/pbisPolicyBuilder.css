@@ -122,11 +122,6 @@
     max-width: 22rem;
 }
 
-/* nudge the collapse chevron up so it lines up with the dropdown box, not its label */
-.pbp-collapse-btn {
-    margin-bottom: 0.15rem;
-}
-
 .pbp-slab-count {
     font-size: 0.72rem;
     color: #706e6b;
