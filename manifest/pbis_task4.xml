@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Task 4 (PBIS Actuals & Incentive calculation) ONLY.
+  Deploy with:
+    sf project deploy start -x manifest/pbis_task4.xml -o <sandbox>
+  Depends on Tasks 1-3 (S_D_Parameter__c with SOQL_Query__c, PBIS_Policy__c +
+  PBIS_Incentive_Slab__c, PBIS_Target__c) already present in the org, and on the
+  org-only User field Monthly_Gross_Salary_INR__c. This package deploys the
+  User.PBIS_Policy__c lookup it reads (populating it is Task 5).
+-->
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>PBISActuals_Service</members>
+        <members>PBISActuals_Controller</members>
+        <members>PBISActualsBatch</members>
+        <members>PBISActualsScheduler</members>
+        <members>PBISActualsRefreshController</members>
+        <members>PBISActuals_ServiceTest</members>
+        <name>ApexClass</name>
+    </types>
+    <types>
+        <members>PBISActualsRefresh</members>
+        <name>ApexPage</name>
+    </types>
+    <types>
+        <members>pbisTargetRecalc</members>
+        <name>LightningComponentBundle</name>
+    </types>
+    <types>
+        <members>PBIS_Target__c.Recalculate_Incentive</members>
+        <name>QuickAction</name>
+    </types>
+    <types>
+        <members>PBIS_Target__c.Refresh_Actuals</members>
+        <name>WebLink</name>
+    </types>
+    <types>
+        <members>User.PBIS_Policy__c</members>
+        <members>PBIS_Target__c.Profile__c</members>
+        <name>CustomField</name>
+    </types>
+    <types>
+        <members>PBIS_Target__c-PBIS_Target_Layout</members>
+        <name>Layout</name>
+    </types>
+    <types>
+        <members>PBIS_Target_Admin</members>
+        <name>PermissionSet</name>
+    </types>
+    <version>59.0</version>
+</Package>
