@@ -145,8 +145,8 @@ public with sharing class SecondaryTarget_Controller {
     // ===== CSV Import =====
 
     public class ImportRow {
-        @AuraEnabled public String targetId;
-        @AuraEnabled public String username;
+        @AuraEnabled public String targetName;       // e.g. STGT-0033 (blank = insert)
+        @AuraEnabled public String employeeCode;     // User.Employee_Code__c
         @AuraEnabled public String criteriaName;
         @AuraEnabled public String focusPackName;
         @AuraEnabled public String salesChannel;
@@ -165,8 +165,9 @@ public with sharing class SecondaryTarget_Controller {
 
     /**
      * Bulk insert / update of Secondary_Target__c from a CSV-driven UI.
-     * Users, criteria, focus packs are resolved by Username / Name (one SOQL each).
-     * Rows with a Target Id update the existing record; rows without one insert.
+     * Users are resolved by Employee_Code__c, criteria and focus packs by Name,
+     * and the existing record (for updates) by its Name (e.g. STGT-0033).
+     * Rows with a Target Name update the existing record; rows without one insert.
      * Errors are reported per row and the rest are upserted (partial success).
      */
     @AuraEnabled
@@ -174,21 +175,22 @@ public with sharing class SecondaryTarget_Controller {
         ImportResult res = new ImportResult();
         if (rows == null || rows.isEmpty()) return res;
 
-        Set<String> usernames = new Set<String>();
+        Set<String> empCodes = new Set<String>();
         Set<String> critNames = new Set<String>();
         Set<String> packNames = new Set<String>();
+        Set<String> targetNames = new Set<String>();
         for (ImportRow r : rows) {
-            if (String.isNotBlank(r.username)) usernames.add(r.username);
+            if (String.isNotBlank(r.employeeCode)) empCodes.add(r.employeeCode);
             if (String.isNotBlank(r.criteriaName)) critNames.add(r.criteriaName);
             if (String.isNotBlank(r.focusPackName)) packNames.add(r.focusPackName);
+            if (String.isNotBlank(r.targetName)) targetNames.add(r.targetName);
         }
 
-        Map<String, Id> userByLogin = new Map<String, Id>();
-        Map<String, Id> userByName = new Map<String, Id>();
+        Map<String, Id> userByCode = new Map<String, Id>();
         Map<Id, String> userIdToName = new Map<Id, String>();
-        for (User u : [SELECT Id, Username, Name FROM User WHERE Username IN :usernames OR Name IN :usernames]) {
-            userByLogin.put(u.Username, u.Id);
-            userByName.put(u.Name, u.Id);
+        for (User u : [SELECT Id, Name, Employee_Code__c FROM User
+                       WHERE Employee_Code__c IN :empCodes AND Employee_Code__c != null]) {
+            userByCode.put(u.Employee_Code__c, u.Id);
             userIdToName.put(u.Id, u.Name);
         }
         Map<String, Id> critByName = new Map<String, Id>();
@@ -199,22 +201,25 @@ public with sharing class SecondaryTarget_Controller {
         for (Focused_Pack__c fp : [SELECT Id, Name FROM Focused_Pack__c WHERE Name IN :packNames]) {
             packByName.put(fp.Name, fp.Id);
         }
+        Map<String, Id> targetByName = new Map<String, Id>();
+        for (Secondary_Target__c t : [SELECT Id, Name FROM Secondary_Target__c WHERE Name IN :targetNames]) {
+            targetByName.put(t.Name, t.Id);
+        }
 
         List<Secondary_Target__c> toUpsert = new List<Secondary_Target__c>();
-        List<Integer> rowIndexOf = new List<Integer>(); // parallel array for error reporting
+        List<Integer> rowIndexOf = new List<Integer>();
 
         for (Integer i = 0; i < rows.size(); i++) {
             ImportRow r = rows[i];
             Integer rowNum = i + 2; // header is row 1
             try {
-                if (String.isBlank(r.username)) throw new IllegalArgumentException('User Username is required.');
+                if (String.isBlank(r.employeeCode)) throw new IllegalArgumentException('User Employee Code is required.');
                 if (String.isBlank(r.criteriaName)) throw new IllegalArgumentException('Criteria Name is required.');
                 if (String.isBlank(r.startDate)) throw new IllegalArgumentException('Start Date is required.');
                 if (String.isBlank(r.endDate)) throw new IllegalArgumentException('End Date is required.');
 
-                Id userId = userByLogin.get(r.username);
-                if (userId == null) userId = userByName.get(r.username);
-                if (userId == null) throw new IllegalArgumentException('Unknown User: ' + r.username);
+                Id userId = userByCode.get(r.employeeCode);
+                if (userId == null) throw new IllegalArgumentException('Unknown Employee Code: ' + r.employeeCode);
 
                 Id critId = critByName.get(r.criteriaName);
                 if (critId == null) throw new IllegalArgumentException('Unknown Criteria: ' + r.criteriaName);
@@ -223,6 +228,12 @@ public with sharing class SecondaryTarget_Controller {
                 if (String.isNotBlank(r.focusPackName)) {
                     packId = packByName.get(r.focusPackName);
                     if (packId == null) throw new IllegalArgumentException('Unknown Focus Pack: ' + r.focusPackName);
+                }
+
+                Id existingTargetId = null;
+                if (String.isNotBlank(r.targetName)) {
+                    existingTargetId = targetByName.get(r.targetName);
+                    if (existingTargetId == null) throw new IllegalArgumentException('Unknown Target: ' + r.targetName);
                 }
 
                 Date startD;
@@ -245,7 +256,7 @@ public with sharing class SecondaryTarget_Controller {
                     Target_Value__c = r.targetValue,
                     Is_Active__c = r.isActive == true
                 );
-                if (String.isNotBlank(r.targetId)) t.Id = r.targetId;
+                if (existingTargetId != null) t.Id = existingTargetId;
                 toUpsert.add(t);
                 rowIndexOf.add(rowNum);
             } catch (Exception e) {

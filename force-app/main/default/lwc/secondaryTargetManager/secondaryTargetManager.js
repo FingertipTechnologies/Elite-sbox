@@ -12,13 +12,13 @@ import recalculateTarget from '@salesforce/apex/SecondaryTarget_Controller.recal
 import importTargets from '@salesforce/apex/SecondaryTarget_Controller.importTargets';
 
 const CSV_HEADERS = [
-    'Target Id', 'User Username', 'Criteria Name', 'Focus Pack Name', 'Sales Channel',
+    'Target Name', 'User Employee Code', 'Criteria Name', 'Focus Pack Name', 'Sales Channel',
     'Year', 'Start Date (YYYY-MM-DD)', 'End Date (YYYY-MM-DD)', 'Target Value', 'Is Active'
 ];
 const CSV_SAMPLES = [
-    ['', 'sunny.pj@example.com', 'Sec Revenue', '', 'TN', '2026', '2026-05-01', '2026-05-31', '100000', 'TRUE'],
-    ['', 'sunny.pj@example.com', 'Focus Pack ECO', 'Brownie', 'TN', '2026', '2026-05-01', '2026-05-31', '3', 'TRUE'],
-    ['a0X5j00000ABCDE', 'sunny.pj@example.com', 'Sec Revenue', '', 'TN', '2026', '2026-05-01', '2026-05-31', '120000', 'TRUE']
+    ['', 'EMP001', 'Sec Revenue', '', 'TN', '2026', '2026-05-01', '2026-05-31', '100000', 'TRUE'],
+    ['', 'EMP001', 'Focus Pack ECO', 'Brownie', 'TN', '2026', '2026-05-01', '2026-05-31', '3', 'TRUE'],
+    ['STGT-0033', 'EMP001', 'Sec Revenue', '', 'TN', '2026', '2026-05-01', '2026-05-31', '120000', 'TRUE']
 ];
 
 const COLUMNS = [
@@ -386,8 +386,8 @@ export default class SecondaryTargetManager extends LightningElement {
             const row = {};
             headers.forEach((h, j) => { row[h] = (cells[j] !== undefined ? String(cells[j]).trim() : ''); });
             out.push({
-                targetId: row['Target Id'] || null,
-                username: row['User Username'] || '',
+                targetName: row['Target Name'] || null,
+                employeeCode: row['User Employee Code'] || '',
                 criteriaName: row['Criteria Name'] || '',
                 focusPackName: row['Focus Pack Name'] || null,
                 salesChannel: row['Sales Channel'] || null,

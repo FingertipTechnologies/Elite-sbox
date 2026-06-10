@@ -148,12 +148,16 @@ public class SecondaryTarget_ControllerTest {
     @isTest
     static void testImportTargetsInsertUpdateError() {
         Target_Criteria__c crit = [SELECT Id, Name FROM Target_Criteria__c LIMIT 1];
-        User u = [SELECT Id, Username, Name FROM User WHERE LastName = 'stctrl' LIMIT 1];
-        Secondary_Target__c existing = [SELECT Id FROM Secondary_Target__c LIMIT 1];
+        User u = [SELECT Id, Employee_Code__c FROM User WHERE LastName = 'stctrl' LIMIT 1];
+        // Seed an Employee_Code__c value the import will look up.
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            u.Employee_Code__c = 'EMP-IMPORT-001';
+            update u;
+        }
+        Secondary_Target__c existing = [SELECT Id, Name FROM Secondary_Target__c LIMIT 1];
 
-        // Use non-overlapping dates so the duplicate guard isn't triggered for the new row.
         SecondaryTarget_Controller.ImportRow rNew = new SecondaryTarget_Controller.ImportRow();
-        rNew.username = u.Username;
+        rNew.employeeCode = 'EMP-IMPORT-001';
         rNew.criteriaName = crit.Name;
         rNew.startDate = String.valueOf(Date.today().addDays(20));
         rNew.endDate = String.valueOf(Date.today().addDays(50));
@@ -161,8 +165,8 @@ public class SecondaryTarget_ControllerTest {
         rNew.isActive = true;
 
         SecondaryTarget_Controller.ImportRow rUpd = new SecondaryTarget_Controller.ImportRow();
-        rUpd.targetId = existing.Id;
-        rUpd.username = u.Username;
+        rUpd.targetName = existing.Name;   // STGT-xxxx, not the Id
+        rUpd.employeeCode = 'EMP-IMPORT-001';
         rUpd.criteriaName = crit.Name;
         rUpd.startDate = String.valueOf(Date.today().addDays(-5));
         rUpd.endDate = String.valueOf(Date.today().addDays(5));
@@ -170,21 +174,30 @@ public class SecondaryTarget_ControllerTest {
         rUpd.isActive = true;
 
         SecondaryTarget_Controller.ImportRow rBad = new SecondaryTarget_Controller.ImportRow();
-        rBad.username = u.Username;
+        rBad.employeeCode = 'EMP-IMPORT-001';
         rBad.criteriaName = 'No Such Criteria';
         rBad.startDate = String.valueOf(Date.today().addDays(60));
         rBad.endDate = String.valueOf(Date.today().addDays(70));
         rBad.targetValue = 100;
         rBad.isActive = true;
 
+        SecondaryTarget_Controller.ImportRow rUnknownEmp = new SecondaryTarget_Controller.ImportRow();
+        rUnknownEmp.employeeCode = 'NO-SUCH-CODE';
+        rUnknownEmp.criteriaName = crit.Name;
+        rUnknownEmp.startDate = String.valueOf(Date.today().addDays(80));
+        rUnknownEmp.endDate = String.valueOf(Date.today().addDays(90));
+        rUnknownEmp.targetValue = 100;
+        rUnknownEmp.isActive = true;
+
         Test.startTest();
         SecondaryTarget_Controller.ImportResult res =
-            SecondaryTarget_Controller.importTargets(new List<SecondaryTarget_Controller.ImportRow>{ rNew, rUpd, rBad });
+            SecondaryTarget_Controller.importTargets(
+                new List<SecondaryTarget_Controller.ImportRow>{ rNew, rUpd, rBad, rUnknownEmp });
         Test.stopTest();
 
         System.assertEquals(1, res.createdCount, 'one inserted');
-        System.assertEquals(1, res.updatedCount, 'one updated');
-        System.assertEquals(1, res.errors.size(), 'one error captured for unknown criteria');
+        System.assertEquals(1, res.updatedCount, 'one updated by Target Name');
+        System.assertEquals(2, res.errors.size(), 'two errors (unknown criteria + unknown employee code)');
         System.assertEquals(2500, [SELECT Target_Value__c FROM Secondary_Target__c WHERE Id = :existing.Id].Target_Value__c,
             'updated value persisted');
     }
