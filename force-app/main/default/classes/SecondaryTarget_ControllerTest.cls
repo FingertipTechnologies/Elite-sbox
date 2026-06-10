@@ -191,8 +191,8 @@ public class SecondaryTarget_ControllerTest {
 
         Test.startTest();
         SecondaryTarget_Controller.ImportResult res =
-            SecondaryTarget_Controller.importTargets(
-                new List<SecondaryTarget_Controller.ImportRow>{ rNew, rUpd, rBad, rUnknownEmp });
+            SecondaryTarget_Controller.importTargets(JSON.serialize(
+                new List<SecondaryTarget_Controller.ImportRow>{ rNew, rUpd, rBad, rUnknownEmp }));
         Test.stopTest();
 
         System.assertEquals(1, res.createdCount, 'one inserted');

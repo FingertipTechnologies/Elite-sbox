@@ -171,8 +171,17 @@ public with sharing class SecondaryTarget_Controller {
      * Errors are reported per row and the rest are upserted (partial success).
      */
     @AuraEnabled
-    public static ImportResult importTargets(List<ImportRow> rows) {
+    public static ImportResult importTargets(String rowsJson) {
         ImportResult res = new ImportResult();
+        if (String.isBlank(rowsJson)) return res;
+        // Deserialize manually — @AuraEnabled with a List<CustomClass> parameter is
+        // unreliable across LWC ↔ Apex (inner property names don't always map).
+        List<ImportRow> rows;
+        try {
+            rows = (List<ImportRow>) JSON.deserialize(rowsJson, List<ImportRow>.class);
+        } catch (Exception e) {
+            throw new AuraHandledException('Could not parse import payload: ' + e.getMessage());
+        }
         if (rows == null || rows.isEmpty()) return res;
 
         Set<String> empCodes = new Set<String>();

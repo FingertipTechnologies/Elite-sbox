@@ -449,7 +449,7 @@ export default class SecondaryTargetManager extends LightningElement {
 
     runImport(rows) {
         this.isLoading = true;
-        importTargets({ rows })
+        importTargets({ rowsJson: JSON.stringify(rows) })
             .then(res => {
                 this.importCreated = res.createdCount || 0;
                 this.importUpdated = res.updatedCount || 0;
