@@ -4496,6 +4496,11 @@
         <readable>false</readable>
     </fieldPermissions>
     <fieldPermissions>
+        <editable>false</editable>
+        <field>Employee__c.PBIS_Policy__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
         <editable>true</editable>
         <field>Employee__c.Basic_Pay__c</field>
         <readable>true</readable>
@@ -12203,6 +12208,11 @@
     <fieldPermissions>
         <editable>false</editable>
         <field>User.Sales_Channel__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>User.PBIS_Policy__c</field>
         <readable>false</readable>
     </fieldPermissions>
     <fieldPermissions>

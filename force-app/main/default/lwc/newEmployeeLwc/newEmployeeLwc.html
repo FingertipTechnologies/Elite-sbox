@@ -388,8 +388,17 @@
                                         <div class={customClass}>
                                             <lightning-input-field
                                                 field-name="Designation__c"
-                                                onchange={handleInputChangeChange} 
+                                                onchange={handleInputChangeChange}
                                                 value={employee.Designation__c}
+                                                variant="label-stacked">
+                                            </lightning-input-field>
+                                        </div>
+                                        <!--PBIS_Policy__c-->
+                                        <div class={customClass}>
+                                            <lightning-input-field
+                                                field-name="PBIS_Policy__c"
+                                                onchange={handlePbisPolicyChange}
+                                                value={employee.PBIS_Policy__c}
                                                 variant="label-stacked">
                                             </lightning-input-field>
                                         </div>

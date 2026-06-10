@@ -757,6 +757,14 @@ export default class NewEmployeeLwc extends LightningElement {
         }
     }
 
+    // PBIS_Policy__c is a lookup: lightning-input-field emits an array of record Ids.
+    // Store only the single Id so the value maps cleanly onto the Employee__c SObject in saveData.
+    handlePbisPolicyChange(event) {
+        const value = event.detail.value;
+        const policyId = Array.isArray(value) ? (value.length ? value[0] : null) : (value || null);
+        this.employee = { ...this.employee, PBIS_Policy__c: policyId };
+    }
+
     payrollOptions() {
         return [
             { label: '--None--', value: '' },
