@@ -38,7 +38,7 @@ public without sharing class PBISActuals_Service {
         // 2. slabs, keyed by policyId|profile
         Set<Id> policyIds = new Set<Id>();
         for (PBIS_Target__c t : targets) {
-            Id policyId = (Id) t.get('PBIS_Policy__c');
+            Id policyId = policyIdOf(t);
             if (policyId != null) policyIds.add(policyId);
         }
         Map<String, List<PBIS_Incentive_Slab__c>> slabsByKey = loadSlabs(policyIds);
@@ -141,7 +141,7 @@ public without sharing class PBISActuals_Service {
             Map<String, List<PBIS_Incentive_Slab__c>> slabsByKey) {
         List<String> notes = new List<String>();
 
-        Id policyId = (Id) t.get('PBIS_Policy__c');
+        Id policyId = policyIdOf(t);
         String profile = (String) t.get('Profile__c');
         List<PBIS_Incentive_Slab__c> slabs =
             (policyId != null && String.isNotBlank(profile)) ? slabsByKey.get(policyId + '|' + profile) : null;
@@ -254,6 +254,19 @@ public without sharing class PBISActuals_Service {
             byKey.get(key).add(s);
         }
         return byKey;
+    }
+
+    // PBIS_Policy__c is a formula sourced from User.PBIS_Policy__c (Text), so the value
+    // may be blank or not a valid Id; parse safely rather than letting a cast abort the run.
+    private static Id policyIdOf(PBIS_Target__c t) {
+        Object v = t.get('PBIS_Policy__c');
+        String s = v == null ? null : String.valueOf(v);
+        if (String.isBlank(s)) return null;
+        try {
+            return Id.valueOf(s);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     // Builds the full target query (header + all 10 slots + parent param fields).

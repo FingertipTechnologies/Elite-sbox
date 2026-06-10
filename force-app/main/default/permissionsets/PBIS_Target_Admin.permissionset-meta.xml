@@ -72,7 +72,7 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <editable>true</editable>
+        <editable>false</editable>
         <field>PBIS_Target__c.PBIS_Policy__c</field>
         <readable>true</readable>
     </fieldPermissions>
