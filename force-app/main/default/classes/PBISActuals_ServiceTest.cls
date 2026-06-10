@@ -51,7 +51,7 @@ private class PBISActuals_ServiceTest {
         insert param;
 
         // User (setup object) in its own DML context.
-        User u = buildUser(useProf.Id, 50000);
+        User u = buildUser(useProf.Id, 50000, policy.Id);
         System.runAs(new User(Id = UserInfo.getUserId())) {
             insert u;
         }
@@ -63,8 +63,7 @@ private class PBISActuals_ServiceTest {
         };
 
         PBIS_Target__c t = new PBIS_Target__c(
-            User__c = u.Id,
-            PBIS_Policy__c = policy.Id,
+            User__c = u.Id, // PBIS_Policy__c is a formula from the User; set on buildUser above
             Incentive_Period__c = 'Monthly',
             Start_Date__c = Date.today().addDays(-1),
             End_Date__c = Date.today().addDays(1),
@@ -108,7 +107,7 @@ private class PBISActuals_ServiceTest {
     static void testNoPolicyValidation() {
         // User without a PBIS_Policy → validation message, no incentive.
         Profile p = [SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1];
-        User u = buildUser(p.Id, 40000);
+        User u = buildUser(p.Id, 40000, null);
         System.runAs(new User(Id = UserInfo.getUserId())) {
             insert u;
         }
@@ -137,7 +136,7 @@ private class PBISActuals_ServiceTest {
     @isTest
     static void testBatchAndScheduler() {
         Profile p = [SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1];
-        User u = buildUser(p.Id, 30000);
+        User u = buildUser(p.Id, 30000, null);
         System.runAs(new User(Id = UserInfo.getUserId())) {
             insert u;
         }
@@ -179,8 +178,8 @@ private class PBISActuals_ServiceTest {
         // Two users sharing the same parameter + period must each get their own achievement
         // from a single grouped query (the core scalability behaviour).
         Profile p = [SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1];
-        User u1 = buildUser(p.Id, 40000);
-        User u2 = buildUser(p.Id, 40000);
+        User u1 = buildUser(p.Id, 40000, null);
+        User u2 = buildUser(p.Id, 40000, null);
         System.runAs(new User(Id = UserInfo.getUserId())) {
             insert new List<User>{ u1, u2 };
         }
@@ -240,7 +239,9 @@ private class PBISActuals_ServiceTest {
         return null;
     }
 
-    private static User buildUser(Id profileId, Decimal salary) {
+    // PBIS_Target.PBIS_Policy__c is a formula sourced from User.PBIS_Policy__c (Text),
+    // so the policy is assigned on the User and the target's formula derives it.
+    private static User buildUser(Id profileId, Decimal salary, Id policyId) {
         String alias = 'pbis' + String.valueOf(Math.abs(Crypto.getRandomInteger()));
         return new User(
             FirstName = 'PBIS', LastName = 'Calc',
@@ -249,7 +250,8 @@ private class PBISActuals_ServiceTest {
             Alias = alias.left(8),
             TimeZoneSidKey = 'America/Los_Angeles', LocaleSidKey = 'en_US',
             EmailEncodingKey = 'UTF-8', ProfileId = profileId, LanguageLocaleKey = 'en_US',
-            Monthly_Gross_Salary_INR__c = salary
+            Monthly_Gross_Salary_INR__c = salary,
+            PBIS_Policy__c = policyId == null ? null : String.valueOf(policyId)
         );
     }
 }
