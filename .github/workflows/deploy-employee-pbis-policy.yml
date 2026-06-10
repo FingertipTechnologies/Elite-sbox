@@ -1,0 +1,58 @@
+name: Deploy Employee PBIS Policy (manifest)
+
+# Manual, on-demand deploy of ONLY the Employee PBIS Policy changes listed in
+# manifest/employee_pbis_policy.xml:
+#   - Employee__c.PBIS_Policy__c lookup
+#   - User.PBIS_Policy__c (Text Id) + User.PBIS_Policy_Name__c (Text name)
+#   - EmployeeTriggerHandler (sync to User) + EmployeeTriggerHandlerTest
+#   - UpdateUsersQueueable (partial-success User DML, bulk rollback fix)
+#   - newEmployeeLwc + employeeRecordViewForm
+#
+# Requires Task 2 (PBIS_Policy__c object) to already exist in the target org.
+# Field-Level Security for the three new fields is granted separately (profiles
+# are intentionally NOT part of this deploy).
+#
+# Run from the GitHub UI: Actions -> "Deploy Employee PBIS Policy (manifest)" ->
+# Run workflow. NOTE: a workflow_dispatch workflow only appears in the Actions UI
+# once this file exists on the repo's default branch.
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: 'Run EmployeeTriggerHandlerTest during deploy'
+        type: boolean
+        default: false
+      check_only:
+        description: 'Validate only (dry run, no changes committed to the org)'
+        type: boolean
+        default: false
+
+jobs:
+  deploy-employee-pbis-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install --global @salesforce/cli
+          sf --version
+
+      - name: Authenticate to Salesforce
+        run: |
+          echo "${{ secrets.SALESFORCE_AUTH_URL }}" > authfile.txt
+          sf org login sfdx-url --sfdx-url-file authfile.txt --alias deployment-org --set-default
+
+      - name: Deploy Employee PBIS Policy manifest
+        run: |
+          ARGS="--manifest manifest/employee_pbis_policy.xml --target-org deployment-org --wait 30"
+          if [ "${{ inputs.check_only }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          if [ "${{ inputs.run_tests }}" = "true" ]; then
+            ARGS="$ARGS --test-level RunSpecifiedTests --tests EmployeeTriggerHandlerTest"
+          fi
+          echo "sf project deploy start $ARGS"
+          sf project deploy start $ARGS

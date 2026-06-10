@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Employee PBIS Policy rollout ONLY.
+  Deploy with:
+    sf project deploy start -x manifest/employee_pbis_policy.xml -o <sandbox>
+
+  Contents (everything changed in this session):
+    - Employee__c.PBIS_Policy__c  : new lookup to PBIS_Policy__c
+    - User.PBIS_Policy__c         : new Text(18) holding the employee's policy Id
+    - User.PBIS_Policy_Name__c    : new Text(255) holding PBIS_Policy__r.Name
+    - EmployeeTriggerHandler      : mirrors PBIS Policy onto the related User
+    - UpdateUsersQueueable        : partial-success User DML (bulk rollback fix)
+    - EmployeeTriggerHandlerTest  : PBIS sync test
+    - newEmployeeLwc              : editable PBIS Policy lookup on the create/edit form
+    - employeeRecordViewForm      : read-only PBIS Policy on the record view
+
+  Depends on Task 2 (PBIS_Policy__c object) already present in the org.
+  NOTE: Field-Level Security for the three custom fields is granted separately
+  (profiles are intentionally not part of this manifest).
+-->
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>Employee__c.PBIS_Policy__c</members>
+        <members>User.PBIS_Policy__c</members>
+        <members>User.PBIS_Policy_Name__c</members>
+        <name>CustomField</name>
+    </types>
+    <types>
+        <members>EmployeeTriggerHandler</members>
+        <members>UpdateUsersQueueable</members>
+        <members>EmployeeTriggerHandlerTest</members>
+        <name>ApexClass</name>
+    </types>
+    <types>
+        <members>newEmployeeLwc</members>
+        <members>employeeRecordViewForm</members>
+        <name>LightningComponentBundle</name>
+    </types>
+    <version>59.0</version>
+</Package>
