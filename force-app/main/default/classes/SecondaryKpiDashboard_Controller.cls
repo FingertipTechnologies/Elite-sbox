@@ -162,10 +162,17 @@ public without sharing class SecondaryKpiDashboard_Controller {
         );
         List<Id> chainRoleIds = new List<Id>();
         Id cur = roleId;
+        // Walk leaf → root, then reverse. Apex List.add(0, x) throws on an empty
+        // list, so a plain append + reverse is the safe pattern.
         while (cur != null && allRoles.containsKey(cur)) {
-            chainRoleIds.add(0, cur); // prepend → root first
+            chainRoleIds.add(cur);
             cur = allRoles.get(cur).ParentRoleId;
         }
+        List<Id> rootFirst = new List<Id>();
+        for (Integer i = chainRoleIds.size() - 1; i >= 0; i--) {
+            rootFirst.add(chainRoleIds[i]);
+        }
+        chainRoleIds = rootFirst;
         if (chainRoleIds.isEmpty()) chainRoleIds.add(roleId);
 
         Map<Id, User> oneUserPerRole = new Map<Id, User>();

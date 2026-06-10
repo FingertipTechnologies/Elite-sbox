@@ -59,6 +59,14 @@ const INR = new Intl.NumberFormat('en-IN', {
     style: 'currency', currency: 'INR', maximumFractionDigits: 0
 });
 
+// Apex Decimal sometimes deserializes as a JS string in this org's API version,
+// so coerce every numeric field through this helper before formatting it.
+function num(v) {
+    if (v === null || v === undefined || v === '') return 0;
+    const n = typeof v === 'number' ? v : Number(v);
+    return isNaN(n) ? 0 : n;
+}
+
 export default class SecondaryKpiDashboard extends LightningElement {
     monthOptions = MONTHS;
     teamColumns = TEAM_COLUMNS;
@@ -94,18 +102,18 @@ export default class SecondaryKpiDashboard extends LightningElement {
 
     get heroAchievementPct() {
         if (!this.hero) return '0%';
-        return (this.hero.achievementPct || 0).toFixed(1) + '%';
+        return num(this.hero.achievementPct).toFixed(1) + '%';
     }
-    get heroTotalTarget() { return this.hero ? INR.format(this.hero.totalTarget || 0) : '—'; }
-    get heroTotalAchievement() { return this.hero ? INR.format(this.hero.totalAchievement || 0) : '—'; }
-    get heroTotalIncentive() { return this.hero ? INR.format(this.hero.totalIncentive || 0) : '—'; }
+    get heroTotalTarget() { return this.hero ? INR.format(num(this.hero.totalTarget)) : '—'; }
+    get heroTotalAchievement() { return this.hero ? INR.format(num(this.hero.totalAchievement)) : '—'; }
+    get heroTotalIncentive() { return this.hero ? INR.format(num(this.hero.totalIncentive)) : '—'; }
 
     get heroPctClass() {
         if (!this.hero) return 'kpi-pct';
         return 'kpi-pct ' + this.pctBucket(this.hero.achievementPct);
     }
     get heroProgressStyle() {
-        const v = this.hero ? Math.min(this.hero.achievementPct || 0, 100) : 0;
+        const v = this.hero ? Math.min(num(this.hero.achievementPct), 100) : 0;
         return `width:${v}%;`;
     }
 
@@ -125,28 +133,28 @@ export default class SecondaryKpiDashboard extends LightningElement {
     }
 
     decorateTeam(r) {
-        const pct = r.achievementPct || 0;
+        const pct = num(r.achievementPct);
         return {
             ...r,
             pctClass: this.pctClassForCell(pct),
             pctText: pct.toFixed(1) + '%',
-            targetText: INR.format(r.totalTarget || 0),
-            achText: INR.format(r.totalAchievement || 0),
-            incentiveText: INR.format(r.totalIncentive || 0),
+            targetText: INR.format(num(r.totalTarget)),
+            achText: INR.format(num(r.totalAchievement)),
+            incentiveText: INR.format(num(r.totalIncentive)),
             barStyle: `width:${Math.min(pct, 100)}%;`,
             barClass: 'progress-fill ' + this.pctBucket(pct),
             badgeClass: 'kpi-badge ' + this.pctBucket(pct)
         };
     }
     decoratePerformer(r) {
-        const pct = r.achievementPct || 0;
+        const pct = num(r.achievementPct);
         return {
             ...r,
             pctClass: this.pctClassForCell(pct),
             pctText: pct.toFixed(1) + '%',
-            targetText: INR.format(r.totalTarget || 0),
-            achText: INR.format(r.totalAchievement || 0),
-            incentiveText: INR.format(r.totalIncentive || 0),
+            targetText: INR.format(num(r.totalTarget)),
+            achText: INR.format(num(r.totalAchievement)),
+            incentiveText: INR.format(num(r.totalIncentive)),
             barStyle: `width:${Math.min(pct, 100)}%;`,
             barClass: 'progress-fill ' + this.pctBucket(pct),
             badgeClass: 'kpi-badge ' + this.pctBucket(pct)
@@ -157,28 +165,34 @@ export default class SecondaryKpiDashboard extends LightningElement {
 
     get channelRows() {
         const rows = (this.data && this.data.channels) || [];
-        return rows.map(r => ({
-            ...r,
-            barStyle: `width:${Math.min(r.achievementPct || 0, 100)}%;`,
-            pctText: (r.achievementPct || 0).toFixed(1) + '%',
-            targetText: INR.format(r.totalTarget || 0),
-            achText: INR.format(r.totalAchievement || 0),
-            barClass: 'progress-fill ' + this.pctBucket(r.achievementPct),
-            channelLabel: r.channel || '— No channel —'
-        }));
+        return rows.map(r => {
+            const pct = num(r.achievementPct);
+            return {
+                ...r,
+                barStyle: `width:${Math.min(pct, 100)}%;`,
+                pctText: pct.toFixed(1) + '%',
+                targetText: INR.format(num(r.totalTarget)),
+                achText: INR.format(num(r.totalAchievement)),
+                barClass: 'progress-fill ' + this.pctBucket(pct),
+                channelLabel: r.channel || '— No channel —'
+            };
+        });
     }
     get hasChannels() { return this.channelRows.length > 0; }
 
     get criteriaRows() {
         const rows = (this.data && this.data.criteria) || [];
-        return rows.map(r => ({
-            ...r,
-            barStyle: `width:${Math.min(r.achievementPct || 0, 100)}%;`,
-            pctText: (r.achievementPct || 0).toFixed(1) + '%',
-            targetText: INR.format(r.totalTarget || 0),
-            achText: INR.format(r.totalAchievement || 0),
-            barClass: 'progress-fill ' + this.pctBucket(r.achievementPct)
-        }));
+        return rows.map(r => {
+            const pct = num(r.achievementPct);
+            return {
+                ...r,
+                barStyle: `width:${Math.min(pct, 100)}%;`,
+                pctText: pct.toFixed(1) + '%',
+                targetText: INR.format(num(r.totalTarget)),
+                achText: INR.format(num(r.totalAchievement)),
+                barClass: 'progress-fill ' + this.pctBucket(pct)
+            };
+        });
     }
     get hasCriteria() { return this.criteriaRows.length > 0; }
 
@@ -202,7 +216,7 @@ export default class SecondaryKpiDashboard extends LightningElement {
     // ===== Helpers =====
 
     pctBucket(p) {
-        const v = p || 0;
+        const v = num(p);
         if (v >= 100) return 'pct-green';
         if (v >= 80) return 'pct-amber';
         return 'pct-red';
@@ -210,7 +224,7 @@ export default class SecondaryKpiDashboard extends LightningElement {
     pctClassForCell(p) {
         // SLDS utility classes only — datatable cells live in shadow DOM
         // beyond the reach of this component's CSS file.
-        const v = p || 0;
+        const v = num(p);
         if (v >= 100) return 'slds-text-color_success';
         if (v >= 80) return '';
         return 'slds-text-color_error';
