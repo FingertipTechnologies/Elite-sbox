@@ -1,19 +1,24 @@
 /**
  * UI controller for the Secondary KPI Dashboard.
  *
- * Phase 2 model — single-user dashboard, switched via a picker:
- *   - DSM / SSA users see only their own dashboard. The picker is hidden.
- *   - Managers and heads pick one DSM / SSA from their role-hierarchy
- *     downline; the dashboard refreshes for that user only.
+ * The dashboard has two display modes:
  *
- * Each secondary target belongs to one user — there is no rolled-up team
- * target — so the dashboard is always a per-user view of that person's
- * active targets, achievements, and PBIS incentives for the selected
- * month.
+ *   PERSONAL — a single user's secondary targets, achievement and incentives
+ *              for the period. Used for DSM / SSA viewers (always themselves)
+ *              and for managers who pick a specific DSM / SSA from the filter.
  *
- * Uses `without sharing` so a manager can read their subordinates'
- * Secondary_Target__c / Incentive_Credit__c data regardless of record
- * sharing — only the rolled-up per-user aggregates leave the class.
+ *   TEAM     — analytics across every active DSM / SSA in the viewer's role-
+ *              hierarchy downline: aggregate hero, per-user table, top /
+ *              bottom performers, channel and criterion breakdowns. Used for
+ *              managers and heads when no specific user is selected.
+ *
+ * There is no rolled-up team target. Each DSM / SSA owns their own
+ * Secondary_Target__c records; team aggregates sum across the individual
+ * targets in the selected user-set.
+ *
+ * Uses `without sharing` so a manager can read every subordinate's data
+ * regardless of record sharing — only the rolled-up aggregates leave the
+ * class.
  */
 public without sharing class SecondaryKpiDashboard_Controller {
 
@@ -28,12 +33,26 @@ public without sharing class SecondaryKpiDashboard_Controller {
     }
 
     public class Hero {
+        @AuraEnabled public Integer targetedUsers = 0;     // TEAM mode only
         @AuraEnabled public Integer activeTargets = 0;
         @AuraEnabled public Decimal totalTarget = 0;
         @AuraEnabled public Decimal totalAchievement = 0;
         @AuraEnabled public Decimal achievementPct = 0;
         @AuraEnabled public Decimal totalIncentive = 0;
         @AuraEnabled public Integer incentiveLines = 0;
+    }
+
+    public class UserRow {
+        @AuraEnabled public Id userId;
+        @AuraEnabled public String userName;
+        @AuraEnabled public String role;          // Profile.Name
+        @AuraEnabled public String channel;
+        @AuraEnabled public String employeeCode;
+        @AuraEnabled public Integer activeTargets = 0;
+        @AuraEnabled public Decimal totalTarget = 0;
+        @AuraEnabled public Decimal totalAchievement = 0;
+        @AuraEnabled public Decimal achievementPct = 0;
+        @AuraEnabled public Decimal totalIncentive = 0;
     }
 
     public class TargetRow {
@@ -52,45 +71,68 @@ public without sharing class SecondaryKpiDashboard_Controller {
         @AuraEnabled public Decimal incentive = 0;
     }
 
+    public class ChannelRow {
+        @AuraEnabled public String channel;
+        @AuraEnabled public Decimal totalTarget = 0;
+        @AuraEnabled public Decimal totalAchievement = 0;
+        @AuraEnabled public Decimal achievementPct = 0;
+        @AuraEnabled public Integer userCount = 0;
+    }
+
+    public class CriteriaRow {
+        @AuraEnabled public Id criteriaId;
+        @AuraEnabled public String criteriaName;
+        @AuraEnabled public Decimal totalTarget = 0;
+        @AuraEnabled public Decimal totalAchievement = 0;
+        @AuraEnabled public Decimal achievementPct = 0;
+        @AuraEnabled public Integer userCount = 0;
+    }
+
     public class DashboardData {
+        @AuraEnabled public String mode;                  // 'PERSONAL' | 'TEAM' | 'EMPTY'
         @AuraEnabled public Id viewerUserId;
         @AuraEnabled public Boolean viewerIsDsmSsa = false;
+
+        // PERSONAL
         @AuraEnabled public Id selectedUserId;
         @AuraEnabled public String selectedUserName;
         @AuraEnabled public String selectedUserRole;
         @AuraEnabled public String selectedUserChannel;
         @AuraEnabled public String employeeCode;
+        @AuraEnabled public List<TargetRow> targets = new List<TargetRow>();
+
+        // TEAM
+        @AuraEnabled public List<UserRow> users = new List<UserRow>();
+        @AuraEnabled public List<UserRow> topPerformers = new List<UserRow>();
+        @AuraEnabled public List<UserRow> bottomPerformers = new List<UserRow>();
+        @AuraEnabled public List<ChannelRow> channels = new List<ChannelRow>();
+        @AuraEnabled public List<CriteriaRow> criteria = new List<CriteriaRow>();
+
+        // Common
         @AuraEnabled public Integer year;
         @AuraEnabled public Integer month;
         @AuraEnabled public String periodLabel;
         @AuraEnabled public Hero hero;
-        @AuraEnabled public List<TargetRow> targets = new List<TargetRow>();
-        @AuraEnabled public Boolean noSubordinates = false;
     }
 
     // ===== Constants =====
 
-    // Field-sales profile names — only users in these profiles carry secondary
-    // targets, so the picker and the "DSM/SSA dashboard" gate use this set.
     private static final Set<String> SALES_REP_PROFILES = new Set<String>{
         'DSM', 'SSA'
     };
 
     // ===== Picker =====
 
-    /**
-     * DSM / SSA users available to the current viewer.
-     *  - If the viewer is a DSM / SSA, returns just themselves.
-     *  - Otherwise returns every active DSM / SSA in the viewer's role-hierarchy
-     *    downline.
-     */
     @AuraEnabled(cacheable=true)
     public static List<UserOption> getDsmSsaSubordinates() {
+        return findDsmSsaUsers(UserInfo.getUserId());
+    }
+
+    private static List<UserOption> findDsmSsaUsers(Id viewerId) {
         List<UserOption> result = new List<UserOption>();
-        Id me = UserInfo.getUserId();
         User myUser = [
             SELECT Id, Name, UserRoleId, Profile.Name
-            FROM User WHERE Id = :me LIMIT 1
+            FROM User WHERE Id = :viewerId LIMIT 1
         ];
 
         Boolean meIsRep = myUser.Profile != null
@@ -98,10 +140,10 @@ public without sharing class SecondaryKpiDashboard_Controller {
 
         Set<Id> universe;
         if (meIsRep) {
-            universe = new Set<Id>{ me };
+            universe = new Set<Id>{ viewerId };
         } else {
             universe = collectDownlineUsers(myUser.UserRoleId);
-            universe.add(me); // harmless; will be filtered out by the profile check.
+            universe.add(viewerId);
         }
         if (universe.isEmpty()) return result;
 
@@ -118,7 +160,6 @@ public without sharing class SecondaryKpiDashboard_Controller {
             opt.name = u.Name;
             opt.profileName = u.Profile != null ? u.Profile.Name : '';
             opt.employeeCode = u.Employee_Code__c;
-            // "Name · EMP001 (DSM)"
             String suffix = String.isNotBlank(u.Employee_Code__c)
                 ? ' · ' + u.Employee_Code__c : '';
             String role = String.isNotBlank(opt.profileName)
@@ -146,34 +187,47 @@ public without sharing class SecondaryKpiDashboard_Controller {
 
         Id me = UserInfo.getUserId();
         User myUser = [
-            SELECT Id, Name, Profile.Name, UserRoleId
-            FROM User WHERE Id = :me LIMIT 1
+            SELECT Id, Name, Profile.Name FROM User WHERE Id = :me LIMIT 1
         ];
         out.viewerUserId = me;
         out.viewerIsDsmSsa = myUser.Profile != null
             && SALES_REP_PROFILES.contains(myUser.Profile.Name);
 
-        // Resolve who we're showing data for.
-        if (out.viewerIsDsmSsa) {
-            // DSM/SSAs can only see themselves — ignore any passed selectedUserId.
-            selectedUserId = me;
-        } else if (selectedUserId == null) {
-            // Manager / head with no explicit pick — default to the first DSM/SSA
-            // we find in their downline.
-            List<UserOption> subs = getDsmSsaSubordinates();
-            if (subs.isEmpty()) {
-                out.noSubordinates = true;
-                out.hero = new Hero();
-                return out;
-            }
-            selectedUserId = subs[0].userId;
-        }
-        out.selectedUserId = selectedUserId;
+        // Resolve the user-set the dashboard is about.
+        List<UserOption> subordinates = findDsmSsaUsers(me);
+        Set<Id> allowedIds = new Set<Id>();
+        for (UserOption o : subordinates) allowedIds.add(o.userId);
 
+        if (out.viewerIsDsmSsa) {
+            // DSM / SSA — always their own dashboard.
+            out.mode = 'PERSONAL';
+            return buildPersonal(out, me, year, month);
+        }
+
+        if (subordinates.isEmpty()) {
+            out.mode = 'EMPTY';
+            out.hero = new Hero();
+            return out;
+        }
+
+        if (selectedUserId != null && allowedIds.contains(selectedUserId)) {
+            out.mode = 'PERSONAL';
+            return buildPersonal(out, selectedUserId, year, month);
+        }
+
+        // Default for managers — team view across every DSM / SSA in their hierarchy.
+        out.mode = 'TEAM';
+        return buildTeam(out, allowedIds, year, month);
+    }
+
+    // ===== PERSONAL mode =====
+
+    private static DashboardData buildPersonal(DashboardData out, Id userId, Integer year, Integer month) {
         User u = [
             SELECT Id, Name, Profile.Name, Employee_Code__c, Sales_Channel__c
-            FROM User WHERE Id = :selectedUserId LIMIT 1
+            FROM User WHERE Id = :userId LIMIT 1
         ];
+        out.selectedUserId = userId;
         out.selectedUserName = u.Name;
         out.selectedUserRole = u.Profile != null ? u.Profile.Name : null;
         out.selectedUserChannel = u.Sales_Channel__c;
@@ -182,17 +236,7 @@ public without sharing class SecondaryKpiDashboard_Controller {
         Date monthStart = Date.newInstance(year, month, 1);
         Date monthEnd = monthStart.addMonths(1).addDays(-1);
 
-        out.hero = buildHero(selectedUserId, monthStart, monthEnd, year, month);
-        out.targets = buildTargetRows(selectedUserId, monthStart, monthEnd, year, month);
-        return out;
-    }
-
-    // ===== Hero =====
-
-    private static Hero buildHero(Id userId, Date monthStart, Date monthEnd, Integer year, Integer month) {
         Hero h = new Hero();
-        if (userId == null) return h;
-
         for (AggregateResult ar : [
             SELECT COUNT(Id) cnt,
                    SUM(Target_Value__c) tgt,
@@ -208,7 +252,6 @@ public without sharing class SecondaryKpiDashboard_Controller {
             h.totalAchievement = nzd((Decimal) ar.get('ach'));
         }
         h.achievementPct = pct(h.totalAchievement, h.totalTarget);
-
         for (AggregateResult ar : [
             SELECT SUM(Credit_Amount__c) amt, COUNT(Id) cnt
             FROM Incentive_Credit__c
@@ -219,17 +262,9 @@ public without sharing class SecondaryKpiDashboard_Controller {
             h.totalIncentive = nzd((Decimal) ar.get('amt'));
             h.incentiveLines = nz((Integer) ar.get('cnt'));
         }
-        return h;
-    }
+        out.hero = h;
 
-    // ===== Per-target rows =====
-
-    private static List<TargetRow> buildTargetRows(Id userId, Date monthStart, Date monthEnd, Integer year, Integer month) {
-        List<TargetRow> rows = new List<TargetRow>();
-        if (userId == null) return rows;
-
-        // Map each (criterion, focus pack) to its PBIS payout for this user/month
-        // so each target row can show the incentive it earned.
+        // Per-criterion incentive snapshot so each row shows what it earned.
         Map<String, Decimal> incentiveByKey = new Map<String, Decimal>();
         for (AggregateResult ar : [
             SELECT Target_Criteria__c cid, Focused_Pack__c pid, SUM(Credit_Amount__c) amt
@@ -271,9 +306,212 @@ public without sharing class SecondaryKpiDashboard_Controller {
             tr.workingDays = nzd(t.Working_Days__c);
             String key = String.valueOf(t.Target_Criteria__c) + '|' + String.valueOf(t.Focused_Pack__c);
             tr.incentive = incentiveByKey.containsKey(key) ? incentiveByKey.get(key) : 0;
-            rows.add(tr);
+            out.targets.add(tr);
         }
-        return rows;
+        return out;
+    }
+
+    // ===== TEAM mode =====
+
+    private static DashboardData buildTeam(DashboardData out, Set<Id> userIds, Integer year, Integer month) {
+        Date monthStart = Date.newInstance(year, month, 1);
+        Date monthEnd = monthStart.addMonths(1).addDays(-1);
+
+        Hero h = new Hero();
+        Map<Id, Decimal[]> perUserTgt = perUserTargetTotals(userIds, monthStart, monthEnd);
+        Map<Id, Decimal> perUserIncentive = perUserIncentiveTotals(userIds, year, month);
+
+        // Aggregate hero by summing per-user numbers (faster than a second SOQL).
+        for (Decimal[] rec : perUserTgt.values()) {
+            h.activeTargets += rec[0].intValue();
+            h.totalTarget += rec[1];
+            h.totalAchievement += rec[2];
+        }
+        for (Decimal v : perUserIncentive.values()) {
+            h.totalIncentive += v;
+            h.incentiveLines++;
+        }
+        h.achievementPct = pct(h.totalAchievement, h.totalTarget);
+        h.targetedUsers = perUserTgt.size();
+        out.hero = h;
+
+        // Per-DSM/SSA row list — show every team member that has activity in the
+        // period, sorted by achievement % descending so leaders surface first.
+        Set<Id> activeIds = new Set<Id>();
+        activeIds.addAll(perUserTgt.keySet());
+        activeIds.addAll(perUserIncentive.keySet());
+
+        Map<Id, User> profile = new Map<Id, User>();
+        if (!activeIds.isEmpty()) {
+            profile = new Map<Id, User>([
+                SELECT Id, Name, Profile.Name, Sales_Channel__c, Employee_Code__c
+                FROM User WHERE Id IN :activeIds
+            ]);
+        }
+
+        List<UserRow> rows = new List<UserRow>();
+        for (Id uid : activeIds) {
+            UserRow ur = new UserRow();
+            ur.userId = uid;
+            User u = profile.get(uid);
+            if (u != null) {
+                ur.userName = u.Name;
+                ur.role = u.Profile != null ? u.Profile.Name : null;
+                ur.channel = u.Sales_Channel__c;
+                ur.employeeCode = u.Employee_Code__c;
+            }
+            Decimal[] rec = perUserTgt.get(uid);
+            if (rec != null) {
+                ur.activeTargets = rec[0].intValue();
+                ur.totalTarget = rec[1];
+                ur.totalAchievement = rec[2];
+            }
+            ur.achievementPct = pct(ur.totalAchievement, ur.totalTarget);
+            Decimal inc = perUserIncentive.get(uid);
+            ur.totalIncentive = inc == null ? 0 : inc;
+            rows.add(ur);
+        }
+        out.users = sortByPct(rows, true);
+        out.topPerformers = topN(rows, 5, true);
+        out.bottomPerformers = topN(rows, 5, false);
+
+        out.channels = buildChannelRows(userIds, monthStart, monthEnd);
+        out.criteria = buildCriteriaRows(userIds, monthStart, monthEnd);
+        return out;
+    }
+
+    private static List<UserRow> sortByPct(List<UserRow> rows, Boolean descending) {
+        List<UserRow> copy = new List<UserRow>(rows);
+        for (Integer i = 1; i < copy.size(); i++) {
+            UserRow cur = copy[i];
+            Integer j = i - 1;
+            while (j >= 0 && cmpPct(copy[j], cur, descending) > 0) {
+                copy[j + 1] = copy[j];
+                j--;
+            }
+            copy[j + 1] = cur;
+        }
+        return copy;
+    }
+
+    private static List<UserRow> topN(List<UserRow> rows, Integer n, Boolean descending) {
+        // Only consider users with a real target — empty users shouldn't dominate either list.
+        List<UserRow> filtered = new List<UserRow>();
+        for (UserRow r : rows) if (r.totalTarget != null && r.totalTarget > 0) filtered.add(r);
+        List<UserRow> sorted = sortByPct(filtered, descending);
+        List<UserRow> outList = new List<UserRow>();
+        for (Integer i = 0; i < sorted.size() && i < n; i++) outList.add(sorted[i]);
+        return outList;
+    }
+
+    private static Integer cmpPct(UserRow a, UserRow b, Boolean descending) {
+        Decimal pa = a.achievementPct == null ? 0 : a.achievementPct;
+        Decimal pb = b.achievementPct == null ? 0 : b.achievementPct;
+        if (pa == pb) return 0;
+        Boolean aBigger = pa > pb;
+        if (descending) return aBigger ? -1 : 1;
+        return aBigger ? 1 : -1;
+    }
+
+    // ===== Channel / Criterion breakdowns (TEAM only) =====
+
+    private static List<ChannelRow> buildChannelRows(Set<Id> userIds, Date monthStart, Date monthEnd) {
+        List<ChannelRow> out = new List<ChannelRow>();
+        if (userIds == null || userIds.isEmpty()) return out;
+        for (AggregateResult ar : [
+            SELECT Sales_Channel__c ch,
+                   SUM(Target_Value__c) tgt,
+                   SUM(Achievement_Value__c) ach,
+                   COUNT_DISTINCT(User__c) usr
+            FROM Secondary_Target__c
+            WHERE Is_Active__c = true
+              AND User__c IN :userIds
+              AND Start_Date__c <= :monthEnd
+              AND End_Date__c >= :monthStart
+            GROUP BY Sales_Channel__c
+        ]) {
+            ChannelRow cr = new ChannelRow();
+            cr.channel = (String) ar.get('ch');
+            cr.totalTarget = nzd((Decimal) ar.get('tgt'));
+            cr.totalAchievement = nzd((Decimal) ar.get('ach'));
+            cr.userCount = nz((Integer) ar.get('usr'));
+            cr.achievementPct = pct(cr.totalAchievement, cr.totalTarget);
+            out.add(cr);
+        }
+        return out;
+    }
+
+    private static List<CriteriaRow> buildCriteriaRows(Set<Id> userIds, Date monthStart, Date monthEnd) {
+        List<CriteriaRow> out = new List<CriteriaRow>();
+        if (userIds == null || userIds.isEmpty()) return out;
+        for (AggregateResult ar : [
+            SELECT Target_Criteria__c cid,
+                   Target_Criteria__r.Name cname,
+                   SUM(Target_Value__c) tgt,
+                   SUM(Achievement_Value__c) ach,
+                   COUNT_DISTINCT(User__c) usr
+            FROM Secondary_Target__c
+            WHERE Is_Active__c = true
+              AND User__c IN :userIds
+              AND Target_Criteria__c != null
+              AND Start_Date__c <= :monthEnd
+              AND End_Date__c >= :monthStart
+            GROUP BY Target_Criteria__c, Target_Criteria__r.Name
+        ]) {
+            CriteriaRow cr = new CriteriaRow();
+            cr.criteriaId = (Id) ar.get('cid');
+            cr.criteriaName = (String) ar.get('cname');
+            cr.totalTarget = nzd((Decimal) ar.get('tgt'));
+            cr.totalAchievement = nzd((Decimal) ar.get('ach'));
+            cr.userCount = nz((Integer) ar.get('usr'));
+            cr.achievementPct = pct(cr.totalAchievement, cr.totalTarget);
+            out.add(cr);
+        }
+        return out;
+    }
+
+    // ===== Per-user aggregate helpers =====
+
+    /** Returns Map<userId, [activeTargetCount, targetSum, achievementSum]>. */
+    private static Map<Id, Decimal[]> perUserTargetTotals(Set<Id> userIds, Date monthStart, Date monthEnd) {
+        Map<Id, Decimal[]> out = new Map<Id, Decimal[]>();
+        if (userIds == null || userIds.isEmpty()) return out;
+        for (AggregateResult ar : [
+            SELECT User__c uid,
+                   COUNT(Id) cnt,
+                   SUM(Target_Value__c) tgt,
+                   SUM(Achievement_Value__c) ach
+            FROM Secondary_Target__c
+            WHERE Is_Active__c = true
+              AND User__c IN :userIds
+              AND Start_Date__c <= :monthEnd
+              AND End_Date__c >= :monthStart
+            GROUP BY User__c
+        ]) {
+            Id uid = (Id) ar.get('uid');
+            out.put(uid, new Decimal[]{
+                nzd((Decimal) ar.get('cnt')),
+                nzd((Decimal) ar.get('tgt')),
+                nzd((Decimal) ar.get('ach'))
+            });
+        }
+        return out;
+    }
+
+    private static Map<Id, Decimal> perUserIncentiveTotals(Set<Id> userIds, Integer year, Integer month) {
+        Map<Id, Decimal> out = new Map<Id, Decimal>();
+        if (userIds == null || userIds.isEmpty()) return out;
+        for (AggregateResult ar : [
+            SELECT Executive__c uid, SUM(Credit_Amount__c) amt
+            FROM Incentive_Credit__c
+            WHERE Source__c = 'Secondary PBIS'
+              AND Year__c = :year AND Month__c = :month
+              AND Executive__c IN :userIds
+            GROUP BY Executive__c
+        ]) {
+            out.put((Id) ar.get('uid'), nzd((Decimal) ar.get('amt')));
+        }
+        return out;
     }
 
     // ===== Role-hierarchy helpers =====
@@ -303,9 +541,7 @@ public without sharing class SecondaryKpiDashboard_Controller {
     private static void collectDescendantRoles(Id parentRoleId, Map<Id, Set<Id>> parentToChildren, Set<Id> acc) {
         if (!parentToChildren.containsKey(parentRoleId)) return;
         for (Id child : parentToChildren.get(parentRoleId)) {
-            if (acc.add(child)) {
-                collectDescendantRoles(child, parentToChildren, acc);
-            }
+            if (acc.add(child)) collectDescendantRoles(child, parentToChildren, acc);
         }
     }
 
