@@ -20,7 +20,7 @@ public without sharing class SecondaryPBIS_Service {
         List<Secondary_Target__c> targets = [
             SELECT Id, User__c, User__r.Name, Sales_Channel__c, Target_Criteria__c,
                    Focused_Pack__c, Achievement_Value__c, Achievement_Percent__c,
-                   Start_Date__c, End_Date__c
+                   Start_Date__c, End_Date__c, LastModifiedDate
             FROM Secondary_Target__c
             WHERE Is_Active__c = true
               AND Target_Criteria__c != NULL
@@ -29,6 +29,20 @@ public without sharing class SecondaryPBIS_Service {
               AND End_Date__c >= :monthStart
         ];
         if (targets.isEmpty()) return 0;
+
+        // Safety-net dedup: if two active targets exist for the same
+        // (user, criterion, pack) and both overlap the month, only the best one
+        // pays. Tie-breaker order: highest Achievement_Percent, then highest
+        // Achievement_Value, then latest LastModifiedDate.
+        Map<String, Secondary_Target__c> bestByKey = new Map<String, Secondary_Target__c>();
+        for (Secondary_Target__c t : targets) {
+            String key = String.valueOf(t.User__c) + '|' +
+                String.valueOf(t.Target_Criteria__c) + '|' +
+                (t.Focused_Pack__c == null ? '_' : String.valueOf(t.Focused_Pack__c));
+            Secondary_Target__c kept = bestByKey.get(key);
+            if (kept == null || isBetterTarget(t, kept)) bestByKey.put(key, t);
+        }
+        targets = bestByKey.values();
 
         List<Incentive_Slab__c> slabs = [
             SELECT Id, Target_Criteria__c, Sales_Channel__c, Focused_Pack__c,
@@ -115,6 +129,19 @@ public without sharing class SecondaryPBIS_Service {
             }
         }
         return best;
+    }
+
+    // Returns true when candidate is strictly better than kept.
+    private static Boolean isBetterTarget(Secondary_Target__c candidate, Secondary_Target__c kept) {
+        Decimal candPct = candidate.Achievement_Percent__c == null ? 0 : candidate.Achievement_Percent__c;
+        Decimal keptPct = kept.Achievement_Percent__c == null ? 0 : kept.Achievement_Percent__c;
+        if (candPct > keptPct) return true;
+        if (candPct < keptPct) return false;
+        Decimal candVal = candidate.Achievement_Value__c == null ? 0 : candidate.Achievement_Value__c;
+        Decimal keptVal = kept.Achievement_Value__c == null ? 0 : kept.Achievement_Value__c;
+        if (candVal > keptVal) return true;
+        if (candVal < keptVal) return false;
+        return candidate.LastModifiedDate > kept.LastModifiedDate;
     }
 
     private static List<Incentive_Slab__c> filterQualifying(List<Incentive_Slab__c> slabs, Secondary_Target__c t) {
