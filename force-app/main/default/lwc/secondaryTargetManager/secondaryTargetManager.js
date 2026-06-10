@@ -271,9 +271,9 @@ export default class SecondaryTargetManager extends LightningElement {
         }
         if (!f.Id) {
             const today = new Date();
-            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-            if (startD < monthStart) {
-                this.toast('Validation', 'Start Date cannot be in a past month.', 'error'); return;
+            today.setHours(0, 0, 0, 0);
+            if (endD < today) {
+                this.toast('Validation', 'End Date cannot be in the past. The target must extend to today or later.', 'error'); return;
             }
         }
         if (this.isFocusPackCriteria && !f.Focused_Pack__c) {

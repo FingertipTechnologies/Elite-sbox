@@ -45,11 +45,15 @@ public with sharing class SecondaryTarget_Controller {
             && target.End_Date__c < target.Start_Date__c) {
             throw new AuraHandledException('End Date cannot be before Start Date.');
         }
-        if (target.Id == null && target.Start_Date__c != null) {
-            Date monthStart = Date.today().toStartOfMonth();
-            if (target.Start_Date__c < monthStart) {
+        if (target.Id == null && target.End_Date__c != null) {
+            // Block creating a target that's already over. The Start Date is free to
+            // sit in the past so quarterly / annual targets (e.g. FY26 starting 1 Apr,
+            // created mid-year) still work — the target just has to extend to today
+            // or later.
+            Date today = Date.today();
+            if (target.End_Date__c < today) {
                 throw new AuraHandledException(
-                    'Start Date cannot be in a past month. Earliest allowed Start Date is ' + monthStart.format() + '.'
+                    'End Date cannot be in the past. The target must extend to ' + today.format() + ' or later.'
                 );
             }
         }
@@ -290,10 +294,10 @@ public with sharing class SecondaryTarget_Controller {
                 catch (Exception e) { throw new IllegalArgumentException('Bad End Date "' + r.endDate + '" (expected YYYY-MM-DD).'); }
                 if (endD < startD) throw new IllegalArgumentException('End Date is before Start Date.');
                 if (existingTargetId == null) {
-                    Date monthStart = Date.today().toStartOfMonth();
-                    if (startD < monthStart) {
+                    Date today = Date.today();
+                    if (endD < today) {
                         throw new IllegalArgumentException(
-                            'Start Date "' + r.startDate + '" is in a past month. Earliest allowed is ' + monthStart.format() + '.'
+                            'End Date "' + r.endDate + '" is in the past. The target must extend to ' + today.format() + ' or later.'
                         );
                     }
                 }
