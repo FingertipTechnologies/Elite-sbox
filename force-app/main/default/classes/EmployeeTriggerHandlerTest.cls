@@ -537,10 +537,15 @@ private class EmployeeTriggerHandlerTest {
         Test.stopTest(); // forces UpdateUsersQueueable to run
 
         Map<Id, User> updatedUsers = new Map<Id, User>(
-            [SELECT Id, PBIS_Policy__c FROM User WHERE Id IN (:userA.Id, :userB.Id)]);
-        System.assertEquals(policy.Id, updatedUsers.get(userA.Id).PBIS_Policy__c,
-            'User A PBIS_Policy__c should be synced from Employee');
-        System.assertEquals(policy.Id, updatedUsers.get(userB.Id).PBIS_Policy__c,
-            'User B PBIS_Policy__c should be synced from Employee');
+            [SELECT Id, PBIS_Policy__c, PBIS_Policy_Name__c FROM User WHERE Id IN (:userA.Id, :userB.Id)]);
+        String policyId = String.valueOf(policy.Id);
+        System.assertEquals(policyId, updatedUsers.get(userA.Id).PBIS_Policy__c,
+            'User A PBIS_Policy__c should store the Employee policy Id');
+        System.assertEquals('Test PBIS Policy', updatedUsers.get(userA.Id).PBIS_Policy_Name__c,
+            'User A PBIS_Policy_Name__c should store the policy name');
+        System.assertEquals(policyId, updatedUsers.get(userB.Id).PBIS_Policy__c,
+            'User B PBIS_Policy__c should store the Employee policy Id');
+        System.assertEquals('Test PBIS Policy', updatedUsers.get(userB.Id).PBIS_Policy_Name__c,
+            'User B PBIS_Policy_Name__c should store the policy name');
     }
 }
