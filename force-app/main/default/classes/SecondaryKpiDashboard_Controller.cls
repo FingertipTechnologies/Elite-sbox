@@ -214,7 +214,23 @@ public without sharing class SecondaryKpiDashboard_Controller {
         Hero h = new Hero();
         if (userIds == null || userIds.isEmpty()) return h;
 
-        h.totalUsers = userIds.size();
+        // "Targeted Users" — only count downline users who actually carry at least
+        // one active secondary target in the period. Raw role-hierarchy size is
+        // misleading because it includes distributors, finance, partner profiles,
+        // etc. that have nothing to do with secondary sales.
+        Set<Id> targetedUsers = new Set<Id>();
+        for (AggregateResult ar : [
+            SELECT User__c uid
+            FROM Secondary_Target__c
+            WHERE Is_Active__c = true
+              AND User__c IN :userIds
+              AND Start_Date__c <= :monthEnd
+              AND End_Date__c >= :monthStart
+            GROUP BY User__c
+        ]) {
+            targetedUsers.add((Id) ar.get('uid'));
+        }
+        h.totalUsers = targetedUsers.size();
 
         for (AggregateResult ar : [
             SELECT COUNT(Id) cnt,
@@ -310,6 +326,11 @@ public without sharing class SecondaryKpiDashboard_Controller {
             tr.totalAchievement = ach;
             tr.achievementPct = pct(ach, tgt);
             tr.totalIncentive = inc;
+            // Hide subordinate teams that have nothing to do with secondary sales
+            // (distributors, finance, partner users, etc.). A team belongs on the
+            // dashboard only if it carries at least one active target or earned a
+            // PBIS payout in the selected period.
+            if (atc == 0 && (inc == null || inc == 0)) continue;
             rows.add(tr);
         }
         return rows;
