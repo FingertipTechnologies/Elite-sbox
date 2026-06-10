@@ -1,9 +1,16 @@
 <template>
     <lightning-card title="Secondary Targets" icon-name="standard:goals">
+        <lightning-button slot="actions" label="Download Template" icon-name="utility:download"
+            onclick={handleDownloadTemplate} class="slds-m-right_x-small"></lightning-button>
+        <lightning-button slot="actions" label="Import CSV" icon-name="utility:upload"
+            onclick={openFilePicker} class="slds-m-right_x-small"></lightning-button>
         <lightning-button slot="actions" label="New Target" icon-name="utility:add"
             onclick={handleNew} class="slds-m-right_x-small"></lightning-button>
         <lightning-button slot="actions" label="Recalculate All" icon-name="utility:refresh"
             variant="brand" onclick={handleRecalcAll}></lightning-button>
+
+        <input type="file" accept=".csv,text/csv" class="csv-file-input"
+            style="display:none;" onchange={handleImportFile} />
 
         <div class="slds-p-horizontal_medium">
             <!-- summary tiles -->
@@ -158,6 +165,41 @@
                         <lightning-button label="Cancel" onclick={handleCloseForm}
                             class="slds-m-right_x-small"></lightning-button>
                         <lightning-button variant="brand" label="Save" onclick={handleSaveForm}></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <template if:true={showImportResults}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={handleCloseImportResults}>
+                        <lightning-icon icon-name="utility:close" size="small"
+                            variant="inverse"></lightning-icon>
+                    </button>
+                    <h2 class="slds-modal__title slds-hyphenate">Import Results</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p><strong>Created:</strong> {importCreated}</p>
+                    <p><strong>Updated:</strong> {importUpdated}</p>
+                    <template if:true={hasImportErrors}>
+                        <h3 class="slds-text-heading_small slds-m-top_medium slds-text-color_error">
+                            Errors ({importErrorCount}):
+                        </h3>
+                        <ul class="slds-list_dotted slds-m-top_x-small slds-scrollable_y"
+                            style="max-height: 18rem;">
+                            <template for:each={importErrors} for:item="err" for:index="i">
+                                <li key={i}>{err}</li>
+                            </template>
+                        </ul>
+                    </template>
+                    <div class="slds-text-align_right slds-m-top_medium">
+                        <lightning-button variant="brand" label="Close"
+                            onclick={handleCloseImportResults}></lightning-button>
                     </div>
                 </div>
             </div>

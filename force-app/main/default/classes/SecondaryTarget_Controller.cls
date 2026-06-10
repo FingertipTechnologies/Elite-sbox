@@ -142,6 +142,133 @@ public with sharing class SecondaryTarget_Controller {
         return Database.executeBatch(new SecondaryAchievementBatch(), 200);
     }
 
+    // ===== CSV Import =====
+
+    public class ImportRow {
+        @AuraEnabled public String targetId;
+        @AuraEnabled public String username;
+        @AuraEnabled public String criteriaName;
+        @AuraEnabled public String focusPackName;
+        @AuraEnabled public String salesChannel;
+        @AuraEnabled public Decimal targetYear;
+        @AuraEnabled public String startDate;
+        @AuraEnabled public String endDate;
+        @AuraEnabled public Decimal targetValue;
+        @AuraEnabled public Boolean isActive;
+    }
+
+    public class ImportResult {
+        @AuraEnabled public Integer createdCount = 0;
+        @AuraEnabled public Integer updatedCount = 0;
+        @AuraEnabled public List<String> errors = new List<String>();
+    }
+
+    /**
+     * Bulk insert / update of Secondary_Target__c from a CSV-driven UI.
+     * Users, criteria, focus packs are resolved by Username / Name (one SOQL each).
+     * Rows with a Target Id update the existing record; rows without one insert.
+     * Errors are reported per row and the rest are upserted (partial success).
+     */
+    @AuraEnabled
+    public static ImportResult importTargets(List<ImportRow> rows) {
+        ImportResult res = new ImportResult();
+        if (rows == null || rows.isEmpty()) return res;
+
+        Set<String> usernames = new Set<String>();
+        Set<String> critNames = new Set<String>();
+        Set<String> packNames = new Set<String>();
+        for (ImportRow r : rows) {
+            if (String.isNotBlank(r.username)) usernames.add(r.username);
+            if (String.isNotBlank(r.criteriaName)) critNames.add(r.criteriaName);
+            if (String.isNotBlank(r.focusPackName)) packNames.add(r.focusPackName);
+        }
+
+        Map<String, Id> userByLogin = new Map<String, Id>();
+        Map<String, Id> userByName = new Map<String, Id>();
+        Map<Id, String> userIdToName = new Map<Id, String>();
+        for (User u : [SELECT Id, Username, Name FROM User WHERE Username IN :usernames OR Name IN :usernames]) {
+            userByLogin.put(u.Username, u.Id);
+            userByName.put(u.Name, u.Id);
+            userIdToName.put(u.Id, u.Name);
+        }
+        Map<String, Id> critByName = new Map<String, Id>();
+        for (Target_Criteria__c c : [SELECT Id, Name FROM Target_Criteria__c WHERE Name IN :critNames]) {
+            critByName.put(c.Name, c.Id);
+        }
+        Map<String, Id> packByName = new Map<String, Id>();
+        for (Focused_Pack__c fp : [SELECT Id, Name FROM Focused_Pack__c WHERE Name IN :packNames]) {
+            packByName.put(fp.Name, fp.Id);
+        }
+
+        List<Secondary_Target__c> toUpsert = new List<Secondary_Target__c>();
+        List<Integer> rowIndexOf = new List<Integer>(); // parallel array for error reporting
+
+        for (Integer i = 0; i < rows.size(); i++) {
+            ImportRow r = rows[i];
+            Integer rowNum = i + 2; // header is row 1
+            try {
+                if (String.isBlank(r.username)) throw new IllegalArgumentException('User Username is required.');
+                if (String.isBlank(r.criteriaName)) throw new IllegalArgumentException('Criteria Name is required.');
+                if (String.isBlank(r.startDate)) throw new IllegalArgumentException('Start Date is required.');
+                if (String.isBlank(r.endDate)) throw new IllegalArgumentException('End Date is required.');
+
+                Id userId = userByLogin.get(r.username);
+                if (userId == null) userId = userByName.get(r.username);
+                if (userId == null) throw new IllegalArgumentException('Unknown User: ' + r.username);
+
+                Id critId = critByName.get(r.criteriaName);
+                if (critId == null) throw new IllegalArgumentException('Unknown Criteria: ' + r.criteriaName);
+
+                Id packId = null;
+                if (String.isNotBlank(r.focusPackName)) {
+                    packId = packByName.get(r.focusPackName);
+                    if (packId == null) throw new IllegalArgumentException('Unknown Focus Pack: ' + r.focusPackName);
+                }
+
+                Date startD;
+                Date endD;
+                try { startD = Date.valueOf(r.startDate); }
+                catch (Exception e) { throw new IllegalArgumentException('Bad Start Date "' + r.startDate + '" (expected YYYY-MM-DD).'); }
+                try { endD = Date.valueOf(r.endDate); }
+                catch (Exception e) { throw new IllegalArgumentException('Bad End Date "' + r.endDate + '" (expected YYYY-MM-DD).'); }
+                if (endD < startD) throw new IllegalArgumentException('End Date is before Start Date.');
+
+                Secondary_Target__c t = new Secondary_Target__c(
+                    User__c = userId,
+                    User_Name__c = userIdToName.get(userId),
+                    Target_Criteria__c = critId,
+                    Focused_Pack__c = packId,
+                    Sales_Channel__c = String.isBlank(r.salesChannel) ? null : r.salesChannel,
+                    Year__c = r.targetYear,
+                    Start_Date__c = startD,
+                    End_Date__c = endD,
+                    Target_Value__c = r.targetValue,
+                    Is_Active__c = r.isActive == true
+                );
+                if (String.isNotBlank(r.targetId)) t.Id = r.targetId;
+                toUpsert.add(t);
+                rowIndexOf.add(rowNum);
+            } catch (Exception e) {
+                res.errors.add('Row ' + rowNum + ': ' + e.getMessage());
+            }
+        }
+
+        if (!toUpsert.isEmpty()) {
+            Database.UpsertResult[] urs = Database.upsert(toUpsert, false);
+            for (Integer i = 0; i < urs.size(); i++) {
+                Database.UpsertResult u = urs[i];
+                if (u.isSuccess()) {
+                    if (u.isCreated()) res.createdCount++; else res.updatedCount++;
+                } else {
+                    String msg = '';
+                    for (Database.Error err : u.getErrors()) msg += err.getMessage() + '; ';
+                    res.errors.add('Row ' + rowIndexOf[i] + ': ' + msg.removeEnd('; '));
+                }
+            }
+        }
+        return res;
+    }
+
     /**
      * Recomputes one target synchronously for instant feedback in the console.
      * Mirrors the field updates performed by SecondaryAchievementBatch.

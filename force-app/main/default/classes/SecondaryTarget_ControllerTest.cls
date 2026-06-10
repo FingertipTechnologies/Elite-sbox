@@ -146,6 +146,50 @@ public class SecondaryTarget_ControllerTest {
     }
 
     @isTest
+    static void testImportTargetsInsertUpdateError() {
+        Target_Criteria__c crit = [SELECT Id, Name FROM Target_Criteria__c LIMIT 1];
+        User u = [SELECT Id, Username, Name FROM User WHERE LastName = 'stctrl' LIMIT 1];
+        Secondary_Target__c existing = [SELECT Id FROM Secondary_Target__c LIMIT 1];
+
+        // Use non-overlapping dates so the duplicate guard isn't triggered for the new row.
+        SecondaryTarget_Controller.ImportRow rNew = new SecondaryTarget_Controller.ImportRow();
+        rNew.username = u.Username;
+        rNew.criteriaName = crit.Name;
+        rNew.startDate = String.valueOf(Date.today().addDays(20));
+        rNew.endDate = String.valueOf(Date.today().addDays(50));
+        rNew.targetValue = 1500;
+        rNew.isActive = true;
+
+        SecondaryTarget_Controller.ImportRow rUpd = new SecondaryTarget_Controller.ImportRow();
+        rUpd.targetId = existing.Id;
+        rUpd.username = u.Username;
+        rUpd.criteriaName = crit.Name;
+        rUpd.startDate = String.valueOf(Date.today().addDays(-5));
+        rUpd.endDate = String.valueOf(Date.today().addDays(5));
+        rUpd.targetValue = 2500;
+        rUpd.isActive = true;
+
+        SecondaryTarget_Controller.ImportRow rBad = new SecondaryTarget_Controller.ImportRow();
+        rBad.username = u.Username;
+        rBad.criteriaName = 'No Such Criteria';
+        rBad.startDate = String.valueOf(Date.today().addDays(60));
+        rBad.endDate = String.valueOf(Date.today().addDays(70));
+        rBad.targetValue = 100;
+        rBad.isActive = true;
+
+        Test.startTest();
+        SecondaryTarget_Controller.ImportResult res =
+            SecondaryTarget_Controller.importTargets(new List<SecondaryTarget_Controller.ImportRow>{ rNew, rUpd, rBad });
+        Test.stopTest();
+
+        System.assertEquals(1, res.createdCount, 'one inserted');
+        System.assertEquals(1, res.updatedCount, 'one updated');
+        System.assertEquals(1, res.errors.size(), 'one error captured for unknown criteria');
+        System.assertEquals(2500, [SELECT Target_Value__c FROM Secondary_Target__c WHERE Id = :existing.Id].Target_Value__c,
+            'updated value persisted');
+    }
+
+    @isTest
     static void testRecalculateAll() {
         Test.startTest();
         Id jobId = SecondaryTarget_Controller.recalculateAll();
