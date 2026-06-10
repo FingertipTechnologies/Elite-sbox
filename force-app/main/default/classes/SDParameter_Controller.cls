@@ -142,7 +142,9 @@ public with sharing class SDParameter_Controller {
         // User gate
         conds.add(userField + ' IN :userIds');
 
-        return 'SELECT ' + userField + ', ' + agg
+        // The user field is aliased `uid` so a grouped query (one run for many users)
+        // can be split back per user by PBISActuals_Service. GROUP BY stays on the raw field.
+        return 'SELECT ' + userField + ' uid, ' + agg
             + ' FROM ' + parameter.Object__c
             + ' WHERE ' + String.join(conds, ' AND ')
             + ' GROUP BY ' + userField;

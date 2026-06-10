@@ -5,6 +5,8 @@
  */
 global with sharing class PBISActualsScheduler implements Schedulable {
     global void execute(SchedulableContext sc) {
-        Database.executeBatch(new PBISActualsBatch(), 10);
+        // Grouped queries scale with distinct (parameter, period), so a full 200 scope
+        // stays well under the SOQL limit (~12 queries/chunk).
+        Database.executeBatch(new PBISActualsBatch(), 200);
     }
 }
