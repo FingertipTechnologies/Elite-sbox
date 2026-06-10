@@ -393,14 +393,16 @@
                                                 variant="label-stacked">
                                             </lightning-input-field>
                                         </div>
-                                        <!--PBIS_Policy__c-->
+                                        <!--PBIS_Policy__c (Primary PBIS Policy, filtered by Sales Channel)-->
                                         <div class={customClass}>
-                                            <lightning-input-field
-                                                field-name="PBIS_Policy__c"
-                                                onchange={handlePbisPolicyChange}
+                                            <lightning-combobox
+                                                name="PBIS_Policy__c"
+                                                label="Primary PBIS Policy"
                                                 value={employee.PBIS_Policy__c}
+                                                options={pbisPolicyOptions}
+                                                onchange={handleCustomInputChange}
                                                 variant="label-stacked">
-                                            </lightning-input-field>
+                                            </lightning-combobox>
                                         </div>
                                         <!--District_In_charge__c-->
                                         <template if:true={isShowDistctInchage}>

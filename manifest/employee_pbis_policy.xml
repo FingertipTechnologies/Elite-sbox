@@ -10,8 +10,9 @@
     - User.PBIS_Policy_Name__c    : new Text(255) holding PBIS_Policy__r.Name
     - EmployeeTriggerHandler      : mirrors PBIS Policy onto the related User
     - UpdateUsersQueueable        : partial-success User DML (bulk rollback fix)
+    - EmployeeeController         : returns active PBIS policies for the form
     - EmployeeTriggerHandlerTest  : PBIS sync test
-    - newEmployeeLwc              : editable PBIS Policy lookup on the create/edit form
+    - newEmployeeLwc              : Primary PBIS Policy combobox, filtered by Sales Channel
     - employeeRecordViewForm      : read-only PBIS Policy on the record view
 
   Depends on Task 2 (PBIS_Policy__c object) already present in the org.
@@ -28,6 +29,7 @@
     <types>
         <members>EmployeeTriggerHandler</members>
         <members>UpdateUsersQueueable</members>
+        <members>EmployeeeController</members>
         <members>EmployeeTriggerHandlerTest</members>
         <name>ApexClass</name>
     </types>

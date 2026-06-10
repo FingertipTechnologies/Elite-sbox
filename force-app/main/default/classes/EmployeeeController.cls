@@ -443,7 +443,8 @@ public class EmployeeeController {
         @AuraEnabled public Map<String,Decimal> hirachyNumberMap = new Map<String,Decimal>();   
         @AuraEnabled public Map<String,String> payrollMap = new Map<String,String>();   
         @AuraEnabled public list<Employee__c> employeesList = new list<Employee__c>();   
-        @AuraEnabled public  List<CategoryToSalesChannelData__mdt> catoryToSalsChannelList = new List<CategoryToSalesChannelData__mdt> ();   
+        @AuraEnabled public  List<CategoryToSalesChannelData__mdt> catoryToSalsChannelList = new List<CategoryToSalesChannelData__mdt> ();
+        @AuraEnabled public List<PBIS_Policy__c> pbisPolicyList = new List<PBIS_Policy__c>();
         @AuraEnabled public List<Area__c> territoryList = new List<Area__c>(); 
         @AuraEnabled public List<Employee_Creation_Access__mdt> metadataRecordsList = new List<Employee_Creation_Access__mdt>();
         @AuraEnabled public User currentUser = new User();
@@ -497,7 +498,8 @@ public class EmployeeeController {
                 Primary_Customer_Approver_1__r.Name,Primary_Customer_Approver_2__r.Name,Primary_Customer_Approver_3_CD__r.Name,
                 PJP_Approver_1__r.Name,PJP_Approver_2__r.Name,Cloning_is_Completed__c,
                 Expense_Approver_1__r.Name,Expense_Approver_2_Finance_Department__r.Name,Opened_by_Credited_User__c,Alternate_Sales_Channel__c,
-                Leave_HR__c,Leave_HR__r.Name,Leave_Approver_L1__c,Leave_Approver_L1__r.Name
+                Leave_HR__c,Leave_HR__r.Name,Leave_Approver_L1__c,Leave_Approver_L1__r.Name,
+                PBIS_Policy__c, PBIS_Policy__r.Name
                 FROM Employee__c
                 WHERE Id = :recordId
             ];
@@ -631,7 +633,10 @@ public class EmployeeeController {
         
         
         db.catoryToSalsChannelList = [SELECT Category__c, Sales_Channel__c FROM CategoryToSalesChannelData__mdt];
-        
+
+        // Active Primary PBIS Policies, filtered client-side by the employee's Sales Channels.
+        db.pbisPolicyList = [SELECT Id, Name, Sales_Channels__c FROM PBIS_Policy__c WHERE Is_Active__c = true ORDER BY Name];
+
         // Query Custom Metadata records for Employee_Creation_Access__mdt
         List<Employee_Creation_Access__mdt> metadataRecordsList = [
             SELECT Payroll__c, Non_Payroll__c, Hierarchy_Number__c, Label, Required_Approvers__c, Employee_Type__c

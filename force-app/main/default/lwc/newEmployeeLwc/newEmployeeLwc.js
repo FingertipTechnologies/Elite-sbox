@@ -135,9 +135,13 @@ export default class NewEmployeeLwc extends LightningElement {
     isReptingManagerDisabled = true;
     
     //Category Dependent Picklist
-    @track categoryOptions = []; 
+    @track categoryOptions = [];
     @track categoryMapping = [];
     isShowDistctInchage = false;
+
+    //Primary PBIS Policy options, filtered by the employee's Sales Channel(s)
+    @track pbisPolicyOptions = [];
+    pbisPolicyList = [];
 
     //readonly
     isRoleReadOnly = false;
@@ -235,7 +239,14 @@ export default class NewEmployeeLwc extends LightningElement {
                 category: item.Category__c,
                 salesChannels: item.Sales_Channel__c.split(';').map(s => s)
             }))
-        
+
+            this.pbisPolicyList = (result.pbisPolicyList || []).map(item => ({
+                id: item.Id,
+                name: item.Name,
+                salesChannels: item.Sales_Channels__c ? item.Sales_Channels__c.split(';') : []
+            }));
+            this.updateAvailablePbisPolicies();
+
             this.metadataRecordsList = result.metadataRecordsList;
             //console.log('recordId -->', this.recordId);
             //console.log('employee -->', result?.employee);
@@ -336,7 +347,8 @@ export default class NewEmployeeLwc extends LightningElement {
                     Expense_Back_Day_Entry_Limit__c: emp.Expense_Back_Day_Entry_Limit__c,
                     Expense_Start_Date__c: emp.Expense_Start_Date__c,
                     Expense_End_Date__c: emp.Expense_End_Date__c,
-                    Alternate_Sales_Channel__c : emp.Alternate_Sales_Channel__c
+                    Alternate_Sales_Channel__c : emp.Alternate_Sales_Channel__c,
+                    PBIS_Policy__c: emp.PBIS_Policy__c
                 };
                 this.employee = { ...this.employee, ...newValues };
 
@@ -356,6 +368,7 @@ export default class NewEmployeeLwc extends LightningElement {
                 this.mandateReplacedFor = emp.User_Type__c === 'Replacement';
                 this.setpayrollValues(emp.Profile__c);
                 this.updateAvailableCategories();
+                this.updateAvailablePbisPolicies();
                 this.getRelatedAreasRegions();
                 this.updateProfileBasedValues(emp.Profile__c,'UserEdit');
             
@@ -753,16 +766,42 @@ export default class NewEmployeeLwc extends LightningElement {
         else if(fieldName =='Sales_Channel__c')
         {
             this.updateAvailableCategories();
+            this.updateAvailablePbisPolicies();
             this.getRelatedAreasRegions();
+        }
+        else if(fieldName =='Alternate_Sales_Channel__c')
+        {
+            this.updateAvailablePbisPolicies();
         }
     }
 
-    // PBIS_Policy__c is a lookup: lightning-input-field emits an array of record Ids.
-    // Store only the single Id so the value maps cleanly onto the Employee__c SObject in saveData.
-    handlePbisPolicyChange(event) {
-        const value = event.detail.value;
-        const policyId = Array.isArray(value) ? (value.length ? value[0] : null) : (value || null);
-        this.employee = { ...this.employee, PBIS_Policy__c: policyId };
+    // Primary PBIS Policy options are restricted to policies whose Sales Channels
+    // intersect the employee's selected Sales Channel and Alternate Sales Channel
+    // (both are multi-select picklists stored as ';'-separated values).
+    updateAvailablePbisPolicies() {
+        const channels = [];
+        if (this.employee.Sales_Channel__c) {
+            channels.push(...this.employee.Sales_Channel__c.split(';'));
+        }
+        if (this.employee.Alternate_Sales_Channel__c) {
+            channels.push(...this.employee.Alternate_Sales_Channel__c.split(';'));
+        }
+        const employeeChannels = new Set(channels.filter(c => c));
+
+        let options = [];
+        if (employeeChannels.size > 0) {
+            options = this.pbisPolicyList
+                .filter(policy => policy.salesChannels.some(sc => employeeChannels.has(sc)))
+                .map(policy => ({ label: policy.name, value: policy.id }));
+        }
+        options.unshift({ label: '--None--', value: '' });
+        this.pbisPolicyOptions = options;
+
+        // Clear the selection if it is no longer one of the available policies.
+        const validValues = new Set(options.map(opt => opt.value));
+        if (!validValues.has(this.employee.PBIS_Policy__c)) {
+            this.employee = { ...this.employee, PBIS_Policy__c: '' };
+        }
     }
 
     payrollOptions() {
