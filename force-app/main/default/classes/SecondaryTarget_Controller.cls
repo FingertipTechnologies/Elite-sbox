@@ -186,21 +186,36 @@ public with sharing class SecondaryTarget_Controller {
             if (String.isNotBlank(r.targetName)) targetNames.add(r.targetName);
         }
 
+        // Resolve lookups by key. If a key matches more than one record (duplicate
+        // Names / Employee Codes), flag it as ambiguous and surface a clear error
+        // per row instead of silently picking one.
         Map<String, Id> userByCode = new Map<String, Id>();
+        Set<String> ambiguousEmp = new Set<String>();
         Map<Id, String> userIdToName = new Map<Id, String>();
         for (User u : [SELECT Id, Name, Employee_Code__c FROM User
                        WHERE Employee_Code__c IN :empCodes AND Employee_Code__c != null]) {
-            userByCode.put(u.Employee_Code__c, u.Id);
+            if (userByCode.containsKey(u.Employee_Code__c)) ambiguousEmp.add(u.Employee_Code__c);
+            else userByCode.put(u.Employee_Code__c, u.Id);
             userIdToName.put(u.Id, u.Name);
         }
+        for (String code : ambiguousEmp) userByCode.remove(code);
+
         Map<String, Id> critByName = new Map<String, Id>();
+        Set<String> ambiguousCrit = new Set<String>();
         for (Target_Criteria__c c : [SELECT Id, Name FROM Target_Criteria__c WHERE Name IN :critNames]) {
-            critByName.put(c.Name, c.Id);
+            if (critByName.containsKey(c.Name)) ambiguousCrit.add(c.Name);
+            else critByName.put(c.Name, c.Id);
         }
+        for (String n : ambiguousCrit) critByName.remove(n);
+
         Map<String, Id> packByName = new Map<String, Id>();
+        Set<String> ambiguousPack = new Set<String>();
         for (Focused_Pack__c fp : [SELECT Id, Name FROM Focused_Pack__c WHERE Name IN :packNames]) {
-            packByName.put(fp.Name, fp.Id);
+            if (packByName.containsKey(fp.Name)) ambiguousPack.add(fp.Name);
+            else packByName.put(fp.Name, fp.Id);
         }
+        for (String n : ambiguousPack) packByName.remove(n);
+
         Map<String, Id> targetByName = new Map<String, Id>();
         for (Secondary_Target__c t : [SELECT Id, Name FROM Secondary_Target__c WHERE Name IN :targetNames]) {
             targetByName.put(t.Name, t.Id);
@@ -218,14 +233,23 @@ public with sharing class SecondaryTarget_Controller {
                 if (String.isBlank(r.startDate)) throw new IllegalArgumentException('Start Date is required.');
                 if (String.isBlank(r.endDate)) throw new IllegalArgumentException('End Date is required.');
 
+                if (ambiguousEmp.contains(r.employeeCode)) {
+                    throw new IllegalArgumentException('Employee Code "' + r.employeeCode + '" is used by more than one user; resolve the duplicate before importing.');
+                }
                 Id userId = userByCode.get(r.employeeCode);
                 if (userId == null) throw new IllegalArgumentException('Unknown Employee Code: ' + r.employeeCode);
 
+                if (ambiguousCrit.contains(r.criteriaName)) {
+                    throw new IllegalArgumentException('Criteria Name "' + r.criteriaName + '" matches more than one record; rename the duplicate(s) before importing.');
+                }
                 Id critId = critByName.get(r.criteriaName);
                 if (critId == null) throw new IllegalArgumentException('Unknown Criteria: ' + r.criteriaName);
 
                 Id packId = null;
                 if (String.isNotBlank(r.focusPackName)) {
+                    if (ambiguousPack.contains(r.focusPackName)) {
+                        throw new IllegalArgumentException('Focus Pack Name "' + r.focusPackName + '" matches more than one pack; rename the duplicate(s) before importing.');
+                    }
                     packId = packByName.get(r.focusPackName);
                     if (packId == null) throw new IllegalArgumentException('Unknown Focus Pack: ' + r.focusPackName);
                 }
