@@ -173,6 +173,115 @@
         <div class="slds-backdrop slds-backdrop_open"></div>
     </template>
 
+    <template if:true={showExplain}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_medium">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={handleCloseExplain}>
+                        <lightning-icon icon-name="utility:close" size="small"
+                            variant="inverse"></lightning-icon>
+                    </button>
+                    <h2 class="slds-modal__title slds-hyphenate">Achievement Breakdown</h2>
+                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                        How {explain.targetName} for {explain.userName} was calculated.
+                    </p>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <div class="slds-box slds-box_x-small slds-m-bottom_medium">
+                        <div class="slds-grid slds-gutters slds-wrap">
+                            <div class="slds-col slds-size_1-of-2">
+                                <span class="tcb-detail-label">Criterion</span>
+                                <div class="tcb-detail-value">{explain.criterionName}</div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2">
+                                <span class="tcb-detail-label">Operator</span>
+                                <div class="tcb-detail-value">{explain.operator}</div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-3">
+                                <span class="tcb-detail-label">Source Object</span>
+                                <div class="tcb-detail-value">{explain.sourceObject}</div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-3">
+                                <span class="tcb-detail-label">Date Field</span>
+                                <div class="tcb-detail-value">{explain.dateField}</div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-3">
+                                <span class="tcb-detail-label">User Field</span>
+                                <div class="tcb-detail-value">{explain.userField}</div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-3">
+                                <span class="tcb-detail-label">Period</span>
+                                <div class="tcb-detail-value">
+                                    <lightning-formatted-date-time value={explain.startDate}
+                                        year="numeric" month="short" day="2-digit"></lightning-formatted-date-time>
+                                    &nbsp;–&nbsp;
+                                    <lightning-formatted-date-time value={explain.endDate}
+                                        year="numeric" month="short" day="2-digit"></lightning-formatted-date-time>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-3">
+                                <span class="tcb-detail-label">Working Days</span>
+                                <div class="tcb-detail-value">{explain.workingDays}</div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-3">
+                                <span class="tcb-detail-label">Achievement Value</span>
+                                <div class="tcb-detail-value"><strong>{explain.achievementValue}</strong></div>
+                            </div>
+                            <template if:true={explain.focusPackName}>
+                                <div class="slds-col slds-size_1-of-2">
+                                    <span class="tcb-detail-label">Focus Pack</span>
+                                    <div class="tcb-detail-value">{explain.focusPackName}</div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2">
+                                    <span class="tcb-detail-label">Minimum Qualifying Qty</span>
+                                    <div class="tcb-detail-value">{explain.minQualifyingQty}</div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <template if:true={explainFilters}>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small">Filters applied</h3>
+                        <ul class="slds-list_dotted slds-m-bottom_medium">
+                            <template for:each={explainFilters} for:item="f">
+                                <li key={f.id}><code>{f.text}</code></li>
+                            </template>
+                        </ul>
+                    </template>
+
+                    <template if:true={explainSteps}>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small">Calculation steps</h3>
+                        <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-m-bottom_medium">
+                            <tbody>
+                                <template for:each={explainSteps} for:item="s">
+                                    <tr key={s.id}>
+                                        <td style="width: 45%;"><strong>{s.label}</strong></td>
+                                        <td>{s.value}</td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </template>
+
+                    <template if:true={explainPackSkus}>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small">Pack SKUs ({explain.packSkus.length})</h3>
+                        <ul class="slds-list_dotted slds-m-bottom_medium">
+                            <template for:each={explainPackSkus} for:item="s">
+                                <li key={s.id}>{s.name}</li>
+                            </template>
+                        </ul>
+                    </template>
+
+                    <div class="slds-text-align_right">
+                        <lightning-button variant="brand" label="Close" onclick={handleCloseExplain}></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
     <template if:true={showImportResults}>
         <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
             <div class="slds-modal__container">

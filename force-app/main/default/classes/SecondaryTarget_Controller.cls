@@ -357,4 +357,232 @@ public with sharing class SecondaryTarget_Controller {
 
         return t;
     }
+
+    // ===== Achievement Breakdown =====
+
+    public class KV {
+        @AuraEnabled public String label;
+        @AuraEnabled public String value;
+        public KV(String l, String v) { this.label = l; this.value = v; }
+    }
+
+    public class AchievementExplanation {
+        @AuraEnabled public String targetName;
+        @AuraEnabled public String userName;
+        @AuraEnabled public String criterionName;
+        @AuraEnabled public String operator;
+        @AuraEnabled public String sourceObject;
+        @AuraEnabled public String dateField;
+        @AuraEnabled public String userField;
+        @AuraEnabled public String distinctField;
+        @AuraEnabled public String focusPackName;
+        @AuraEnabled public Decimal minQualifyingQty;
+        @AuraEnabled public List<String> filterClauses = new List<String>();
+        @AuraEnabled public Date startDate;
+        @AuraEnabled public Date endDate;
+        @AuraEnabled public Integer workingDays;
+        @AuraEnabled public Boolean useAttendance;
+        @AuraEnabled public Decimal achievementValue;
+        @AuraEnabled public Decimal achievementPercent;
+        @AuraEnabled public Decimal targetValue;
+        @AuraEnabled public List<KV> steps = new List<KV>();
+        @AuraEnabled public List<String> packSkus;
+    }
+
+    /**
+     * Produces a per-target explanation of *how* the engine arrived at the
+     * Achievement_Value__c. Used by the Secondary Target Manager so QA can
+     * understand and verify the calculation without diving into Apex logs.
+     */
+    @AuraEnabled
+    public static AchievementExplanation explainAchievement(Id targetId) {
+        Secondary_Target__c t = [
+            SELECT Id, Name, User__c, User__r.Name, Sales_Channel__c,
+                   Target_Criteria__c, Target_Value__c, Achievement_Value__c, Achievement_Percent__c,
+                   Focused_Pack__c, Focused_Pack__r.Name, Focused_Pack__r.Minimum_Qualifying_Quantity__c,
+                   Start_Date__c, End_Date__c
+            FROM Secondary_Target__c WHERE Id = :targetId LIMIT 1
+        ];
+        Target_Criteria__c crit = [
+            SELECT Id, Name, Object__c, Operator__c, Field__c, Date_Field__c, User_Field__c,
+                   Distinct_Field__c, Use_Attendance_Divisor__c, Filters__c, Filter_Logic__c
+            FROM Target_Criteria__c WHERE Id = :t.Target_Criteria__c LIMIT 1
+        ];
+
+        AchievementExplanation x = new AchievementExplanation();
+        x.targetName = t.Name;
+        x.userName = (t.User__r != null) ? t.User__r.Name : null;
+        x.criterionName = crit.Name;
+        x.operator = crit.Operator__c;
+        x.sourceObject = crit.Object__c;
+        x.dateField = crit.Date_Field__c;
+        x.userField = crit.User_Field__c;
+        x.distinctField = crit.Distinct_Field__c;
+        x.focusPackName = (t.Focused_Pack__r != null) ? t.Focused_Pack__r.Name : null;
+        x.minQualifyingQty = (t.Focused_Pack__r != null) ? t.Focused_Pack__r.Minimum_Qualifying_Quantity__c : null;
+        x.startDate = t.Start_Date__c;
+        x.endDate = t.End_Date__c;
+        x.useAttendance = (crit.Use_Attendance_Divisor__c == true);
+        x.achievementValue = t.Achievement_Value__c;
+        x.achievementPercent = t.Achievement_Percent__c;
+        x.targetValue = t.Target_Value__c;
+        x.filterClauses = describeFilters(crit.Filters__c);
+
+        if (t.User__c != null) {
+            Map<Id, Integer> wd = TAM_AttendanceService.getWorkingDays(
+                new Set<Id>{ t.User__c }, t.Start_Date__c, t.End_Date__c);
+            x.workingDays = wd.containsKey(t.User__c) ? wd.get(t.User__c) : 0;
+        }
+
+        String op = crit.Operator__c;
+        if (op == 'SUM' || op == 'COUNT' || op == 'COUNT_DISTINCT') {
+            explainPeriodAggregate(t, crit, x);
+        } else if (op == 'DAILY_UNIQUE_AVG' || op == 'DAILY_LINES_PER_ORDER') {
+            explainDailyOperator(t, crit, x);
+        } else if (op == 'FOCUS_PACK_REVENUE' || op == 'FOCUS_PACK_ECO') {
+            explainFocusPack(t, crit, x);
+        }
+        return x;
+    }
+
+    // ---- helpers ----
+
+    private static List<String> describeFilters(String filtersJson) {
+        List<String> out = new List<String>();
+        if (String.isBlank(filtersJson)) return out;
+        try {
+            Map<String, Object> root = (Map<String, Object>) JSON.deserializeUntyped(filtersJson);
+            List<Object> rows = (List<Object>) root.get('filters');
+            if (rows == null) return out;
+            for (Object r : rows) {
+                Map<String, Object> f = (Map<String, Object>) r;
+                String fld = String.valueOf(f.get('field'));
+                String opr = String.valueOf(f.get('operator'));
+                Object val = f.get('value');
+                String valStr;
+                if (val instanceof List<Object>) {
+                    List<String> bits = new List<String>();
+                    for (Object o : (List<Object>) val) bits.add(String.valueOf(o));
+                    valStr = '[' + String.join(bits, ', ') + ']';
+                } else {
+                    valStr = '"' + String.valueOf(val) + '"';
+                }
+                out.add(fld + ' ' + opr + ' ' + valStr);
+            }
+        } catch (Exception e) {
+            out.add('(could not parse filter JSON)');
+        }
+        return out;
+    }
+
+    private static String buildBaseWhere(Target_Criteria__c crit, Date startDate, Date endDate, Boolean userBind) {
+        List<String> segs = new List<String>();
+        segs.add(crit.Date_Field__c + ' >= :startDate');
+        segs.add(crit.Date_Field__c + ' <= :endDate');
+        if (userBind) segs.add(crit.User_Field__c + ' IN :userKeys');
+        String extra = TAM_FilterEngine_Service.buildWhereClause(crit.Filters__c, crit.Filter_Logic__c);
+        if (String.isNotBlank(extra)) segs.add(extra);
+        return String.join(segs, ' AND ');
+    }
+
+    private static Set<String> buildUserKeys(Id userId) {
+        Set<String> keys = new Set<String>();
+        if (userId == null) return keys;
+        String s = String.valueOf(userId);
+        keys.add(s);
+        if (s.length() >= 15) keys.add(s.substring(0, 15));
+        return keys;
+    }
+
+    private static void explainPeriodAggregate(Secondary_Target__c t, Target_Criteria__c crit, AchievementExplanation x) {
+        Date startDate = t.Start_Date__c;
+        Date endDate = t.End_Date__c;
+        Set<String> userKeys = buildUserKeys(t.User__c);
+        String soql = 'SELECT Count(Id) cnt FROM ' + crit.Object__c +
+            ' WHERE ' + buildBaseWhere(crit, startDate, endDate, true);
+        AggregateResult ar = (AggregateResult) Database.query(soql)[0];
+        Integer rowCount = (Integer) ar.get('cnt');
+        x.steps.add(new KV('Rows matched', String.valueOf(rowCount)));
+
+        if (crit.Operator__c == 'SUM' && String.isNotBlank(crit.Field__c)) {
+            String sumSoql = 'SELECT SUM(' + crit.Field__c + ') v FROM ' + crit.Object__c +
+                ' WHERE ' + buildBaseWhere(crit, startDate, endDate, true);
+            AggregateResult sr = (AggregateResult) Database.query(sumSoql)[0];
+            Decimal v = (sr.get('v') != null) ? (Decimal) sr.get('v') : 0;
+            x.steps.add(new KV('Sum field', crit.Field__c));
+            x.steps.add(new KV('SUM(' + crit.Field__c + ')', String.valueOf(v)));
+        } else if (crit.Operator__c == 'COUNT_DISTINCT' && String.isNotBlank(crit.Distinct_Field__c)) {
+            String dSoql = 'SELECT COUNT_DISTINCT(' + crit.Distinct_Field__c + ') v FROM ' + crit.Object__c +
+                ' WHERE ' + buildBaseWhere(crit, startDate, endDate, true);
+            AggregateResult dr = (AggregateResult) Database.query(dSoql)[0];
+            Integer dc = (dr.get('v') != null) ? (Integer) dr.get('v') : 0;
+            x.steps.add(new KV('Distinct field', crit.Distinct_Field__c));
+            x.steps.add(new KV('COUNT_DISTINCT', String.valueOf(dc)));
+        }
+    }
+
+    private static void explainDailyOperator(Secondary_Target__c t, Target_Criteria__c crit, AchievementExplanation x) {
+        Integer divisor = (crit.Use_Attendance_Divisor__c == true)
+            ? (x.workingDays == null ? 0 : x.workingDays)
+            : null;
+        x.steps.add(new KV('Divisor type', crit.Use_Attendance_Divisor__c == true ? 'Working days (attendance)' : 'Active days (days with data)'));
+        if (divisor != null) x.steps.add(new KV('Working days', String.valueOf(divisor)));
+        // Count the rows the engine evaluates so QA can sanity check
+        Date startDate = t.Start_Date__c;
+        Date endDate = t.End_Date__c;
+        Set<String> userKeys = buildUserKeys(t.User__c);
+        String soql = 'SELECT Count(Id) cnt FROM ' + crit.Object__c +
+            ' WHERE ' + buildBaseWhere(crit, startDate, endDate, true);
+        AggregateResult ar = (AggregateResult) Database.query(soql)[0];
+        x.steps.add(new KV('Source rows in period', String.valueOf(ar.get('cnt'))));
+        if (String.isNotBlank(crit.Distinct_Field__c)) {
+            x.steps.add(new KV(crit.Operator__c == 'DAILY_LINES_PER_ORDER' ? 'Order field' : 'Distinct field', crit.Distinct_Field__c));
+        }
+        x.steps.add(new KV('Result', String.valueOf(x.achievementValue)));
+    }
+
+    private static void explainFocusPack(Secondary_Target__c t, Target_Criteria__c crit, AchievementExplanation x) {
+        x.packSkus = new List<String>();
+        if (t.Focused_Pack__c == null) {
+            x.steps.add(new KV('Note', 'No Focus Pack linked on this target.'));
+            return;
+        }
+        Set<Id> skuIds = new Set<Id>();
+        for (Focused_Pack_Item__c fpi : [SELECT SKU__c, SKU__r.Name FROM Focused_Pack_Item__c
+                                          WHERE Focused_Pack__c = :t.Focused_Pack__c AND SKU__c != null]) {
+            skuIds.add(fpi.SKU__c);
+            if (fpi.SKU__r != null) x.packSkus.add(fpi.SKU__r.Name);
+        }
+        x.steps.add(new KV('Pack SKUs', String.valueOf(skuIds.size())));
+        if (skuIds.isEmpty()) {
+            x.steps.add(new KV('Note', 'Pack has no SKU line items.'));
+            return;
+        }
+        Date startDate = t.Start_Date__c;
+        Date endDate = t.End_Date__c;
+        Set<String> userKeys = buildUserKeys(t.User__c);
+        String userField = String.isNotBlank(crit.User_Field__c) ? crit.User_Field__c : 'Order_Owner_Id__c';
+        String dateField = String.isNotBlank(crit.Date_Field__c) ? crit.Date_Field__c : 'Order_Date__c';
+        String baseWhere = 'Product__c IN :skuIds AND ' + dateField + ' >= :startDate AND ' + dateField + ' <= :endDate AND ' + userField + ' IN :userKeys';
+        String extra = TAM_FilterEngine_Service.buildWhereClause(crit.Filters__c, crit.Filter_Logic__c);
+        if (String.isNotBlank(extra)) baseWhere += ' AND ' + extra;
+
+        AggregateResult ar = (AggregateResult) Database.query('SELECT Count(Id) cnt FROM Order_Item__c WHERE ' + baseWhere)[0];
+        x.steps.add(new KV('Pack-SKU line items in period', String.valueOf(ar.get('cnt'))));
+
+        if (crit.Operator__c == 'FOCUS_PACK_REVENUE') {
+            String valueField = String.isNotBlank(crit.Field__c) ? crit.Field__c : 'Non_Taxable_Order_Value__c';
+            String sumSoql = 'SELECT SUM(' + valueField + ') v FROM Order_Item__c WHERE ' + baseWhere;
+            AggregateResult sr = (AggregateResult) Database.query(sumSoql)[0];
+            Decimal v = (sr.get('v') != null) ? (Decimal) sr.get('v') : 0;
+            x.steps.add(new KV('Value field', valueField));
+            x.steps.add(new KV('SUM(' + valueField + ')', String.valueOf(v)));
+        } else {
+            String qtyField = String.isNotBlank(crit.Field__c) ? crit.Field__c : 'Quantity__c';
+            String outletField = String.isNotBlank(crit.Distinct_Field__c) ? crit.Distinct_Field__c : 'Account__c';
+            x.steps.add(new KV('Quantity field', qtyField));
+            x.steps.add(new KV('Outlet field', outletField));
+            x.steps.add(new KV('Minimum qualifying quantity', String.valueOf(x.minQualifyingQty)));
+        }
+    }
 }

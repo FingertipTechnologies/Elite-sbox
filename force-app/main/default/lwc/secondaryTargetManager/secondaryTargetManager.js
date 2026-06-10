@@ -10,6 +10,7 @@ import deleteTarget from '@salesforce/apex/SecondaryTarget_Controller.deleteTarg
 import recalculateAll from '@salesforce/apex/SecondaryTarget_Controller.recalculateAll';
 import recalculateTarget from '@salesforce/apex/SecondaryTarget_Controller.recalculateTarget';
 import importTargets from '@salesforce/apex/SecondaryTarget_Controller.importTargets';
+import explainAchievement from '@salesforce/apex/SecondaryTarget_Controller.explainAchievement';
 
 const CSV_HEADERS = [
     'Target Name', 'User Employee Code', 'Criteria Name', 'Focus Pack Name', 'Sales Channel',
@@ -48,6 +49,7 @@ const COLUMNS = [
             rowActions: [
                 { label: 'Edit', name: 'edit' },
                 { label: 'Recalculate', name: 'recalc' },
+                { label: 'View calculation', name: 'explain' },
                 { label: 'Delete', name: 'delete' }
             ]
         }
@@ -91,6 +93,10 @@ export default class SecondaryTargetManager extends LightningElement {
     @track importCreated = 0;
     @track importUpdated = 0;
     @track importErrors = [];
+
+    // achievement-breakdown modal state
+    @track showExplain = false;
+    @track explain = null;
 
     connectedCallback() {
         this.loadCriteriaOptions();
@@ -310,6 +316,8 @@ export default class SecondaryTargetManager extends LightningElement {
             this.showForm = true;
         } else if (action === 'recalc') {
             this.recalcOne(row.Id);
+        } else if (action === 'explain') {
+            this.openExplain(row.Id);
         } else if (action === 'delete') {
             this.removeOne(row.Id);
         }
@@ -462,6 +470,34 @@ export default class SecondaryTargetManager extends LightningElement {
     }
 
     handleCloseImportResults() { this.showImportResults = false; }
+
+    // ===== Achievement Breakdown =====
+    get hasExplain() { return this.explain != null; }
+    get explainFilters() {
+        return (this.explain && this.explain.filterClauses && this.explain.filterClauses.length)
+            ? this.explain.filterClauses.map((c, i) => ({ id: i + 1, text: c }))
+            : null;
+    }
+    get explainSteps() {
+        return (this.explain && this.explain.steps && this.explain.steps.length)
+            ? this.explain.steps.map((s, i) => ({ id: i + 1, ...s }))
+            : null;
+    }
+    get explainPackSkus() {
+        return (this.explain && this.explain.packSkus && this.explain.packSkus.length)
+            ? this.explain.packSkus.map((n, i) => ({ id: i + 1, name: n }))
+            : null;
+    }
+
+    openExplain(id) {
+        this.isLoading = true;
+        explainAchievement({ targetId: id })
+            .then(x => { this.explain = x; this.showExplain = true; })
+            .catch(e => this.toast('Error', this.msg(e), 'error'))
+            .finally(() => { this.isLoading = false; });
+    }
+
+    handleCloseExplain() { this.showExplain = false; this.explain = null; }
 
     handleRecalcAll() {
         this.isLoading = true;
