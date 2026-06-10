@@ -89,25 +89,24 @@ public with sharing class PBISPolicy_Controller {
         if (policy.Is_Active__c != true || String.isBlank(policy.Sales_Channels__c)) {
             return; // inactive policies (or no channel) don't reserve a channel
         }
-        List<String> channels = policy.Sales_Channels__c.split(';');
+        Set<String> selected = new Set<String>(policy.Sales_Channels__c.split(';'));
         Id selfId = policy.Id; // null on insert -> "Id != null" matches all rows
 
-        List<PBIS_Policy__c> clashes = [
+        List<String> details = new List<String>();
+        for (PBIS_Policy__c c : [
             SELECT Id, Name, Sales_Channels__c
             FROM PBIS_Policy__c
             WHERE Is_Active__c = true
               AND Id != :selfId
-              AND Sales_Channels__c INCLUDES (:channels)
-        ];
-        if (clashes.isEmpty()) return;
-
-        Set<String> selected = new Set<String>(channels);
-        List<String> details = new List<String>();
-        for (PBIS_Policy__c c : clashes) {
+              AND Sales_Channels__c != null
+        ]) {
             Set<String> overlap = new Set<String>(c.Sales_Channels__c.split(';'));
             overlap.retainAll(selected);
-            details.add('"' + c.Name + '" (' + String.join(new List<String>(overlap), ', ') + ')');
+            if (!overlap.isEmpty()) {
+                details.add('"' + c.Name + '" (' + String.join(new List<String>(overlap), ', ') + ')');
+            }
         }
+        if (details.isEmpty()) return;
         throw new AuraHandledException(
             'A PBIS Policy with the same Sales Channel already exists: ' +
             String.join(details, '; ') +
