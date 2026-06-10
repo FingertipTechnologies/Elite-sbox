@@ -116,7 +116,7 @@ public without sharing class SecondaryKpiDashboard_Controller {
         Date monthStart = Date.newInstance(year, month, 1);
         Date monthEnd = monthStart.addMonths(1).addDays(-1);
 
-        // Universe = root user + every descendant user under the role hierarchy.
+        // Universe = root user + every descendingendant user under the role hierarchy.
         Set<Id> universeUserIds = collectDownlineUsers(root.UserRoleId);
         universeUserIds.add(root.Id);
 
@@ -352,14 +352,14 @@ public without sharing class SecondaryKpiDashboard_Controller {
     }
 
     /** Pick top or bottom N users by achievement %, requiring a non-zero target so empty users don't dominate. */
-    private static List<UserRow> topN(List<UserRow> rows, Integer n, Boolean desc) {
+    private static List<UserRow> topN(List<UserRow> rows, Integer n, Boolean descending) {
         List<UserRow> filtered = new List<UserRow>();
         for (UserRow r : rows) if (r.totalTarget != null && r.totalTarget > 0) filtered.add(r);
         // Simple insertion sort — N ≤ tens of users on a typical screen, no need for fancier.
         for (Integer i = 1; i < filtered.size(); i++) {
             UserRow cur = filtered[i];
             Integer j = i - 1;
-            while (j >= 0 && cmpPct(filtered[j], cur, desc) > 0) {
+            while (j >= 0 && cmpPct(filtered[j], cur, descending) > 0) {
                 filtered[j + 1] = filtered[j];
                 j--;
             }
@@ -370,13 +370,13 @@ public without sharing class SecondaryKpiDashboard_Controller {
         return out;
     }
 
-    private static Integer cmpPct(UserRow a, UserRow b, Boolean desc) {
+    private static Integer cmpPct(UserRow a, UserRow b, Boolean descending) {
         Decimal pa = a.achievementPct == null ? 0 : a.achievementPct;
         Decimal pb = b.achievementPct == null ? 0 : b.achievementPct;
         if (pa == pb) return 0;
         Boolean aBigger = pa > pb;
         // Desc=true → bigger first → "a > b" means a should come earlier → return negative.
-        if (desc) return aBigger ? -1 : 1;
+        if (descending) return aBigger ? -1 : 1;
         return aBigger ? 1 : -1;
     }
 
