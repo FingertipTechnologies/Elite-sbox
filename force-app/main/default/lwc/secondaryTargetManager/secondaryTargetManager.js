@@ -375,35 +375,48 @@ export default class SecondaryTargetManager extends LightningElement {
         reader.readAsText(file);
     }
 
+    // Normalize a header cell so "Target Name", " Target  Name ", "TARGET NAME"
+    // all hash to the same key.
+    normHeader(s) { return (s || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+
     parseCsv(text) {
         // Strip UTF-8 BOM that Excel adds to the first cell of column A.
         if (text && text.charCodeAt(0) === 0xFEFF) text = text.substring(1);
         const lines = text.split(/\r?\n/).filter(l => l.length > 0);
         if (lines.length < 2) return [];
         // Auto-detect the delimiter from the header line — Excel locales
-        // may export CSVs with ';' instead of ','.
+        // may export CSVs with ';' or '\t' instead of ','.
         const headerLine = lines[0];
-        const commaCount = (headerLine.match(/,/g) || []).length;
-        const semiCount = (headerLine.match(/;/g) || []).length;
-        const sep = semiCount > commaCount ? ';' : ',';
-        const headers = this.splitCsvLine(headerLine, sep).map(h => h.trim());
+        const counts = {
+            ',': (headerLine.match(/,/g) || []).length,
+            ';': (headerLine.match(/;/g) || []).length,
+            '\t': (headerLine.match(/\t/g) || []).length
+        };
+        let sep = ',';
+        let best = counts[','];
+        if (counts[';'] > best) { sep = ';'; best = counts[';']; }
+        if (counts['\t'] > best) { sep = '\t'; best = counts['\t']; }
+
+        const rawHeaders = this.splitCsvLine(headerLine, sep);
+        const headers = rawHeaders.map(h => this.normHeader(h));
         const out = [];
         for (let i = 1; i < lines.length; i++) {
             const cells = this.splitCsvLine(lines[i], sep);
             if (cells.every(c => !c || !c.trim())) continue;
             const row = {};
             headers.forEach((h, j) => { row[h] = (cells[j] !== undefined ? String(cells[j]).trim() : ''); });
+            const get = (label) => row[this.normHeader(label)] || '';
             out.push({
-                targetName: row['Target Name'] || null,
-                employeeCode: row['User Employee Code'] || '',
-                criteriaName: row['Criteria Name'] || '',
-                focusPackName: row['Focus Pack Name'] || null,
-                salesChannel: row['Sales Channel'] || null,
-                targetYear: row['Year'] ? Number(row['Year']) : null,
-                startDate: row['Start Date (YYYY-MM-DD)'] || '',
-                endDate: row['End Date (YYYY-MM-DD)'] || '',
-                targetValue: row['Target Value'] ? Number(row['Target Value']) : null,
-                isActive: (row['Is Active'] || '').toUpperCase() === 'TRUE'
+                targetName: get('Target Name') || null,
+                employeeCode: get('User Employee Code'),
+                criteriaName: get('Criteria Name'),
+                focusPackName: get('Focus Pack Name') || null,
+                salesChannel: get('Sales Channel') || null,
+                targetYear: get('Year') ? Number(get('Year')) : null,
+                startDate: get('Start Date (YYYY-MM-DD)') || get('Start Date'),
+                endDate: get('End Date (YYYY-MM-DD)') || get('End Date'),
+                targetValue: get('Target Value') ? Number(get('Target Value')) : null,
+                isActive: get('Is Active').toUpperCase() === 'TRUE'
             });
         }
         return out;
