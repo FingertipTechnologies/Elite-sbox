@@ -135,9 +135,15 @@ export default class NewEmployeeLwc extends LightningElement {
     isReptingManagerDisabled = true;
     
     //Category Dependent Picklist
-    @track categoryOptions = []; 
+    @track categoryOptions = [];
     @track categoryMapping = [];
     isShowDistctInchage = false;
+
+    //Primary PBIS Policy search (results filtered by the employee's Sales Channel(s))
+    pbisPolicyList = [];
+    @track searchedPbisPolicy = [];
+    isShowSearchedPbisPolicy = false;
+    pbisPolicyName = '';
 
     //readonly
     isRoleReadOnly = false;
@@ -235,7 +241,13 @@ export default class NewEmployeeLwc extends LightningElement {
                 category: item.Category__c,
                 salesChannels: item.Sales_Channel__c.split(';').map(s => s)
             }))
-        
+
+            this.pbisPolicyList = (result.pbisPolicyList || []).map(item => ({
+                id: item.Id,
+                name: item.Name,
+                salesChannels: item.Sales_Channels__c ? item.Sales_Channels__c.split(';') : []
+            }));
+
             this.metadataRecordsList = result.metadataRecordsList;
             //console.log('recordId -->', this.recordId);
             //console.log('employee -->', result?.employee);
@@ -336,11 +348,13 @@ export default class NewEmployeeLwc extends LightningElement {
                     Expense_Back_Day_Entry_Limit__c: emp.Expense_Back_Day_Entry_Limit__c,
                     Expense_Start_Date__c: emp.Expense_Start_Date__c,
                     Expense_End_Date__c: emp.Expense_End_Date__c,
-                    Alternate_Sales_Channel__c : emp.Alternate_Sales_Channel__c
+                    Alternate_Sales_Channel__c : emp.Alternate_Sales_Channel__c,
+                    PBIS_Policy__c: emp.PBIS_Policy__c
                 };
                 this.employee = { ...this.employee, ...newValues };
+                this.pbisPolicyName = emp.PBIS_Policy__r?.Name || '';
 
-                this.setpayrollValues(emp.Profile__c);
+            
                 this.isCloningCompleted =  emp.Cloning_is_Completed__c;
                 this.selectedProfileHirachyNumber = emp.Heirarchial_Number__c;
                 this.isShowAllSections = (emp.Profile__c == 'SSA' || emp.Profile__c == 'DSM') ? false : true ;
@@ -354,7 +368,7 @@ export default class NewEmployeeLwc extends LightningElement {
                 this.isShowDistctInchage = emp.Profile__c === 'Sr. TSE';
                 this.mandateContractType = emp.Payroll__c === 'No';
                 this.mandateReplacedFor = emp.User_Type__c === 'Replacement';
-
+                this.setpayrollValues(emp.Profile__c);
                 this.updateAvailableCategories();
                 this.getRelatedAreasRegions();
                 this.updateProfileBasedValues(emp.Profile__c,'UserEdit');
@@ -755,6 +769,49 @@ export default class NewEmployeeLwc extends LightningElement {
             this.updateAvailableCategories();
             this.getRelatedAreasRegions();
         }
+    }
+
+    // The employee's Sales Channel and Alternate Sales Channel are multi-select
+    // picklists stored as ';'-separated values; combine them into a single set.
+    get pbisPolicyChannels() {
+        const channels = [];
+        if (this.employee.Sales_Channel__c) {
+            channels.push(...this.employee.Sales_Channel__c.split(';'));
+        }
+        if (this.employee.Alternate_Sales_Channel__c) {
+            channels.push(...this.employee.Alternate_Sales_Channel__c.split(';'));
+        }
+        return new Set(channels.filter(c => c));
+    }
+
+    // Search Primary PBIS Policies by name, restricted to policies whose Sales
+    // Channels intersect the employee's Sales Channel / Alternate Sales Channel.
+    handlePbisPolicySearch(event) {
+        const searchValueName = event.target.value;
+        this.pbisPolicyName = searchValueName;
+        if (searchValueName) {
+            const employeeChannels = this.pbisPolicyChannels;
+            const searchedData = this.pbisPolicyList.filter(policy => {
+                const nameMatch = policy.name && policy.name.toLowerCase().includes(searchValueName.toLowerCase());
+                const channelMatch = employeeChannels.size > 0 && policy.salesChannels.some(sc => employeeChannels.has(sc));
+                return nameMatch && channelMatch;
+            });
+            this.isShowSearchedPbisPolicy = searchedData.length > 0;
+            this.searchedPbisPolicy = searchedData;
+        } else {
+            this.isShowSearchedPbisPolicy = false;
+            this.searchedPbisPolicy = [];
+            this.employee = { ...this.employee, PBIS_Policy__c: '' };
+        }
+    }
+
+    selectPbisPolicy(event) {
+        const index = event.currentTarget.dataset.index;
+        const selectedRecord = this.searchedPbisPolicy[index];
+        this.employee = { ...this.employee, PBIS_Policy__c: selectedRecord.id };
+        this.pbisPolicyName = selectedRecord.name;
+        this.isShowSearchedPbisPolicy = false;
+        this.searchedPbisPolicy = [];
     }
 
     payrollOptions() {

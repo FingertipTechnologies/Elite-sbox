@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Standard_Data_Upload_URL__c</fullName>
+    <externalId>false</externalId>
+    <formula>CASE(
+  TEXT(Object_Name__c),
+  &quot;Account&quot;, 
+    HYPERLINK(&quot;https://ability-efficiency-3589.lightning.force.com/one/one.app#eyJjb21wb25lbnREZWYiOiJvbmU6YWxvaGFQYWdlIiwiYXR0cmlidXRlcyI6eyJhZGRyZXNzIjoiL2RhdGFJbXBvcnRlci9kYXRhSW1wb3J0ZXIuYXBwP29iamVjdFNlbGVjdGlvbj1BY2NvdW50LFBlcnNvbkFjY291bnQifSwic3RhdGUiOnt9fQ%3D%3D&quot;, &quot;Customer Data Upload&quot;),
+  &quot;Employee_Customer_Assignment__c&quot;, 
+    HYPERLINK(&quot;https://ability-efficiency-3589.lightning.force.com/one/one.app#eyJjb21wb25lbnREZWYiOiJvbmU6YWxvaGFQYWdlIiwiYXR0cmlidXRlcyI6eyJhZGRyZXNzIjoiL2RhdGFJbXBvcnRlci9kYXRhSW1wb3J0ZXIuYXBwP29iamVjdFNlbGVjdGlvbj1FbXBsb3llZV9DdXN0b21lcl9Bc3NpZ25tZW50X19jIn0sInN0YXRlIjp7fX0%3D&quot;, &quot;DSM/SSA Primary Data Upload&quot;),
+  &quot;Product_Mapping__c&quot;, 
+    HYPERLINK(&quot;https://ability-efficiency-3589.lightning.force.com/one/one.app#eyJjb21wb25lbnREZWYiOiJvbmU6YWxvaGFQYWdlIiwiYXR0cmlidXRlcyI6eyJhZGRyZXNzIjoiL2RhdGFJbXBvcnRlci9kYXRhSW1wb3J0ZXIuYXBwP29iamVjdFNlbGVjdGlvbj1Qcm9kdWN0X01hcHBpbmdfX2MifSwic3RhdGUiOnt9fQ%3D%3D&quot;, &quot;Primary/Secondary Product Mapping&quot;),
+  &quot;Child_beat__c&quot;, 
+    HYPERLINK(&quot;https://ability-efficiency-3589.lightning.force.com/one/one.app#eyJjb21wb25lbnREZWYiOiJvbmU6YWxvaGFQYWdlIiwiYXR0cmlidXRlcyI6eyJhZGRyZXNzIjoiL2RhdGFJbXBvcnRlci9kYXRhSW1wb3J0ZXIuYXBwP29iamVjdFNlbGVjdGlvbj1DaGlsZF9iZWF0X19jIn0sInN0YXRlIjp7fX0%3D&quot;, &quot;Beat Data Upload&quot;),
+  &quot;Junction_Beat__c&quot;, 
+    HYPERLINK(&quot;https://ability-efficiency-3589.lightning.force.com/one/one.app#eyJjb21wb25lbnREZWYiOiJvbmU6YWxvaGFQYWdlIiwiYXR0cmlidXRlcyI6eyJhZGRyZXNzIjoiL2RhdGFJbXBvcnRlci9kYXRhSW1wb3J0ZXIuYXBwP29iamVjdFNlbGVjdGlvbj1KdW5jdGlvbl9CZWF0X19jIn0sInN0YXRlIjp7fX0%3D&quot;, &quot;Beat Items Data Upoad&quot;),
+  &quot;Calendar_beat__c&quot;, 
+    HYPERLINK(&quot;https://ability-efficiency-3589.lightning.force.com/one/one.app#eyJjb21wb25lbnREZWYiOiJvbmU6YWxvaGFQYWdlIiwiYXR0cmlidXRlcyI6eyJhZGRyZXNzIjoiL2RhdGFJbXBvcnRlci9kYXRhSW1wb3J0ZXIuYXBwP29iamVjdFNlbGVjdGlvbj1DYWxlbmRhcl9iZWF0X19jIn0sInN0YXRlIjp7fX0%3D&quot;, &quot;PJP Data Upload&quot;),
+  &quot;PJP_Item__c&quot;, 
+    HYPERLINK(&quot;https://ability-efficiency-3589.lightning.force.com/one/one.app#eyJjb21wb25lbnREZWYiOiJvbmU6YWxvaGFQYWdlIiwiYXR0cmlidXRlcyI6eyJhZGRyZXNzIjoiL2RhdGFJbXBvcnRlci9kYXRhSW1wb3J0ZXIuYXBwP29iamVjdFNlbGVjdGlvbj1QSlBfSXRlbV9fYyJ9LCJzdGF0ZSI6e319&quot;, &quot;PJP Item Data Upload&quot;),
+  &quot;Invoice_item__c&quot;, 
+    HYPERLINK(&quot;https://ability-efficiency-3589.lightning.force.com/one/one.app#eyJjb21wb25lbnREZWYiOiJvbmU6YWxvaGFQYWdlIiwiYXR0cmlidXRlcyI6eyJhZGRyZXNzIjoiL2RhdGFJbXBvcnRlci9kYXRhSW1wb3J0ZXIuYXBwP29iamVjdFNlbGVjdGlvbj1JbnZvaWNlX2l0ZW1fX2MifSwic3RhdGUiOnt9fQ%3D%3D&quot;, &quot;Sale Data Upload&quot;),
+  &quot;Price_Book__c&quot;, 
+    HYPERLINK(&quot;https://ability-efficiency-3589.lightning.force.com/one/one.app#eyJjb21wb25lbnREZWYiOiJvbmU6YWxvaGFQYWdlIiwiYXR0cmlidXRlcyI6eyJhZGRyZXNzIjoiL2RhdGFJbXBvcnRlci9kYXRhSW1wb3J0ZXIuYXBwP29iamVjdFNlbGVjdGlvbj1QcmljZV9Cb29rX19jIn0sInN0YXRlIjp7fX0%3D&quot;,&quot;Price Book Data Upload&quot;),
+  &quot;Sales_Channel_To_SKU__c&quot;, 
+    HYPERLINK(&quot;https://ability-efficiency-3589.lightning.force.com/one/one.app#eyJjb21wb25lbnREZWYiOiJvbmU6YWxvaGFQYWdlIiwiYXR0cmlidXRlcyI6eyJhZGRyZXNzIjoiL2RhdGFJbXBvcnRlci9kYXRhSW1wb3J0ZXIuYXBwP29iamVjdFNlbGVjdGlvbj1TYWxlc19DaGFubmVsX1RvX1NLVV9fYyJ9LCJzdGF0ZSI6e319&quot;,&quot;Sales Channel to SKU Mapping&quot;),
+  &quot;TargetActuals__c&quot;, 
+    HYPERLINK(&quot;https://ability-efficiency-3589.lightning.force.com/one/one.app#eyJjb21wb25lbnREZWYiOiJvbmU6YWxvaGFQYWdlIiwiYXR0cmlidXRlcyI6eyJhZGRyZXNzIjoiL2RhdGFJbXBvcnRlci9kYXRhSW1wb3J0ZXIuYXBwP29iamVjdFNlbGVjdGlvbj1UYXJnZXRBY3R1YWxzX19jIn0sInN0YXRlIjp7fX0%3D&quot;,&quot;Target Actual Data Upload&quot;),
+  &quot;Product__c&quot;, 
+    HYPERLINK(&quot;https://ability-efficiency-3589.my.salesforce-setup.com/one/one.app?SetupDomainReload=1&amp;SetupDomainProbePassed=true#eyJjb21wb25lbnREZWYiOiJvbmU6YWxvaGFQYWdlIiwiYXR0cmlidXRlcyI6eyJhZGRyZXNzIjoiL2RhdGFJbXBvcnRlci9kYXRhSW1wb3J0ZXIuYXBwP29iamVjdFNlbGVjdGlvbj1Qcm9kdWN0X19jIn0sInN0YXRlIjp7fX0%3D&quot;,&quot;SKU Data Upload&quot;),
+  &quot;No Link&quot;
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>Standard Data Upload URL</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

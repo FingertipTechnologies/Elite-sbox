@@ -91,6 +91,47 @@ public class SecondaryTarget_ControllerTest {
     }
 
     @isTest
+    static void testDuplicateActiveTargetBlocked() {
+        Target_Criteria__c crit = [SELECT Id FROM Target_Criteria__c LIMIT 1];
+        User u = [SELECT Id FROM User WHERE LastName = 'stctrl' LIMIT 1];
+
+        // Seeded target covers today-5 .. today+5. A new active target overlapping that
+        // window for the same user + criteria must be rejected.
+        Secondary_Target__c dup = new Secondary_Target__c(
+            User__c = u.Id, Target_Criteria__c = crit.Id, Target_Value__c = 500,
+            Is_Active__c = true,
+            Start_Date__c = Date.today(), End_Date__c = Date.today().addDays(10)
+        );
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            SecondaryTarget_Controller.saveTarget(dup);
+        } catch (AuraHandledException e) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'overlapping active duplicate should be blocked');
+
+        // Inactive duplicate is allowed.
+        Secondary_Target__c inactive = new Secondary_Target__c(
+            User__c = u.Id, Target_Criteria__c = crit.Id, Target_Value__c = 500,
+            Is_Active__c = false,
+            Start_Date__c = Date.today(), End_Date__c = Date.today().addDays(10)
+        );
+        Secondary_Target__c saved = SecondaryTarget_Controller.saveTarget(inactive);
+        System.assertNotEquals(null, saved.Id);
+
+        // Editing the original record (same Id) must NOT trigger self-conflict.
+        Secondary_Target__c orig = [SELECT Id, User__c, Target_Criteria__c, Target_Value__c,
+                                           Is_Active__c, Start_Date__c, End_Date__c
+                                    FROM Secondary_Target__c
+                                    WHERE Is_Active__c = true LIMIT 1];
+        orig.Target_Value__c = 3000;
+        Secondary_Target__c reSaved = SecondaryTarget_Controller.saveTarget(orig);
+        System.assertEquals(3000, reSaved.Target_Value__c);
+    }
+
+    @isTest
     static void testRecalculateTarget() {
         Secondary_Target__c t = [SELECT Id FROM Secondary_Target__c LIMIT 1];
 
@@ -102,6 +143,50 @@ public class SecondaryTarget_ControllerTest {
         System.assertEquals(50.00, updated.Achievement_Percent__c, '1000 / 2000');
         System.assertEquals(1000.00, updated.Pending_Target__c, '2000 - 1000');
         System.assertNotEquals(null, updated.Last_Updated__c);
+    }
+
+    @isTest
+    static void testImportTargetsInsertUpdateError() {
+        Target_Criteria__c crit = [SELECT Id, Name FROM Target_Criteria__c LIMIT 1];
+        User u = [SELECT Id, Username, Name FROM User WHERE LastName = 'stctrl' LIMIT 1];
+        Secondary_Target__c existing = [SELECT Id FROM Secondary_Target__c LIMIT 1];
+
+        // Use non-overlapping dates so the duplicate guard isn't triggered for the new row.
+        SecondaryTarget_Controller.ImportRow rNew = new SecondaryTarget_Controller.ImportRow();
+        rNew.username = u.Username;
+        rNew.criteriaName = crit.Name;
+        rNew.startDate = String.valueOf(Date.today().addDays(20));
+        rNew.endDate = String.valueOf(Date.today().addDays(50));
+        rNew.targetValue = 1500;
+        rNew.isActive = true;
+
+        SecondaryTarget_Controller.ImportRow rUpd = new SecondaryTarget_Controller.ImportRow();
+        rUpd.targetId = existing.Id;
+        rUpd.username = u.Username;
+        rUpd.criteriaName = crit.Name;
+        rUpd.startDate = String.valueOf(Date.today().addDays(-5));
+        rUpd.endDate = String.valueOf(Date.today().addDays(5));
+        rUpd.targetValue = 2500;
+        rUpd.isActive = true;
+
+        SecondaryTarget_Controller.ImportRow rBad = new SecondaryTarget_Controller.ImportRow();
+        rBad.username = u.Username;
+        rBad.criteriaName = 'No Such Criteria';
+        rBad.startDate = String.valueOf(Date.today().addDays(60));
+        rBad.endDate = String.valueOf(Date.today().addDays(70));
+        rBad.targetValue = 100;
+        rBad.isActive = true;
+
+        Test.startTest();
+        SecondaryTarget_Controller.ImportResult res =
+            SecondaryTarget_Controller.importTargets(new List<SecondaryTarget_Controller.ImportRow>{ rNew, rUpd, rBad });
+        Test.stopTest();
+
+        System.assertEquals(1, res.createdCount, 'one inserted');
+        System.assertEquals(1, res.updatedCount, 'one updated');
+        System.assertEquals(1, res.errors.size(), 'one error captured for unknown criteria');
+        System.assertEquals(2500, [SELECT Target_Value__c FROM Secondary_Target__c WHERE Id = :existing.Id].Target_Value__c,
+            'updated value persisted');
     }
 
     @isTest

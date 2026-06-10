@@ -6,7 +6,6 @@
     <inlineHelpText>The salesperson. Mapped during import (e.g. by Username). Designation derives from this User.</inlineHelpText>
     <label>User</label>
     <referenceTo>User</referenceTo>
-    <relationshipLabel>PBIS Targets</relationshipLabel>
     <relationshipName>PBIS_Targets</relationshipName>
     <required>false</required>
     <trackHistory>false</trackHistory>

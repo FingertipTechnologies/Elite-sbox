@@ -9,12 +9,22 @@ import saveTarget from '@salesforce/apex/SecondaryTarget_Controller.saveTarget';
 import deleteTarget from '@salesforce/apex/SecondaryTarget_Controller.deleteTarget';
 import recalculateAll from '@salesforce/apex/SecondaryTarget_Controller.recalculateAll';
 import recalculateTarget from '@salesforce/apex/SecondaryTarget_Controller.recalculateTarget';
+import importTargets from '@salesforce/apex/SecondaryTarget_Controller.importTargets';
+
+const CSV_HEADERS = [
+    'Target Id', 'User Username', 'Criteria Name', 'Focus Pack Name', 'Sales Channel',
+    'Year', 'Start Date (YYYY-MM-DD)', 'End Date (YYYY-MM-DD)', 'Target Value', 'Is Active'
+];
+const CSV_SAMPLES = [
+    ['', 'sunny.pj@example.com', 'Sec Revenue', '', 'TN', '2026', '2026-05-01', '2026-05-31', '100000', 'TRUE'],
+    ['', 'sunny.pj@example.com', 'Focus Pack ECO', 'Brownie', 'TN', '2026', '2026-05-01', '2026-05-31', '3', 'TRUE'],
+    ['a0X5j00000ABCDE', 'sunny.pj@example.com', 'Sec Revenue', '', 'TN', '2026', '2026-05-01', '2026-05-31', '120000', 'TRUE']
+];
 
 const COLUMNS = [
     { label: 'Target', fieldName: 'Name', type: 'text', initialWidth: 110 },
     { label: 'User', fieldName: 'userName', type: 'text' },
     { label: 'Criteria', fieldName: 'criteriaName', type: 'text' },
-    { label: 'Type', fieldName: 'operator', type: 'text', initialWidth: 160 },
     { label: 'Focus Pack', fieldName: 'packName', type: 'text' },
     { label: 'Channel', fieldName: 'Sales_Channel__c', type: 'text', initialWidth: 100 },
     { label: 'Start', fieldName: 'Start_Date__c', type: 'date-local', initialWidth: 110,
@@ -75,6 +85,12 @@ export default class SecondaryTargetManager extends LightningElement {
     @track form = { ...EMPTY_FORM };
     @track userResults = [];
     @track showUserResults = false;
+
+    // import-results modal state
+    @track showImportResults = false;
+    @track importCreated = 0;
+    @track importUpdated = 0;
+    @track importErrors = [];
 
     connectedCallback() {
         this.loadCriteriaOptions();
@@ -314,6 +330,113 @@ export default class SecondaryTargetManager extends LightningElement {
             .catch(e => this.toast('Error', this.msg(e), 'error'))
             .finally(() => { this.isLoading = false; });
     }
+
+    get hasImportErrors() { return this.importErrors && this.importErrors.length > 0; }
+    get importErrorCount() { return this.importErrors ? this.importErrors.length : 0; }
+    get importToastVariant() { return this.hasImportErrors ? 'warning' : 'success'; }
+
+    // ===== CSV Template =====
+    handleDownloadTemplate() {
+        const lines = [CSV_HEADERS, ...CSV_SAMPLES]
+            .map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','))
+            .join('\n');
+        // BOM for Excel UTF-8 friendliness
+        const blob = new Blob(['﻿' + lines], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'secondary_targets_template.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // ===== CSV Import =====
+    openFilePicker() {
+        const input = this.template.querySelector('.csv-file-input');
+        if (input) {
+            input.value = null; // reset so picking the same file again still fires change
+            input.click();
+        }
+    }
+
+    handleImportFile(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const text = ev.target.result;
+            const rows = this.parseCsv(text);
+            if (!rows.length) {
+                this.toast('Validation', 'CSV has no data rows.', 'error');
+                return;
+            }
+            this.runImport(rows);
+        };
+        reader.onerror = () => this.toast('Error', 'Could not read the file.', 'error');
+        reader.readAsText(file);
+    }
+
+    parseCsv(text) {
+        const lines = text.split(/\r?\n/).filter(l => l.length > 0);
+        if (lines.length < 2) return [];
+        const headers = this.splitCsvLine(lines[0]).map(h => h.trim());
+        const out = [];
+        for (let i = 1; i < lines.length; i++) {
+            const cells = this.splitCsvLine(lines[i]);
+            if (cells.every(c => !c || !c.trim())) continue;
+            const row = {};
+            headers.forEach((h, j) => { row[h] = (cells[j] !== undefined ? String(cells[j]).trim() : ''); });
+            out.push({
+                targetId: row['Target Id'] || null,
+                username: row['User Username'] || '',
+                criteriaName: row['Criteria Name'] || '',
+                focusPackName: row['Focus Pack Name'] || null,
+                salesChannel: row['Sales Channel'] || null,
+                targetYear: row['Year'] ? Number(row['Year']) : null,
+                startDate: row['Start Date (YYYY-MM-DD)'] || '',
+                endDate: row['End Date (YYYY-MM-DD)'] || '',
+                targetValue: row['Target Value'] ? Number(row['Target Value']) : null,
+                isActive: (row['Is Active'] || '').toUpperCase() === 'TRUE'
+            });
+        }
+        return out;
+    }
+
+    splitCsvLine(line) {
+        const out = [];
+        let cur = '';
+        let inQ = false;
+        for (let i = 0; i < line.length; i++) {
+            const c = line[i];
+            if (c === '"') {
+                if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+                else inQ = !inQ;
+            } else if (c === ',' && !inQ) {
+                out.push(cur);
+                cur = '';
+            } else {
+                cur += c;
+            }
+        }
+        out.push(cur);
+        return out;
+    }
+
+    runImport(rows) {
+        this.isLoading = true;
+        importTargets({ rows })
+            .then(res => {
+                this.importCreated = res.createdCount || 0;
+                this.importUpdated = res.updatedCount || 0;
+                this.importErrors = (res.errors || []).map((m, i) => ({ id: i + 1, message: m }));
+                this.showImportResults = true;
+                this.loadTargets();
+            })
+            .catch(e => this.toast('Error', this.msg(e), 'error'))
+            .finally(() => { this.isLoading = false; });
+    }
+
+    handleCloseImportResults() { this.showImportResults = false; }
 
     handleRecalcAll() {
         this.isLoading = true;

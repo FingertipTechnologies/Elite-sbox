@@ -218,6 +218,22 @@ public class EmployeeTriggerHandler {
         
         
         List<User> usersToUpdate = new List<User>();
+
+        // User cannot hold a lookup to a custom object, so PBIS Policy is mirrored onto User
+        // as two text fields: the policy Id and its Name. Relationship fields (PBIS_Policy__r)
+        // aren't available on Trigger.new, so resolve the names via a query.
+        Set<Id> pbisPolicyIds = new Set<Id>();
+        for (Employee__c emp : newEmployees) {
+            if (emp.PBIS_Policy__c != null) {
+                pbisPolicyIds.add(emp.PBIS_Policy__c);
+            }
+        }
+        Map<Id, PBIS_Policy__c> pbisPolicyMap = new Map<Id, PBIS_Policy__c>();
+        if (!pbisPolicyIds.isEmpty()) {
+            pbisPolicyMap = new Map<Id, PBIS_Policy__c>(
+                [SELECT Id, Name FROM PBIS_Policy__c WHERE Id IN :pbisPolicyIds]);
+        }
+
         for (Employee__c emp : newEmployees) {
             Employee__c oldEmp = oldEmployeeMap.get(emp.Id);
             // When thse fields upadated we are updating Users
@@ -430,6 +446,12 @@ public class EmployeeTriggerHandler {
                 if(emp.Alternate_Sales_Channel__c != oldEmp.Alternate_Sales_Channel__c)
                 {
                     newUser.Alternate_Sales_Channel__c = emp.Alternate_Sales_Channel__c;
+                }
+                if(emp.PBIS_Policy__c != oldEmp.PBIS_Policy__c)
+                {
+                    newUser.PBIS_Policy__c = emp.PBIS_Policy__c;
+                    newUser.PBIS_Policy_Name__c = (emp.PBIS_Policy__c != null && pbisPolicyMap.containsKey(emp.PBIS_Policy__c))
+                        ? pbisPolicyMap.get(emp.PBIS_Policy__c).Name : null;
                 }
 
                 usersToUpdate.add(newUser);

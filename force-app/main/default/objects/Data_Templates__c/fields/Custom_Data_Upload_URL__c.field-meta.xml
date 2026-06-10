@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Custom_Data_Upload_URL__c</fullName>
+    <externalId>false</externalId>
+    <formula>CASE(
+  TEXT(Object_Name__c),
+  
+  &quot;Account&quot;, 
+    HYPERLINK(&quot;chrome-extension://hpijlohoihegkfehhibggnkbjhoemldh/data-import.html?host=ability-efficiency-3589.my.salesforce.com&amp;sobject=&quot; &amp;Text(Object_Name__c), &quot;Customer Data Upload&quot;),
+
+  &quot;Employee_Customer_Assignment__c&quot;, 
+
+HYPERLINK(&quot;chrome-extension://hpijlohoihegkfehhibggnkbjhoemldh/data-import.html?host=ability-efficiency-3589.my.salesforce.com&amp;sobject=&quot; &amp;Text(Object_Name__c), &quot;DSM/SSA Primary Data Upload&quot;),
+
+  &quot;Product_Mapping__c&quot;, 
+HYPERLINK(&quot;chrome-extension://hpijlohoihegkfehhibggnkbjhoemldh/data-import.html?host=ability-efficiency-3589.my.salesforce.com&amp;sobject=&quot; &amp;Text(Object_Name__c), &quot;Primary/Secondary Product Mapping&quot;),
+
+
+  &quot;Child_beat__c&quot;, 
+HYPERLINK(&quot;chrome-extension://hpijlohoihegkfehhibggnkbjhoemldh/data-import.html?host=ability-efficiency-3589.my.salesforce.com&amp;sobject=&quot; &amp;Text(Object_Name__c), &quot;Beat Data Upload&quot;),
+
+
+  &quot;Junction_Beat__c&quot;, 
+HYPERLINK(&quot;chrome-extension://hpijlohoihegkfehhibggnkbjhoemldh/data-import.html?host=ability-efficiency-3589.my.salesforce.com=&quot; &amp;Text(Object_Name__c), &quot;Beat Items Data Upload&quot;),
+
+  &quot;Calendar_beat__c&quot;, 
+HYPERLINK(&quot;chrome-extension://hpijlohoihegkfehhibggnkbjhoemldh/data-import.html?host=ability-efficiency-3589.my.salesforce.com&amp;sobject=&quot; &amp;Text(Object_Name__c), &quot;PJP Data Upload&quot;),
+
+
+  &quot;PJP_Item__c&quot;, 
+HYPERLINK(&quot;chrome-extension://hpijlohoihegkfehhibggnkbjhoemldh/data-import.html?host=ability-efficiency-3589.my.salesforce.com&amp;sobject=&quot; &amp;Text(Object_Name__c), &quot;PJP Item Data Upload&quot;),
+
+  &quot;Invoice_item__c&quot;, 
+HYPERLINK(&quot;chrome-extension://hpijlohoihegkfehhibggnkbjhoemldh/data-import.html?host=ability-efficiency-3589.my.salesforce.com&amp;sobject=&quot; &amp;Text(Object_Name__c), &quot;Sale Data Upload&quot;),
+
+  &quot;Price_Book__c&quot;, 
+HYPERLINK(&quot;chrome-extension://hpijlohoihegkfehhibggnkbjhoemldh/data-import.html?host=ability-efficiency-3589.my.salesforce.com&amp;sobject=&quot; &amp;Text(Object_Name__c), &quot;Price Book Data Upload&quot;),
+
+  &quot;Password Reset&quot;, 
+HYPERLINK(&quot;https://workbench.developerforce.com/login.php?startUrl=%2FpwdMgmt.php&quot;, &quot;Password Reset&quot;),
+
+  &quot;Sales_Channel_To_SKU__c&quot;, 
+HYPERLINK(&quot;chrome-extension://hpijlohoihegkfehhibggnkbjhoemldh/data-import.html?host=ability-efficiency-3589.my.salesforce.com&amp;sobject=&quot; &amp;Text(Object_Name__c), &quot;Sales to SKU Mapping&quot;),
+  &quot;TargetActuals__c&quot;, 
+HYPERLINK(&quot;chrome-extension://hpijlohoihegkfehhibggnkbjhoemldh/data-import.html?host=ability-efficiency-3589.my.salesforce.com&amp;sobject=&quot; &amp;Text(Object_Name__c), &quot;Target Actuals Data Upload&quot;),
+  &quot;Employee__c&quot;, 
+HYPERLINK(&quot;chrome-extension://hpijlohoihegkfehhibggnkbjhoemldh/data-import.html?host=ability-efficiency-3589.my.salesforce.com&amp;sobject=&quot; &amp;Text(Object_Name__c), &quot;Employee Data Upload&quot;),
+
+  &quot;Product__c&quot;, 
+HYPERLINK(&quot;chrome-extension://hpijlohoihegkfehhibggnkbjhoemldh/data-import.html?host=ability-efficiency-3589.my.salesforce.com&amp;sobject=&quot; &amp;Text(Object_Name__c), &quot;SKU Data Upload&quot;),
+  &quot;PBIS_Target__c&quot;, 
+HYPERLINK(&quot;chrome-extension://hpijlohoihegkfehhibggnkbjhoemldh/data-import.html?host=ability-efficiency-3589--sbox2.sandbox.my.salesforce.com&amp;sobject=&quot; &amp;Text(Object_Name__c), &quot;Primary PBIS Data Upload&quot;),
+
+
+
+  /* Default if nothing matches */
+  &quot;No Link Available&quot;
+
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>Custom Data Upload URL</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

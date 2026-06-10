@@ -503,4 +503,49 @@ private class EmployeeTriggerHandlerTest {
         List<AccountShare> shares = [SELECT Id FROM AccountShare WHERE UserOrGroupId = :testUser.Id AND AccountId = :testAccount.Id];
         //System.assert(!shares.isEmpty(), 'Account shares should be recreated');
     }
+
+    // Verifies that changing PBIS_Policy__c on an Employee mirrors onto the related User.
+    // Also exercises the partial-success UpdateUsersQueueable across a bulk of employees,
+    // so a single bad row can no longer roll back the rest of the User sync.
+    @isTest
+    static void testPbisPolicySyncToUser() {
+        User userA = [SELECT Id FROM User WHERE Username = 'manager.useruser@test.com' LIMIT 1];
+        User userB = [SELECT Id FROM User WHERE Username = 'admin.useruser@test.com' LIMIT 1];
+
+        PBIS_Policy__c policy = new PBIS_Policy__c(Name = 'Test PBIS Policy');
+        insert policy;
+
+        List<Employee__c> emps = new List<Employee__c>{
+            new Employee__c(
+                Name = 'Pbis Employee A', User__c = userA.Id, Reporting_Manager__c = userA.Id,
+                IsDataUpload__c = true, Mail_Id__c = 'pbisa@gmail.com', Aadhar_Number__c = '119977663391',
+                Profile__c = 'ASM', Sales_Channel__c = 'TN', User_Name__c = 'pbisa@tstasm.com'),
+            new Employee__c(
+                Name = 'Pbis Employee B', User__c = userB.Id, Reporting_Manager__c = userA.Id,
+                IsDataUpload__c = true, Mail_Id__c = 'pbisb@gmail.com', Aadhar_Number__c = '119977663392',
+                Profile__c = 'ASM', Sales_Channel__c = 'TN', User_Name__c = 'pbisb@tstasm.com')
+        };
+        insert emps;
+
+        // Bulk update both employees' PBIS_Policy__c, mimicking a data upload.
+        for (Employee__c e : emps) {
+            e.PBIS_Policy__c = policy.Id;
+        }
+
+        Test.startTest();
+        update emps;
+        Test.stopTest(); // forces UpdateUsersQueueable to run
+
+        Map<Id, User> updatedUsers = new Map<Id, User>(
+            [SELECT Id, PBIS_Policy__c, PBIS_Policy_Name__c FROM User WHERE Id IN (:userA.Id, :userB.Id)]);
+        String policyId = String.valueOf(policy.Id);
+        System.assertEquals(policyId, updatedUsers.get(userA.Id).PBIS_Policy__c,
+            'User A PBIS_Policy__c should store the Employee policy Id');
+        System.assertEquals('Test PBIS Policy', updatedUsers.get(userA.Id).PBIS_Policy_Name__c,
+            'User A PBIS_Policy_Name__c should store the policy name');
+        System.assertEquals(policyId, updatedUsers.get(userB.Id).PBIS_Policy__c,
+            'User B PBIS_Policy__c should store the Employee policy Id');
+        System.assertEquals('Test PBIS Policy', updatedUsers.get(userB.Id).PBIS_Policy_Name__c,
+            'User B PBIS_Policy_Name__c should store the policy name');
+    }
 }
