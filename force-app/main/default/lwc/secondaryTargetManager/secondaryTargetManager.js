@@ -428,7 +428,7 @@ export default class SecondaryTargetManager extends LightningElement {
             .then(res => {
                 this.importCreated = res.createdCount || 0;
                 this.importUpdated = res.updatedCount || 0;
-                this.importErrors = res.errors || [];
+                this.importErrors = (res.errors || []).map((m, i) => ({ id: i + 1, message: m }));
                 this.showImportResults = true;
                 this.loadTargets();
             })

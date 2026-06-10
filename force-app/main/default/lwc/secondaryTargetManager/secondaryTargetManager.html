@@ -192,8 +192,8 @@
                         </h3>
                         <ul class="slds-list_dotted slds-m-top_x-small slds-scrollable_y"
                             style="max-height: 18rem;">
-                            <template for:each={importErrors} for:item="err" for:index="i">
-                                <li key={i}>{err}</li>
+                            <template for:each={importErrors} for:item="err">
+                                <li key={err.id}>{err.message}</li>
                             </template>
                         </ul>
                     </template>
