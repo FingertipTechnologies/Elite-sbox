@@ -30,7 +30,6 @@ const TOTAL_COLUMNS = [
 
 const LINE_COLUMNS = [
     { label: 'Criterion', fieldName: 'criteriaName', type: 'text' },
-    { label: 'Type', fieldName: 'operator', type: 'text', initialWidth: 160 },
     { label: 'Focus Pack', fieldName: 'packName', type: 'text' },
     { label: 'Compare', fieldName: 'Compare_On__c', type: 'text', initialWidth: 90 },
     { label: 'Achievement Value', fieldName: 'Achievement_Value__c', type: 'number',

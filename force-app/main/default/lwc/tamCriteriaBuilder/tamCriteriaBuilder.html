@@ -166,8 +166,8 @@
             </div>
 
             <div class="tcb-detail-content slds-grid slds-gutters slds-wrap">
-                <!-- Left: Details -->
-                <div class="slds-col slds-size_2-of-3">
+                <!-- Details (full width — the legacy Generated Query Preview column has been removed) -->
+                <div class="slds-col slds-size_1-of-1">
                     <section class="tcb-card general">
                         <div class="tcb-card-header">
                             <span>Criteria Information</span>
@@ -209,28 +209,6 @@
                                     <span class="tcb-detail-label">Filter Logic</span>
                                     <span class="tcb-detail-value">{selectedCriteria.Filter_Logic__c}</span>
                                 </div>
-                                <div class="tcb-detail-field">
-                                    <span class="tcb-detail-label">Incentive Weight</span>
-                                    <span class="tcb-detail-value">
-                                        <template if:true={selectedCriteria.Incentive_Weight__c}>
-                                            {selectedCriteria.Incentive_Weight__c}%
-                                        </template>
-                                        <template if:false={selectedCriteria.Incentive_Weight__c}>
-                                            <span class="slds-text-color_weak">No weighting</span>
-                                        </template>
-                                    </span>
-                                </div>
-                                <div class="tcb-detail-field">
-                                    <span class="tcb-detail-label">Prerequisite</span>
-                                    <span class="tcb-detail-value">
-                                        <template if:true={selectedCriteria.Prerequisite_Criteria__c}>
-                                            {selectedCriteria.Prerequisite_Criteria__r.Name} (min {selectedCriteria.Prerequisite_Min_Percent__c}%)
-                                        </template>
-                                        <template if:false={selectedCriteria.Prerequisite_Criteria__c}>
-                                            <span class="slds-text-color_weak">None</span>
-                                        </template>
-                                    </span>
-                                </div>
                             </div>
                         </div>
                     </section>
@@ -250,20 +228,6 @@
                             </div>
                         </section>
                     </template>
-                </div>
-
-                <!-- Right: Summary Card -->
-                <div class="slds-col slds-size_1-of-3">
-                    <div class="tcb-summary-sticky">
-                        <section class="tcb-card json">
-                            <div class="tcb-card-header">
-                                <span>Generated Query Preview</span>
-                            </div>
-                            <div class="tcb-card-body">
-                                <pre class="tcb-query-preview">{detailQueryPreview}</pre>
-                            </div>
-                        </section>
-                    </div>
                 </div>
             </div>
         </template>
