@@ -2,7 +2,7 @@ import { LightningElement, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import FORM_FACTOR from '@salesforce/client/formFactor';
 import getDashboard from '@salesforce/apex/SecondaryKpiDashboard_Controller.getDashboard';
-import getBreadcrumbs from '@salesforce/apex/SecondaryKpiDashboard_Controller.getBreadcrumbs';
+import getDsmSsaSubordinates from '@salesforce/apex/SecondaryKpiDashboard_Controller.getDsmSsaSubordinates';
 
 const MONTHS = [
     { label: 'January', value: 1 }, { label: 'February', value: 2 },
@@ -11,48 +11,6 @@ const MONTHS = [
     { label: 'July', value: 7 }, { label: 'August', value: 8 },
     { label: 'September', value: 9 }, { label: 'October', value: 10 },
     { label: 'November', value: 11 }, { label: 'December', value: 12 }
-];
-
-const CCY = { currencyCode: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 };
-
-const TEAM_COLUMNS = [
-    { label: 'Lead', fieldName: 'leadUserName', type: 'text', wrapText: true },
-    { label: 'Role', fieldName: 'leadRole', type: 'text', initialWidth: 140 },
-    { label: 'Targeted', fieldName: 'teamSize', type: 'number',
-      cellAttributes: { alignment: 'right' }, initialWidth: 110 },
-    { label: 'Active Targets', fieldName: 'activeTargets', type: 'number',
-      cellAttributes: { alignment: 'right' }, initialWidth: 130 },
-    { label: 'Target', fieldName: 'totalTarget', type: 'currency',
-      typeAttributes: CCY, cellAttributes: { alignment: 'right' } },
-    { label: 'Achievement', fieldName: 'totalAchievement', type: 'currency',
-      typeAttributes: CCY, cellAttributes: { alignment: 'right' } },
-    { label: 'Ach %', fieldName: 'achievementPct', type: 'number',
-      typeAttributes: { maximumFractionDigits: '1' },
-      cellAttributes: { alignment: 'right', class: { fieldName: 'pctClass' } },
-      initialWidth: 110 },
-    { label: 'Incentive', fieldName: 'totalIncentive', type: 'currency',
-      typeAttributes: CCY, cellAttributes: { alignment: 'right' } },
-    {
-        type: 'action',
-        typeAttributes: {
-            rowActions: [{ label: 'Drill into team', name: 'drill' }]
-        }
-    }
-];
-
-const PERFORMER_COLUMNS = [
-    { label: 'User', fieldName: 'userName', type: 'text', wrapText: true },
-    { label: 'Role', fieldName: 'role', type: 'text', initialWidth: 130 },
-    { label: 'Target', fieldName: 'totalTarget', type: 'currency',
-      typeAttributes: CCY, cellAttributes: { alignment: 'right' } },
-    { label: 'Achievement', fieldName: 'totalAchievement', type: 'currency',
-      typeAttributes: CCY, cellAttributes: { alignment: 'right' } },
-    { label: 'Ach %', fieldName: 'achievementPct', type: 'number',
-      typeAttributes: { maximumFractionDigits: '1' },
-      cellAttributes: { alignment: 'right', class: { fieldName: 'pctClass' } },
-      initialWidth: 100 },
-    { label: 'Incentive', fieldName: 'totalIncentive', type: 'currency',
-      typeAttributes: CCY, cellAttributes: { alignment: 'right' } }
 ];
 
 const INR = new Intl.NumberFormat('en-IN', {
@@ -67,37 +25,66 @@ function num(v) {
     return isNaN(n) ? 0 : n;
 }
 
+const CCY = { currencyCode: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 };
+
+const TARGET_COLUMNS = [
+    { label: 'Target', fieldName: 'targetName', type: 'text', initialWidth: 110 },
+    { label: 'Criterion', fieldName: 'criterionName', type: 'text', wrapText: true },
+    { label: 'Focus Pack', fieldName: 'focusPackName', type: 'text', wrapText: true },
+    { label: 'Channel', fieldName: 'channel', type: 'text', initialWidth: 110 },
+    { label: 'Target', fieldName: 'targetValue', type: 'currency',
+      typeAttributes: CCY, cellAttributes: { alignment: 'right' } },
+    { label: 'Achievement', fieldName: 'achievementValue', type: 'currency',
+      typeAttributes: CCY, cellAttributes: { alignment: 'right' } },
+    { label: 'Ach %', fieldName: 'achievementPct', type: 'number',
+      typeAttributes: { maximumFractionDigits: '1' },
+      cellAttributes: { alignment: 'right', class: { fieldName: 'pctClass' } },
+      initialWidth: 100 },
+    { label: 'Pending', fieldName: 'pendingTarget', type: 'currency',
+      typeAttributes: CCY, cellAttributes: { alignment: 'right' } },
+    { label: 'Working Days', fieldName: 'workingDays', type: 'number',
+      cellAttributes: { alignment: 'right' }, initialWidth: 130 },
+    { label: 'Incentive', fieldName: 'incentive', type: 'currency',
+      typeAttributes: CCY, cellAttributes: { alignment: 'right' } }
+];
+
 export default class SecondaryKpiDashboard extends LightningElement {
     monthOptions = MONTHS;
-    teamColumns = TEAM_COLUMNS;
-    performerColumns = PERFORMER_COLUMNS;
+    targetColumns = TARGET_COLUMNS;
 
     // FORM_FACTOR is 'Small' inside the Salesforce mobile app, 'Large' on desktop.
-    // DSM/SSAs work on phones, so swap the dense datatables for card lists when small.
+    // DSM/SSAs work on phones, so swap the dense datatable for card list when small.
     isMobile = FORM_FACTOR === 'Small';
 
     @track year;
     @track month;
-    @track rootUserId;
+    @track selectedUserId;
+    @track userOptions = [];
     @track data;
     @track isLoading = false;
-    @track breadcrumbs = [];
 
     connectedCallback() {
         const now = new Date();
         this.year = now.getFullYear();
         this.month = now.getMonth() + 1;
-        this.load();
+        this.loadOptionsAndDashboard();
     }
 
-    // ===== Getters for the template =====
+    // ===== Getters =====
 
-    get periodLabel() {
-        const m = MONTHS.find(o => o.value === Number(this.month));
-        return (m ? m.label : '') + ' ' + (this.year || '');
-    }
     get hasData() { return !!this.data; }
-    get hero() { return this.data && this.data.hero ? this.data.hero : null; }
+    get viewerIsManager() {
+        return !!this.data && this.data.viewerIsDsmSsa === false;
+    }
+    // Show the user picker only for managers who actually have DSM/SSAs to pick from.
+    get showPicker() {
+        return this.viewerIsManager && this.userOptions.length > 1;
+    }
+    get noSubordinates() {
+        return !!this.data && this.data.noSubordinates === true;
+    }
+
+    get hero() { return this.data ? this.data.hero : null; }
     get hasHero() { return !!this.hero; }
 
     get heroAchievementPct() {
@@ -117,103 +104,35 @@ export default class SecondaryKpiDashboard extends LightningElement {
         return `width:${v}%;`;
     }
 
-    get teams() {
-        const rows = (this.data && this.data.teams) || [];
-        return rows.map(r => this.decorateTeam(r));
-    }
-    get hasTeams() { return this.teams.length > 0; }
-
-    get topPerformers() {
-        const rows = (this.data && this.data.topPerformers) || [];
-        return rows.map(r => this.decoratePerformer(r));
-    }
-    get bottomPerformers() {
-        const rows = (this.data && this.data.bottomPerformers) || [];
-        return rows.map(r => this.decoratePerformer(r));
+    get headerLine() {
+        if (!this.data || !this.data.selectedUserName) return '';
+        const parts = [this.data.selectedUserName];
+        if (this.data.selectedUserRole) parts.push(this.data.selectedUserRole);
+        if (this.data.employeeCode) parts.push(this.data.employeeCode);
+        return parts.join(' · ');
     }
 
-    decorateTeam(r) {
+    get targets() {
+        const rows = (this.data && this.data.targets) || [];
+        return rows.map(r => this.decorateTarget(r));
+    }
+    get hasTargets() { return this.targets.length > 0; }
+
+    decorateTarget(r) {
         const pct = num(r.achievementPct);
         return {
             ...r,
             pctClass: this.pctClassForCell(pct),
             pctText: pct.toFixed(1) + '%',
-            targetText: INR.format(num(r.totalTarget)),
-            achText: INR.format(num(r.totalAchievement)),
-            incentiveText: INR.format(num(r.totalIncentive)),
+            targetText: INR.format(num(r.targetValue)),
+            achText: INR.format(num(r.achievementValue)),
+            pendingText: INR.format(num(r.pendingTarget)),
+            incentiveText: INR.format(num(r.incentive)),
             barStyle: `width:${Math.min(pct, 100)}%;`,
             barClass: 'progress-fill ' + this.pctBucket(pct),
             badgeClass: 'kpi-badge ' + this.pctBucket(pct)
         };
     }
-    decoratePerformer(r) {
-        const pct = num(r.achievementPct);
-        return {
-            ...r,
-            pctClass: this.pctClassForCell(pct),
-            pctText: pct.toFixed(1) + '%',
-            targetText: INR.format(num(r.totalTarget)),
-            achText: INR.format(num(r.totalAchievement)),
-            incentiveText: INR.format(num(r.totalIncentive)),
-            barStyle: `width:${Math.min(pct, 100)}%;`,
-            barClass: 'progress-fill ' + this.pctBucket(pct),
-            badgeClass: 'kpi-badge ' + this.pctBucket(pct)
-        };
-    }
-    get hasTopPerformers() { return this.topPerformers.length > 0; }
-    get hasBottomPerformers() { return this.bottomPerformers.length > 0; }
-
-    get channelRows() {
-        const rows = (this.data && this.data.channels) || [];
-        return rows.map(r => {
-            const pct = num(r.achievementPct);
-            return {
-                ...r,
-                barStyle: `width:${Math.min(pct, 100)}%;`,
-                pctText: pct.toFixed(1) + '%',
-                targetText: INR.format(num(r.totalTarget)),
-                achText: INR.format(num(r.totalAchievement)),
-                barClass: 'progress-fill ' + this.pctBucket(pct),
-                channelLabel: r.channel || '— No channel —'
-            };
-        });
-    }
-    get hasChannels() { return this.channelRows.length > 0; }
-
-    get criteriaRows() {
-        const rows = (this.data && this.data.criteria) || [];
-        return rows.map(r => {
-            const pct = num(r.achievementPct);
-            return {
-                ...r,
-                barStyle: `width:${Math.min(pct, 100)}%;`,
-                pctText: pct.toFixed(1) + '%',
-                targetText: INR.format(num(r.totalTarget)),
-                achText: INR.format(num(r.totalAchievement)),
-                barClass: 'progress-fill ' + this.pctBucket(pct)
-            };
-        });
-    }
-    get hasCriteria() { return this.criteriaRows.length > 0; }
-
-    get rootHeading() {
-        if (!this.data) return 'KPI Dashboard';
-        const role = this.data.rootRole ? ` · ${this.data.rootRole}` : '';
-        return `${this.data.rootUserName}${role}`;
-    }
-
-    get crumbView() {
-        // mark the last crumb as current (not clickable)
-        const cs = this.breadcrumbs || [];
-        return cs.map((c, i) => ({
-            ...c,
-            isCurrent: i === cs.length - 1,
-            isClickable: i !== cs.length - 1
-        }));
-    }
-    get hasBreadcrumbs() { return (this.breadcrumbs || []).length > 1; }
-
-    // ===== Helpers =====
 
     pctBucket(p) {
         const v = num(p);
@@ -234,57 +153,55 @@ export default class SecondaryKpiDashboard extends LightningElement {
 
     handleYear(e) {
         this.year = e.target.value ? Number(e.target.value) : null;
-        this.load();
+        this.loadDashboard();
     }
     handleMonth(e) {
         this.month = Number(e.detail.value);
-        this.load();
+        this.loadDashboard();
     }
-    handleHome() {
-        this.rootUserId = null;
-        this.breadcrumbs = [];
-        this.load();
+    handleUserChange(e) {
+        this.selectedUserId = e.detail.value;
+        this.loadDashboard();
     }
-    handleRefresh() { this.load(); }
-
-    handleTeamAction(e) {
-        if (e.detail.action.name !== 'drill') return;
-        const row = e.detail.row;
-        this.drillTo(row.leadUserId);
+    handleRefresh() {
+        this.loadDashboard();
     }
 
-    handleTeamCardClick(e) {
-        // Used on mobile cards; only drill when the user actually has subordinates,
-        // otherwise the click is a no-op (consistent with the desktop row action).
-        const uid = e.currentTarget.dataset.id;
-        const has = e.currentTarget.dataset.has === 'true';
-        if (uid && has) this.drillTo(uid);
-    }
+    // ===== Apex calls =====
 
-    handleCrumbClick(e) {
-        const uid = e.currentTarget.dataset.id;
-        this.drillTo(uid);
-    }
-
-    drillTo(userId) {
-        this.rootUserId = userId;
-        this.load();
-    }
-
-    load() {
-        if (!this.year || !this.month) return;
+    loadOptionsAndDashboard() {
         this.isLoading = true;
-        getDashboard({ year: this.year, month: this.month, rootUserId: this.rootUserId })
-            .then(d => {
-                this.data = d;
-                this.rootUserId = d ? d.rootUserId : null;
-                return getBreadcrumbs({ userId: this.rootUserId });
+        getDsmSsaSubordinates()
+            .then(opts => {
+                this.userOptions = (opts || []).map(o => ({
+                    label: o.label, value: o.userId
+                }));
+                // Honor explicit selection if it's still valid, otherwise let the
+                // server pick the default (first subordinate, or self for DSM/SSAs).
+                return getDashboard({
+                    year: this.year, month: this.month, selectedUserId: this.selectedUserId
+                });
             })
-            .then(crumbs => {
-                this.breadcrumbs = crumbs || [];
-            })
+            .then(d => this.applyDashboard(d))
             .catch(err => this.toast('Error', this.msg(err), 'error'))
             .finally(() => { this.isLoading = false; });
+    }
+
+    loadDashboard() {
+        if (!this.year || !this.month) return;
+        this.isLoading = true;
+        getDashboard({
+            year: this.year, month: this.month, selectedUserId: this.selectedUserId
+        })
+            .then(d => this.applyDashboard(d))
+            .catch(err => this.toast('Error', this.msg(err), 'error'))
+            .finally(() => { this.isLoading = false; });
+    }
+
+    applyDashboard(d) {
+        this.data = d;
+        // Reflect the server-chosen default back to the picker.
+        if (d && d.selectedUserId) this.selectedUserId = d.selectedUserId;
     }
 
     msg(e) {
