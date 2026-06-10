@@ -65,12 +65,15 @@ export default class TamCriteriaBuilder extends LightningElement {
     @track autoFilterLogic = true;
     @track isLoading = false;
 
+    // Structured rows for the Secondary Source Objects (replaces the raw JSON textarea).
+    @track secondarySourceRows = [];
+    secondarySourceSeq = 0;
+
     operatorOptions = [
         { label: 'SUM', value: 'SUM' },
         { label: 'COUNT', value: 'COUNT' },
         { label: 'COUNT DISTINCT', value: 'COUNT_DISTINCT' },
         { label: 'DAILY UNIQUE AVG (TC / PC)', value: 'DAILY_UNIQUE_AVG' },
-        { label: 'DAILY RATIO AVG (sum ÷ sum)', value: 'DAILY_RATIO_AVG' },
         { label: 'DAILY LINES PER ORDER (Avg TLSD)', value: 'DAILY_LINES_PER_ORDER' },
         { label: 'FOCUS PACK REVENUE', value: 'FOCUS_PACK_REVENUE' },
         { label: 'FOCUS PACK ECO', value: 'FOCUS_PACK_ECO' }
@@ -490,6 +493,7 @@ export default class TamCriteriaBuilder extends LightningElement {
                 if (this.criteria.Denominator_Field__c == null) this.criteria.Denominator_Field__c = '';
                 if (this.criteria.Secondary_Source_Objects__c == null) this.criteria.Secondary_Source_Objects__c = '';
                 this.criteria.Use_Attendance_Divisor__c = this.criteria.Use_Attendance_Divisor__c === true;
+                this.parseSecondarySourceJson(this.criteria.Secondary_Source_Objects__c);
 
                 // Populate prerequisite search text
                 this.searchPrerequisite = this.criteria.Prerequisite_Criteria__r?.Name || '';
@@ -755,12 +759,69 @@ export default class TamCriteriaBuilder extends LightningElement {
             this.criteria.Denominator_Field__c = null;
         }
         if (!this.showAttendanceDivisor) this.criteria.Use_Attendance_Divisor__c = false;
-        if (!this.showSecondarySources) this.criteria.Secondary_Source_Objects__c = null;
+        if (!this.showSecondarySources) {
+            this.criteria.Secondary_Source_Objects__c = null;
+            this.secondarySourceRows = [];
+        }
     }
 
     handleCheckbox(e) {
         const field = e.target.dataset.field;
         this.criteria[field] = e.target.checked;
+    }
+
+    // ===== Secondary Source rows =====
+    get hasSecondarySourceRows() { return this.secondarySourceRows && this.secondarySourceRows.length > 0; }
+
+    makeSecondarySourceRow(seed) {
+        this.secondarySourceSeq += 1;
+        return {
+            id: this.secondarySourceSeq,
+            object: (seed && seed.object) || '',
+            userField: (seed && seed.userField) || '',
+            dateField: (seed && seed.dateField) || '',
+            distinctField: (seed && seed.distinctField) || ''
+        };
+    }
+
+    handleSecondarySourceField(e) {
+        const rowId = Number(e.target.dataset.id);
+        const field = e.target.dataset.field;
+        const val = e.target.value;
+        this.secondarySourceRows = this.secondarySourceRows.map(r => r.id === rowId ? { ...r, [field]: val } : r);
+    }
+
+    handleAddSecondarySource() {
+        this.secondarySourceRows = [...this.secondarySourceRows, this.makeSecondarySourceRow()];
+    }
+
+    handleRemoveSecondarySource(e) {
+        const rowId = Number(e.currentTarget.dataset.id);
+        this.secondarySourceRows = this.secondarySourceRows.filter(r => r.id !== rowId);
+    }
+
+    parseSecondarySourceJson(raw) {
+        if (!raw) { this.secondarySourceRows = []; return; }
+        try {
+            const arr = JSON.parse(raw);
+            if (!Array.isArray(arr)) { this.secondarySourceRows = []; return; }
+            this.secondarySourceRows = arr.map(o => this.makeSecondarySourceRow(o));
+        } catch (e) {
+            this.secondarySourceRows = [];
+        }
+    }
+
+    serializeSecondarySourceJson() {
+        if (!this.showSecondarySources) return null;
+        const arr = this.secondarySourceRows
+            .filter(r => r.object && r.userField && r.dateField && r.distinctField)
+            .map(r => ({
+                object: r.object.trim(),
+                userField: r.userField.trim(),
+                dateField: r.dateField.trim(),
+                distinctField: r.distinctField.trim()
+            }));
+        return arr.length ? JSON.stringify(arr) : null;
     }
 
     handleFilterChange(e) {
@@ -846,7 +907,7 @@ export default class TamCriteriaBuilder extends LightningElement {
             Numerator_Field__c: this.criteria.Numerator_Field__c || null,
             Denominator_Field__c: this.criteria.Denominator_Field__c || null,
             Use_Attendance_Divisor__c: this.criteria.Use_Attendance_Divisor__c === true,
-            Secondary_Source_Objects__c: this.criteria.Secondary_Source_Objects__c || null,
+            Secondary_Source_Objects__c: this.serializeSecondarySourceJson(),
             Filters__c: filterJson,
             Filter_Logic__c: this.criteria.Filter_Logic__c,
             Category__c: this.criteria.Category__c || null,
@@ -885,6 +946,7 @@ export default class TamCriteriaBuilder extends LightningElement {
         };
         this.objectSearchText = '';
         this.filters = [];
+        this.secondarySourceRows = [];
         this.fieldsMetadata = [];
         this.numberFieldOptions = [];
         this.dateFieldOptions = [];
