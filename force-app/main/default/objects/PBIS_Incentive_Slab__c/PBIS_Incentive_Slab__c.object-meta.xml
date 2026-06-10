@@ -154,7 +154,7 @@
     <enableSharing>true</enableSharing>
     <enableStreamingApi>true</enableStreamingApi>
     <externalSharingModel>ControlledByParent</externalSharingModel>
-    <label>PBIS Incentive Slab</label>
+    <label>Primary PBIS Incentive Slab</label>
     <nameField>
         <displayFormat>PSLB-{0000}</displayFormat>
         <label>PBIS Incentive Slab Name</label>

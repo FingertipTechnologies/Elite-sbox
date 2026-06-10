@@ -340,7 +340,7 @@ export default class NewEmployeeLwc extends LightningElement {
                 };
                 this.employee = { ...this.employee, ...newValues };
 
-                this.setpayrollValues(emp.Profile__c);
+            
                 this.isCloningCompleted =  emp.Cloning_is_Completed__c;
                 this.selectedProfileHirachyNumber = emp.Heirarchial_Number__c;
                 this.isShowAllSections = (emp.Profile__c == 'SSA' || emp.Profile__c == 'DSM') ? false : true ;
@@ -354,7 +354,7 @@ export default class NewEmployeeLwc extends LightningElement {
                 this.isShowDistctInchage = emp.Profile__c === 'Sr. TSE';
                 this.mandateContractType = emp.Payroll__c === 'No';
                 this.mandateReplacedFor = emp.User_Type__c === 'Replacement';
-
+                this.setpayrollValues(emp.Profile__c);
                 this.updateAvailableCategories();
                 this.getRelatedAreasRegions();
                 this.updateProfileBasedValues(emp.Profile__c,'UserEdit');

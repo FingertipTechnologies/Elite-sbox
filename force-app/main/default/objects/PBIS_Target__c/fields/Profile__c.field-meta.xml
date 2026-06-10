@@ -3,9 +3,11 @@
     <fullName>Profile__c</fullName>
     <externalId>false</externalId>
     <formula>User__r.Profile.Name</formula>
-    <inlineHelpText>The user's Salesforce Profile name. Used to select the matching per-Profile incentive slabs on the policy.</inlineHelpText>
+    <inlineHelpText>The user&apos;s Salesforce Profile name. Used to select the matching per-Profile incentive slabs on the policy.</inlineHelpText>
     <label>Profile</label>
     <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
     <type>Text</type>
     <unique>false</unique>
 </CustomField>

@@ -4,7 +4,6 @@
     <externalId>false</externalId>
     <label>PBIS Policy</label>
     <referenceTo>PBIS_Policy__c</referenceTo>
-    <relationshipLabel>Incentive Slabs</relationshipLabel>
     <relationshipName>Incentive_Slabs</relationshipName>
     <relationshipOrder>0</relationshipOrder>
     <reparentableMasterDetail>false</reparentableMasterDetail>

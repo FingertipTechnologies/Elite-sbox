@@ -3,7 +3,7 @@
     <fullName>SKU__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
     <externalId>false</externalId>
-    <label>Material</label>
+    <label>SKU</label>
     <referenceTo>Product__c</referenceTo>
     <relationshipLabel>Invoice items (Product)</relationshipLabel>
     <relationshipName>Invoice_items</relationshipName>

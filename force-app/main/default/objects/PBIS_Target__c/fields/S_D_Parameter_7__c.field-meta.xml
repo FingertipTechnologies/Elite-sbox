@@ -6,7 +6,6 @@
     <inlineHelpText>S&amp;D Parameter 7. Matched on import by the parameter External Id.</inlineHelpText>
     <label>S &amp; D Parameter 7</label>
     <referenceTo>S_D_Parameter__c</referenceTo>
-    <relationshipLabel>PBIS Targets (S &amp; D Parameter 7)</relationshipLabel>
     <relationshipName>PBIS_Targets_SDP_7</relationshipName>
     <required>false</required>
     <trackHistory>false</trackHistory>

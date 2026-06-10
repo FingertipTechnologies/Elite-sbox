@@ -11,8 +11,16 @@
         <restricted>true</restricted>
         <valueSetDefinition>
             <sorted>false</sorted>
-            <value><fullName>Monthly</fullName><default>true</default><label>Monthly</label></value>
-            <value><fullName>Quarterly</fullName><default>false</default><label>Quarterly</label></value>
+            <value>
+                <fullName>Monthly</fullName>
+                <default>true</default>
+                <label>Monthly</label>
+            </value>
+            <value>
+                <fullName>Quarterly</fullName>
+                <default>false</default>
+                <label>Quarterly</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>
