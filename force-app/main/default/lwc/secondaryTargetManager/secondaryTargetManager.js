@@ -263,6 +263,19 @@ export default class SecondaryTargetManager extends LightningElement {
         if (!f.User__c) { this.toast('Validation', 'Select a User.', 'error'); return; }
         if (!f.Target_Criteria__c) { this.toast('Validation', 'Select a Target Criteria.', 'error'); return; }
         if (!f.Start_Date__c || !f.End_Date__c) { this.toast('Validation', 'Start and End dates are required.', 'error'); return; }
+        // Date sanity — server re-checks, but fail fast for nicer UX.
+        const startD = new Date(f.Start_Date__c);
+        const endD = new Date(f.End_Date__c);
+        if (endD < startD) {
+            this.toast('Validation', 'End Date cannot be before Start Date.', 'error'); return;
+        }
+        if (!f.Id) {
+            const today = new Date();
+            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            if (startD < monthStart) {
+                this.toast('Validation', 'Start Date cannot be in a past month.', 'error'); return;
+            }
+        }
         if (this.isFocusPackCriteria && !f.Focused_Pack__c) {
             this.toast('Validation', 'This criteria is a Focus-Pack type — select a Focus Pack.', 'error');
             return;

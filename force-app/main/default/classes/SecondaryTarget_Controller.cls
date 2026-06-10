@@ -40,6 +40,19 @@ public with sharing class SecondaryTarget_Controller {
             User u = [SELECT Name FROM User WHERE Id = :target.User__c LIMIT 1];
             target.User_Name__c = u.Name;
         }
+        // Date sanity checks.
+        if (target.Start_Date__c != null && target.End_Date__c != null
+            && target.End_Date__c < target.Start_Date__c) {
+            throw new AuraHandledException('End Date cannot be before Start Date.');
+        }
+        if (target.Id == null && target.Start_Date__c != null) {
+            Date monthStart = Date.today().toStartOfMonth();
+            if (target.Start_Date__c < monthStart) {
+                throw new AuraHandledException(
+                    'Start Date cannot be in a past month. Earliest allowed Start Date is ' + monthStart.format() + '.'
+                );
+            }
+        }
         // BRD 3.1.1 — block overlapping active duplicates (same user, criteria, pack).
         // A revision should close the old record (Is_Active = false) and create a new one.
         if (target.Is_Active__c == true
@@ -276,6 +289,14 @@ public with sharing class SecondaryTarget_Controller {
                 try { endD = Date.valueOf(r.endDate); }
                 catch (Exception e) { throw new IllegalArgumentException('Bad End Date "' + r.endDate + '" (expected YYYY-MM-DD).'); }
                 if (endD < startD) throw new IllegalArgumentException('End Date is before Start Date.');
+                if (existingTargetId == null) {
+                    Date monthStart = Date.today().toStartOfMonth();
+                    if (startD < monthStart) {
+                        throw new IllegalArgumentException(
+                            'Start Date "' + r.startDate + '" is in a past month. Earliest allowed is ' + monthStart.format() + '.'
+                        );
+                    }
+                }
 
                 Secondary_Target__c t = new Secondary_Target__c(
                     User__c = userId,
