@@ -13,7 +13,13 @@ public with sharing class PBISActualsRefreshController {
     }
 
     public PageReference runAll() {
-        targetCount = [SELECT COUNT() FROM PBIS_Target__c WHERE Is_Active__c = true];
+        Date today = Date.today();
+        targetCount = [
+            SELECT COUNT() FROM PBIS_Target__c
+            WHERE Is_Active__c = true
+              AND Start_Date__c <= :today
+              AND End_Date__c >= :today
+        ];
         Database.executeBatch(new PBISActualsBatch(), 200);
         started = true;
         ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.CONFIRM,

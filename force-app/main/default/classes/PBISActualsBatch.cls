@@ -1,15 +1,19 @@
 /**
- * Recomputes PBIS actuals & incentive for every active PBIS Target.
- * Delegates each scope chunk to PBISActuals_Service. Small scope keeps the
- * per-slot aggregate queries well under the async SOQL limit.
+ * Recomputes PBIS actuals & incentive for the active PBIS Targets whose period
+ * (Start_Date__c .. End_Date__c) includes today — i.e. the current month/quarter
+ * targets only. Delegates each scope chunk to PBISActuals_Service.
  */
 global without sharing class PBISActualsBatch implements Database.Batchable<SObject>, Database.Stateful {
 
     global Integer processed = 0;
 
     global Database.QueryLocator start(Database.BatchableContext bc) {
+        Date today = Date.today();
         return Database.getQueryLocator([
-            SELECT Id FROM PBIS_Target__c WHERE Is_Active__c = true
+            SELECT Id FROM PBIS_Target__c
+            WHERE Is_Active__c = true
+              AND Start_Date__c <= :today
+              AND End_Date__c >= :today
         ]);
     }
 
