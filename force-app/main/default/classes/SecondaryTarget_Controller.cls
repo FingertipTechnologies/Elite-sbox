@@ -416,7 +416,8 @@ public with sharing class SecondaryTarget_Controller {
         ];
         Target_Criteria__c crit = [
             SELECT Id, Name, Object__c, Operator__c, Field__c, Date_Field__c, User_Field__c,
-                   Distinct_Field__c, Use_Attendance_Divisor__c, Filters__c, Filter_Logic__c
+                   Distinct_Field__c, Use_Attendance_Divisor__c, Filters__c, Filter_Logic__c,
+                   Secondary_Source_Objects__c
             FROM Target_Criteria__c WHERE Id = :t.Target_Criteria__c LIMIT 1
         ];
 
@@ -511,37 +512,62 @@ public with sharing class SecondaryTarget_Controller {
         return (Date) raw;
     }
 
-    private static String fmtDate(Date d) {
-        if (d == null) return '';
-        return d.day() + ' ' + d.format().substring(d.format().indexOf('/') + 1).left(2);
+    // Read a (possibly dot-traversed) field from an SObject, e.g. Order__r.Order_Date__c.
+    private static Object readField(SObject row, String field) {
+        if (row == null || String.isBlank(field)) return null;
+        if (!field.contains('.')) return row.get(field);
+        SObject cur = row;
+        List<String> parts = field.split('\\.');
+        for (Integer i = 0; i < parts.size() - 1; i++) {
+            if (cur == null) return null;
+            cur = cur.getSObject(parts[i]);
+        }
+        return cur == null ? null : cur.get(parts[parts.size() - 1]);
+    }
+
+    private static Decimal toDecimal(Object o) {
+        if (o == null) return 0;
+        if (o instanceof Decimal) return (Decimal) o;
+        if (o instanceof Integer) return (Integer) o;
+        if (o instanceof Long) return (Long) o;
+        if (o instanceof Double) return Decimal.valueOf((Double) o);
+        return Decimal.valueOf(String.valueOf(o));
     }
 
     private static void explainPeriodAggregate(Secondary_Target__c t, Target_Criteria__c crit, AchievementExplanation x) {
         Date startDate = t.Start_Date__c;
         Date endDate = t.End_Date__c;
         Set<String> userKeys = buildUserKeys(t.User__c);
-        String soql = 'SELECT Count(Id) cnt FROM ' + crit.Object__c +
+
+        // Raw rows — aggregates in Apex. Cross-object relationship paths work in
+        // raw SELECT WHERE but not always in COUNT(Id)/SUM() aggregate WHERE.
+        List<String> selectFields = new List<String>();
+        if (crit.Operator__c == 'SUM' && String.isNotBlank(crit.Field__c)) selectFields.add(crit.Field__c);
+        if (crit.Operator__c == 'COUNT_DISTINCT' && String.isNotBlank(crit.Distinct_Field__c)) selectFields.add(crit.Distinct_Field__c);
+        if (selectFields.isEmpty()) selectFields.add('Id');
+
+        String soql = 'SELECT ' + String.join(selectFields, ', ') +
+            ' FROM ' + crit.Object__c +
             ' WHERE ' + buildBaseWhere(crit, startDate, endDate, true);
-        AggregateResult ar = (AggregateResult) Database.query(soql)[0];
-        Integer rowCount = (Integer) ar.get('cnt');
+        List<SObject> rows = Database.query(soql);
+        Integer rowCount = rows.size();
         x.steps.add(new KV('Rows matched', String.valueOf(rowCount)));
 
         if (crit.Operator__c == 'SUM' && String.isNotBlank(crit.Field__c)) {
-            String sumSoql = 'SELECT SUM(' + crit.Field__c + ') v FROM ' + crit.Object__c +
-                ' WHERE ' + buildBaseWhere(crit, startDate, endDate, true);
-            AggregateResult sr = (AggregateResult) Database.query(sumSoql)[0];
-            Decimal v = (sr.get('v') != null) ? (Decimal) sr.get('v') : 0;
+            Decimal total = 0;
+            for (SObject r : rows) total += toDecimal(readField(r, crit.Field__c));
             x.steps.add(new KV('Sum field', crit.Field__c));
-            x.steps.add(new KV('SUM(' + crit.Field__c + ')', String.valueOf(v)));
-            x.formula = 'SUM(' + crit.Field__c + ') over ' + rowCount + ' matched rows = ' + v;
+            x.steps.add(new KV('SUM(' + crit.Field__c + ')', String.valueOf(total)));
+            x.formula = 'SUM(' + crit.Field__c + ') over ' + rowCount + ' matched rows = ' + total;
         } else if (crit.Operator__c == 'COUNT_DISTINCT' && String.isNotBlank(crit.Distinct_Field__c)) {
-            String dSoql = 'SELECT COUNT_DISTINCT(' + crit.Distinct_Field__c + ') v FROM ' + crit.Object__c +
-                ' WHERE ' + buildBaseWhere(crit, startDate, endDate, true);
-            AggregateResult dr = (AggregateResult) Database.query(dSoql)[0];
-            Integer dc = (dr.get('v') != null) ? (Integer) dr.get('v') : 0;
+            Set<String> distinctVals = new Set<String>();
+            for (SObject r : rows) {
+                Object v = readField(r, crit.Distinct_Field__c);
+                if (v != null) distinctVals.add(String.valueOf(v));
+            }
             x.steps.add(new KV('Distinct field', crit.Distinct_Field__c));
-            x.steps.add(new KV('COUNT_DISTINCT', String.valueOf(dc)));
-            x.formula = 'COUNT_DISTINCT(' + crit.Distinct_Field__c + ') over ' + rowCount + ' matched rows = ' + dc;
+            x.steps.add(new KV('COUNT_DISTINCT', String.valueOf(distinctVals.size())));
+            x.formula = 'COUNT_DISTINCT(' + crit.Distinct_Field__c + ') over ' + rowCount + ' matched rows = ' + distinctVals.size();
         } else if (crit.Operator__c == 'COUNT') {
             x.formula = 'COUNT(Id) = ' + rowCount;
         }
@@ -569,9 +595,9 @@ public with sharing class SecondaryTarget_Controller {
             Map<Date, Integer> linesByDay = new Map<Date, Integer>();
             Map<Date, Set<String>> ordersByDay = new Map<Date, Set<String>>();
             for (SObject row : Database.query(soql)) {
-                Date d = safeToDate(row.get(crit.Date_Field__c));
+                Date d = safeToDate(readField(row, crit.Date_Field__c));
                 if (d == null) continue;
-                Object ord = row.get(orderField);
+                Object ord = readField(row, orderField);
                 if (ord == null) continue;
                 if (!linesByDay.containsKey(d)) {
                     linesByDay.put(d, 0);
@@ -614,8 +640,8 @@ public with sharing class SecondaryTarget_Controller {
                     ' FROM ' + crit.Object__c +
                     ' WHERE ' + buildBaseWhere(crit, startDate, endDate, true);
                 for (SObject row : Database.query(soql)) {
-                    Date d = safeToDate(row.get(crit.Date_Field__c));
-                    Object outlet = row.get(distinctField);
+                    Date d = safeToDate(readField(row, crit.Date_Field__c));
+                    Object outlet = readField(row, distinctField);
                     if (d == null || outlet == null) continue;
                     String key = String.valueOf(d) + '|' + String.valueOf(outlet);
                     tuples.add(key);
@@ -637,8 +663,8 @@ public with sharing class SecondaryTarget_Controller {
                                 ' FROM ' + sObj +
                                 ' WHERE ' + sDF + ' >= :startDate AND ' + sDF + ' <= :endDate AND ' + sUF + ' IN :userKeys';
                             for (SObject row : Database.query(soql2)) {
-                                Date d = safeToDate(row.get(sDF));
-                                Object outlet = row.get(sDist);
+                                Date d = safeToDate(readField(row, sDF));
+                                Object outlet = readField(row, sDist);
                                 if (d == null || outlet == null) continue;
                                 String key = String.valueOf(d) + '|' + String.valueOf(outlet);
                                 tuples.add(key);
@@ -696,14 +722,14 @@ public with sharing class SecondaryTarget_Controller {
         String extra = TAM_FilterEngine_Service.buildWhereClause(crit.Filters__c, crit.Filter_Logic__c);
         if (String.isNotBlank(extra)) baseWhere += ' AND ' + extra;
 
-        AggregateResult ar = (AggregateResult) Database.query('SELECT Count(Id) cnt FROM Order_Item__c WHERE ' + baseWhere)[0];
-        x.steps.add(new KV('Pack-SKU line items in period', String.valueOf(ar.get('cnt'))));
+        Integer lineCount = Database.query('SELECT Id FROM Order_Item__c WHERE ' + baseWhere).size();
+        x.steps.add(new KV('Pack-SKU line items in period', String.valueOf(lineCount)));
 
         if (crit.Operator__c == 'FOCUS_PACK_REVENUE') {
             String valueField = String.isNotBlank(crit.Field__c) ? crit.Field__c : 'Non_Taxable_Order_Value__c';
-            String sumSoql = 'SELECT SUM(' + valueField + ') v FROM Order_Item__c WHERE ' + baseWhere;
-            AggregateResult sr = (AggregateResult) Database.query(sumSoql)[0];
-            Decimal v = (sr.get('v') != null) ? (Decimal) sr.get('v') : 0;
+            String revSoql = 'SELECT ' + valueField + ' FROM Order_Item__c WHERE ' + baseWhere;
+            Decimal v = 0;
+            for (SObject oi : Database.query(revSoql)) v += toDecimal(readField(oi, valueField));
             x.steps.add(new KV('Value field', valueField));
             x.steps.add(new KV('SUM(' + valueField + ')', String.valueOf(v)));
             x.formula = 'SUM(' + valueField + ') over pack-SKU lines = ' + v;
@@ -719,10 +745,10 @@ public with sharing class SecondaryTarget_Controller {
             Map<String, Decimal> qtyByKey = new Map<String, Decimal>();
             Map<String, String> outletByKey = new Map<String, String>();
             for (SObject oi : Database.query(soql)) {
-                Object outlet = oi.get(outletField);
+                Object outlet = readField(oi, outletField);
                 if (outlet == null) continue;
                 String key = String.valueOf(oi.get('Order__c')) + '|' + String.valueOf(outlet);
-                Decimal q = (oi.get(qtyField) != null) ? (Decimal) oi.get(qtyField) : 0;
+                Decimal q = toDecimal(readField(oi, qtyField));
                 qtyByKey.put(key, (qtyByKey.containsKey(key) ? qtyByKey.get(key) : 0) + q);
                 outletByKey.put(key, String.valueOf(outlet));
             }
