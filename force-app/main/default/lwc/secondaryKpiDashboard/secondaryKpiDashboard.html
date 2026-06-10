@@ -5,23 +5,23 @@
         <lightning-button slot="actions" label="My Team" icon-name="utility:home"
             onclick={handleHome}></lightning-button>
 
-        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+        <div class="slds-p-horizontal_small slds-p-bottom_medium kpi-root">
 
             <!-- Period picker + breadcrumbs -->
-            <div class="slds-grid slds-gutters slds-grid_vertical-align-end slds-wrap slds-m-bottom_small">
-                <div class="slds-col slds-size_1-of-6">
+            <div class="slds-grid slds-gutters_x-small slds-grid_vertical-align-end slds-wrap slds-m-bottom_small">
+                <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-6">
                     <lightning-input type="number" label="Year" value={year}
                         onchange={handleYear}></lightning-input>
                 </div>
-                <div class="slds-col slds-size_1-of-6">
+                <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-6">
                     <lightning-combobox label="Month" value={month}
                         options={monthOptions} onchange={handleMonth}></lightning-combobox>
                 </div>
-                <div class="slds-col slds-size_4-of-6 slds-p-bottom_x-small">
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-6 slds-p-top_x-small">
                     <template if:true={hasBreadcrumbs}>
                         <div class="slds-text-title slds-text-color_weak slds-m-bottom_xxx-small">Viewing</div>
                         <nav class="kpi-crumbs">
-                            <template for:each={crumbView} for:item="c" for:index="i">
+                            <template for:each={crumbView} for:item="c">
                                 <span key={c.userId} class="kpi-crumb">
                                     <template if:true={c.isClickable}>
                                         <a data-id={c.userId} onclick={handleCrumbClick}>{c.userName}</a>
@@ -53,7 +53,7 @@
 
                 <!-- Hero KPI tiles -->
                 <template if:true={hasHero}>
-                    <div class="slds-grid slds-gutters slds-wrap kpi-tiles slds-m-bottom_medium">
+                    <div class="slds-grid slds-gutters_x-small slds-wrap kpi-tiles slds-m-bottom_medium">
                         <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-5">
                             <div class="kpi-tile">
                                 <div class="kpi-label">Team Size</div>
@@ -77,7 +77,7 @@
                         </div>
                         <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-5">
                             <div class="kpi-tile kpi-tile_ach">
-                                <div class="kpi-label">Total Achievement</div>
+                                <div class="kpi-label">Achievement</div>
                                 <div class="kpi-value">{heroTotalAchievement}</div>
                                 <div class="kpi-sub">
                                     <span class={heroPctClass}>{heroAchievementPct}</span> of target
@@ -87,7 +87,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-5">
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-5">
                             <div class="kpi-tile kpi-tile_incentive">
                                 <div class="kpi-label">PBIS Incentive</div>
                                 <div class="kpi-value">{heroTotalIncentive}</div>
@@ -97,20 +97,67 @@
                     </div>
                 </template>
 
-                <!-- Two-column: teams + side panels -->
-                <div class="slds-grid slds-gutters slds-wrap">
-                    <!-- Direct teams table -->
+                <!-- Two-column on desktop; stacks on mobile -->
+                <div class="slds-grid slds-gutters_x-small slds-wrap">
+
+                    <!-- Direct teams -->
                     <div class="slds-col slds-size_1-of-1 slds-large-size_2-of-3">
                         <div class="kpi-panel">
                             <h3 class="slds-text-heading_small slds-m-bottom_x-small">
                                 Direct Subordinates
                             </h3>
                             <template if:true={hasTeams}>
-                                <lightning-datatable key-field="leadUserId" data={teams} columns={teamColumns}
-                                    hide-checkbox-column onrowaction={handleTeamAction}></lightning-datatable>
-                                <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
-                                    Click the row action to drill into a subordinate's team.
-                                </p>
+                                <!-- Mobile: tap-able cards -->
+                                <template if:true={isMobile}>
+                                    <template for:each={teams} for:item="t">
+                                        <div key={t.leadUserId} class="kpi-card"
+                                             data-id={t.leadUserId} data-has={t.hasSubordinates}
+                                             onclick={handleTeamCardClick}>
+                                            <div class="kpi-card-head">
+                                                <div>
+                                                    <div class="kpi-card-title">{t.leadUserName}</div>
+                                                    <div class="kpi-card-sub">
+                                                        <template if:true={t.leadRole}>{t.leadRole} · </template>
+                                                        Team {t.teamSize}
+                                                    </div>
+                                                </div>
+                                                <span class={t.badgeClass}>{t.pctText}</span>
+                                            </div>
+                                            <div class="progress-track">
+                                                <div class={t.barClass} style={t.barStyle}></div>
+                                            </div>
+                                            <div class="kpi-card-grid">
+                                                <div>
+                                                    <div class="kpi-mini-label">Target</div>
+                                                    <div class="kpi-mini-value">{t.targetText}</div>
+                                                </div>
+                                                <div>
+                                                    <div class="kpi-mini-label">Achievement</div>
+                                                    <div class="kpi-mini-value">{t.achText}</div>
+                                                </div>
+                                                <div>
+                                                    <div class="kpi-mini-label">Incentive</div>
+                                                    <div class="kpi-mini-value">{t.incentiveText}</div>
+                                                </div>
+                                            </div>
+                                            <template if:true={t.hasSubordinates}>
+                                                <div class="kpi-card-cta">
+                                                    Tap to drill into team
+                                                    <lightning-icon icon-name="utility:chevronright"
+                                                        size="xx-small"></lightning-icon>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </template>
+                                <!-- Desktop: full datatable -->
+                                <template if:false={isMobile}>
+                                    <lightning-datatable key-field="leadUserId" data={teams} columns={teamColumns}
+                                        hide-checkbox-column onrowaction={handleTeamAction}></lightning-datatable>
+                                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                                        Click the row action to drill into a subordinate's team.
+                                    </p>
+                                </template>
                             </template>
                             <template if:false={hasTeams}>
                                 <p class="slds-text-body_regular slds-text-color_weak slds-p-around_medium">
@@ -177,8 +224,24 @@
                                 Top Performers
                             </h3>
                             <template if:true={hasTopPerformers}>
-                                <lightning-datatable key-field="userId" data={topPerformers}
-                                    columns={performerColumns} hide-checkbox-column></lightning-datatable>
+                                <!-- Mobile cards -->
+                                <template if:true={isMobile}>
+                                    <template for:each={topPerformers} for:item="p">
+                                        <div key={p.userId} class="kpi-perf-row">
+                                            <div class="kpi-perf-main">
+                                                <div class="kpi-perf-name">{p.userName}</div>
+                                                <div class="kpi-perf-sub">
+                                                    <template if:true={p.role}>{p.role} · </template>{p.achText} / {p.targetText}
+                                                </div>
+                                            </div>
+                                            <span class={p.badgeClass}>{p.pctText}</span>
+                                        </div>
+                                    </template>
+                                </template>
+                                <template if:false={isMobile}>
+                                    <lightning-datatable key-field="userId" data={topPerformers}
+                                        columns={performerColumns} hide-checkbox-column></lightning-datatable>
+                                </template>
                             </template>
                             <template if:false={hasTopPerformers}>
                                 <p class="slds-text-body_regular slds-text-color_weak">No data.</p>
@@ -190,8 +253,23 @@
                                 Needs Attention
                             </h3>
                             <template if:true={hasBottomPerformers}>
-                                <lightning-datatable key-field="userId" data={bottomPerformers}
-                                    columns={performerColumns} hide-checkbox-column></lightning-datatable>
+                                <template if:true={isMobile}>
+                                    <template for:each={bottomPerformers} for:item="p">
+                                        <div key={p.userId} class="kpi-perf-row">
+                                            <div class="kpi-perf-main">
+                                                <div class="kpi-perf-name">{p.userName}</div>
+                                                <div class="kpi-perf-sub">
+                                                    <template if:true={p.role}>{p.role} · </template>{p.achText} / {p.targetText}
+                                                </div>
+                                            </div>
+                                            <span class={p.badgeClass}>{p.pctText}</span>
+                                        </div>
+                                    </template>
+                                </template>
+                                <template if:false={isMobile}>
+                                    <lightning-datatable key-field="userId" data={bottomPerformers}
+                                        columns={performerColumns} hide-checkbox-column></lightning-datatable>
+                                </template>
                             </template>
                             <template if:false={hasBottomPerformers}>
                                 <p class="slds-text-body_regular slds-text-color_weak">No data.</p>

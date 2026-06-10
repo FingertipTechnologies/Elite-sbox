@@ -1,5 +1,6 @@
 import { LightningElement, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import FORM_FACTOR from '@salesforce/client/formFactor';
 import getDashboard from '@salesforce/apex/SecondaryKpiDashboard_Controller.getDashboard';
 import getBreadcrumbs from '@salesforce/apex/SecondaryKpiDashboard_Controller.getBreadcrumbs';
 
@@ -63,6 +64,10 @@ export default class SecondaryKpiDashboard extends LightningElement {
     teamColumns = TEAM_COLUMNS;
     performerColumns = PERFORMER_COLUMNS;
 
+    // FORM_FACTOR is 'Small' inside the Salesforce mobile app, 'Large' on desktop.
+    // DSM/SSAs work on phones, so swap the dense datatables for card lists when small.
+    isMobile = FORM_FACTOR === 'Small';
+
     @track year;
     @track month;
     @track rootUserId;
@@ -106,17 +111,46 @@ export default class SecondaryKpiDashboard extends LightningElement {
 
     get teams() {
         const rows = (this.data && this.data.teams) || [];
-        return rows.map(r => ({ ...r, pctClass: this.pctClassForCell(r.achievementPct) }));
+        return rows.map(r => this.decorateTeam(r));
     }
     get hasTeams() { return this.teams.length > 0; }
 
     get topPerformers() {
         const rows = (this.data && this.data.topPerformers) || [];
-        return rows.map(r => ({ ...r, pctClass: this.pctClassForCell(r.achievementPct) }));
+        return rows.map(r => this.decoratePerformer(r));
     }
     get bottomPerformers() {
         const rows = (this.data && this.data.bottomPerformers) || [];
-        return rows.map(r => ({ ...r, pctClass: this.pctClassForCell(r.achievementPct) }));
+        return rows.map(r => this.decoratePerformer(r));
+    }
+
+    decorateTeam(r) {
+        const pct = r.achievementPct || 0;
+        return {
+            ...r,
+            pctClass: this.pctClassForCell(pct),
+            pctText: pct.toFixed(1) + '%',
+            targetText: INR.format(r.totalTarget || 0),
+            achText: INR.format(r.totalAchievement || 0),
+            incentiveText: INR.format(r.totalIncentive || 0),
+            barStyle: `width:${Math.min(pct, 100)}%;`,
+            barClass: 'progress-fill ' + this.pctBucket(pct),
+            badgeClass: 'kpi-badge ' + this.pctBucket(pct)
+        };
+    }
+    decoratePerformer(r) {
+        const pct = r.achievementPct || 0;
+        return {
+            ...r,
+            pctClass: this.pctClassForCell(pct),
+            pctText: pct.toFixed(1) + '%',
+            targetText: INR.format(r.totalTarget || 0),
+            achText: INR.format(r.totalAchievement || 0),
+            incentiveText: INR.format(r.totalIncentive || 0),
+            barStyle: `width:${Math.min(pct, 100)}%;`,
+            barClass: 'progress-fill ' + this.pctBucket(pct),
+            badgeClass: 'kpi-badge ' + this.pctBucket(pct)
+        };
     }
     get hasTopPerformers() { return this.topPerformers.length > 0; }
     get hasBottomPerformers() { return this.bottomPerformers.length > 0; }
@@ -203,6 +237,14 @@ export default class SecondaryKpiDashboard extends LightningElement {
         if (e.detail.action.name !== 'drill') return;
         const row = e.detail.row;
         this.drillTo(row.leadUserId);
+    }
+
+    handleTeamCardClick(e) {
+        // Used on mobile cards; only drill when the user actually has subordinates,
+        // otherwise the click is a no-op (consistent with the desktop row action).
+        const uid = e.currentTarget.dataset.id;
+        const has = e.currentTarget.dataset.has === 'true';
+        if (uid && has) this.drillTo(uid);
     }
 
     handleCrumbClick(e) {
