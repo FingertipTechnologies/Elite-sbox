@@ -393,17 +393,6 @@
                                                 variant="label-stacked">
                                             </lightning-input-field>
                                         </div>
-                                        <!--PBIS_Policy__c (Primary PBIS Policy, filtered by Sales Channel)-->
-                                        <div class={customClass}>
-                                            <lightning-combobox
-                                                name="PBIS_Policy__c"
-                                                label="Primary PBIS Policy"
-                                                value={employee.PBIS_Policy__c}
-                                                options={pbisPolicyOptions}
-                                                onchange={handleCustomInputChange}
-                                                variant="label-stacked">
-                                            </lightning-combobox>
-                                        </div>
                                         <!--District_In_charge__c-->
                                         <template if:true={isShowDistctInchage}>
                                             <div class={customClass}>
@@ -820,6 +809,46 @@
                                     </h3>
                                     <br />
                                     <div class="slds-grid slds-wrap">
+                                        <!--PBIS_Policy__c (Primary PBIS Policy, search filtered by Sales Channel)-->
+                                        <div class={customClass} style="padding-left:5px">
+                                            <div class="slds-m-right_xx-small slds-form-element">
+                                                <div class="slds-form-element__control">
+                                                    <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open">
+                                                        <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
+                                                            <lightning-input
+                                                                label="Primary PBIS Policy"
+                                                                data-id="employeeFields"
+                                                                type="search"
+                                                                class="readonly-bordered"
+                                                                placeholder="Search Primary PBIS Policy"
+                                                                value={pbisPolicyName}
+                                                                onchange={handlePbisPolicySearch}>
+                                                            </lightning-input>
+                                                        </div>
+                                                        <template lwc:if={isShowSearchedPbisPolicy}>
+                                                            <div class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" role="listbox" aria-label="Primary PBIS Policy" tabindex="0" aria-busy="false">
+                                                                <template for:each={searchedPbisPolicy} for:item="srch" for:index="pbisIndex">
+                                                                    <ul key={srch.id} class="slds-listbox slds-listbox_vertical" role="presentation">
+                                                                        <li role="presentation" class="slds-listbox__item">
+                                                                            <div class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="option"
+                                                                                onclick={selectPbisPolicy} data-id={srch.id} data-name={srch.name} data-index={pbisIndex}>
+                                                                                <lightning-icon icon-name="standard:avatar" size="small"></lightning-icon>
+                                                                                <span class="slds-media__figure slds-listbox__option-icon"></span>
+                                                                                <span class="slds-media__body">
+                                                                                    <span class="slds-truncate" title={srch.name}>
+                                                                                        <span>{srch.name}</span><br/>
+                                                                                    </span>
+                                                                                </span>
+                                                                            </div>
+                                                                        </li>
+                                                                    </ul>
+                                                                </template>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                         <template lwc:if={iscurrentUserAdmin}>
                                             <!--Expense_Start_Date__c-->
                                             <div class={customClass}>

@@ -139,9 +139,11 @@ export default class NewEmployeeLwc extends LightningElement {
     @track categoryMapping = [];
     isShowDistctInchage = false;
 
-    //Primary PBIS Policy options, filtered by the employee's Sales Channel(s)
-    @track pbisPolicyOptions = [];
+    //Primary PBIS Policy search (results filtered by the employee's Sales Channel(s))
     pbisPolicyList = [];
+    @track searchedPbisPolicy = [];
+    isShowSearchedPbisPolicy = false;
+    pbisPolicyName = '';
 
     //readonly
     isRoleReadOnly = false;
@@ -245,7 +247,6 @@ export default class NewEmployeeLwc extends LightningElement {
                 name: item.Name,
                 salesChannels: item.Sales_Channels__c ? item.Sales_Channels__c.split(';') : []
             }));
-            this.updateAvailablePbisPolicies();
 
             this.metadataRecordsList = result.metadataRecordsList;
             //console.log('recordId -->', this.recordId);
@@ -351,6 +352,7 @@ export default class NewEmployeeLwc extends LightningElement {
                     PBIS_Policy__c: emp.PBIS_Policy__c
                 };
                 this.employee = { ...this.employee, ...newValues };
+                this.pbisPolicyName = emp.PBIS_Policy__r?.Name || '';
 
             
                 this.isCloningCompleted =  emp.Cloning_is_Completed__c;
@@ -368,7 +370,6 @@ export default class NewEmployeeLwc extends LightningElement {
                 this.mandateReplacedFor = emp.User_Type__c === 'Replacement';
                 this.setpayrollValues(emp.Profile__c);
                 this.updateAvailableCategories();
-                this.updateAvailablePbisPolicies();
                 this.getRelatedAreasRegions();
                 this.updateProfileBasedValues(emp.Profile__c,'UserEdit');
             
@@ -766,19 +767,13 @@ export default class NewEmployeeLwc extends LightningElement {
         else if(fieldName =='Sales_Channel__c')
         {
             this.updateAvailableCategories();
-            this.updateAvailablePbisPolicies();
             this.getRelatedAreasRegions();
-        }
-        else if(fieldName =='Alternate_Sales_Channel__c')
-        {
-            this.updateAvailablePbisPolicies();
         }
     }
 
-    // Primary PBIS Policy options are restricted to policies whose Sales Channels
-    // intersect the employee's selected Sales Channel and Alternate Sales Channel
-    // (both are multi-select picklists stored as ';'-separated values).
-    updateAvailablePbisPolicies() {
+    // The employee's Sales Channel and Alternate Sales Channel are multi-select
+    // picklists stored as ';'-separated values; combine them into a single set.
+    get pbisPolicyChannels() {
         const channels = [];
         if (this.employee.Sales_Channel__c) {
             channels.push(...this.employee.Sales_Channel__c.split(';'));
@@ -786,22 +781,37 @@ export default class NewEmployeeLwc extends LightningElement {
         if (this.employee.Alternate_Sales_Channel__c) {
             channels.push(...this.employee.Alternate_Sales_Channel__c.split(';'));
         }
-        const employeeChannels = new Set(channels.filter(c => c));
+        return new Set(channels.filter(c => c));
+    }
 
-        let options = [];
-        if (employeeChannels.size > 0) {
-            options = this.pbisPolicyList
-                .filter(policy => policy.salesChannels.some(sc => employeeChannels.has(sc)))
-                .map(policy => ({ label: policy.name, value: policy.id }));
-        }
-        options.unshift({ label: '--None--', value: '' });
-        this.pbisPolicyOptions = options;
-
-        // Clear the selection if it is no longer one of the available policies.
-        const validValues = new Set(options.map(opt => opt.value));
-        if (!validValues.has(this.employee.PBIS_Policy__c)) {
+    // Search Primary PBIS Policies by name, restricted to policies whose Sales
+    // Channels intersect the employee's Sales Channel / Alternate Sales Channel.
+    handlePbisPolicySearch(event) {
+        const searchValueName = event.target.value;
+        this.pbisPolicyName = searchValueName;
+        if (searchValueName) {
+            const employeeChannels = this.pbisPolicyChannels;
+            const searchedData = this.pbisPolicyList.filter(policy => {
+                const nameMatch = policy.name && policy.name.toLowerCase().includes(searchValueName.toLowerCase());
+                const channelMatch = employeeChannels.size > 0 && policy.salesChannels.some(sc => employeeChannels.has(sc));
+                return nameMatch && channelMatch;
+            });
+            this.isShowSearchedPbisPolicy = searchedData.length > 0;
+            this.searchedPbisPolicy = searchedData;
+        } else {
+            this.isShowSearchedPbisPolicy = false;
+            this.searchedPbisPolicy = [];
             this.employee = { ...this.employee, PBIS_Policy__c: '' };
         }
+    }
+
+    selectPbisPolicy(event) {
+        const index = event.currentTarget.dataset.index;
+        const selectedRecord = this.searchedPbisPolicy[index];
+        this.employee = { ...this.employee, PBIS_Policy__c: selectedRecord.id };
+        this.pbisPolicyName = selectedRecord.name;
+        this.isShowSearchedPbisPolicy = false;
+        this.searchedPbisPolicy = [];
     }
 
     payrollOptions() {
