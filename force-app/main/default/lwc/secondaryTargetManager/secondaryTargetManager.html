@@ -258,6 +258,49 @@
                         </table>
                     </template>
 
+                    <template if:true={explainPerDay}>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small">Per-day breakdown</h3>
+                        <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-m-bottom_medium">
+                            <thead>
+                                <tr class="slds-text-title_caps">
+                                    <th>Day</th>
+                                    <template if:true={explainIsTlsd}>
+                                        <th class="slds-text-align_right">Lines</th>
+                                        <th class="slds-text-align_right">Distinct Orders</th>
+                                        <th class="slds-text-align_right">Lines ÷ Orders</th>
+                                    </template>
+                                    <template if:true={explainIsDailyUnique}>
+                                        <th class="slds-text-align_right">Distinct Outlets</th>
+                                    </template>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={explainPerDay} for:item="r">
+                                    <tr key={r.id}>
+                                        <td>{r.day}</td>
+                                        <template if:true={explainIsTlsd}>
+                                            <td class="slds-text-align_right">{r.count1}</td>
+                                            <td class="slds-text-align_right">{r.count2}</td>
+                                            <td class="slds-text-align_right"><strong>{r.value}</strong></td>
+                                        </template>
+                                        <template if:true={explainIsDailyUnique}>
+                                            <td class="slds-text-align_right"><strong>{r.count1}</strong></td>
+                                        </template>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </template>
+
+                    <template if:true={explain.formula}>
+                        <div class="slds-box slds-box_x-small slds-theme_shade slds-m-bottom_medium">
+                            <span class="tcb-detail-label">Final calculation</span>
+                            <div class="slds-text-heading_small slds-m-top_x-small">
+                                <code>{explain.formula}</code>
+                            </div>
+                        </div>
+                    </template>
+
                     <template if:true={explainPackSkus}>
                         <h3 class="slds-text-heading_small slds-m-bottom_x-small">Pack SKUs ({explain.packSkus.length})</h3>
                         <ul class="slds-list_dotted slds-m-bottom_medium">

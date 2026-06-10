@@ -488,6 +488,17 @@ export default class SecondaryTargetManager extends LightningElement {
             ? this.explain.packSkus.map((n, i) => ({ id: i + 1, name: n }))
             : null;
     }
+    get explainPerDay() {
+        return (this.explain && this.explain.perDay && this.explain.perDay.length)
+            ? this.explain.perDay.map((r, i) => ({ id: i + 1, ...r }))
+            : null;
+    }
+    get explainIsTlsd() {
+        return this.explain && this.explain.operator === 'DAILY_LINES_PER_ORDER';
+    }
+    get explainIsDailyUnique() {
+        return this.explain && this.explain.operator === 'DAILY_UNIQUE_AVG';
+    }
 
     openExplain(id) {
         this.isLoading = true;

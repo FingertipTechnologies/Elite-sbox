@@ -387,6 +387,17 @@ public with sharing class SecondaryTarget_Controller {
         @AuraEnabled public Decimal targetValue;
         @AuraEnabled public List<KV> steps = new List<KV>();
         @AuraEnabled public List<String> packSkus;
+        // Per-day data for DAILY_UNIQUE_AVG / DAILY_LINES_PER_ORDER so QA can see
+        // how each day's number rolls up into the final value.
+        @AuraEnabled public List<DayRow> perDay;
+        @AuraEnabled public String formula;
+    }
+
+    public class DayRow {
+        @AuraEnabled public String day;       // formatted date
+        @AuraEnabled public Integer count1;   // lines (TLSD) / distinct outlets (TC/PC)
+        @AuraEnabled public Integer count2;   // distinct orders (TLSD), unused otherwise
+        @AuraEnabled public Decimal value;    // ratio (TLSD), count (TC/PC)
     }
 
     /**
@@ -494,6 +505,17 @@ public with sharing class SecondaryTarget_Controller {
         return keys;
     }
 
+    private static Date safeToDate(Object raw) {
+        if (raw == null) return null;
+        if (raw instanceof Datetime) return ((Datetime) raw).date();
+        return (Date) raw;
+    }
+
+    private static String fmtDate(Date d) {
+        if (d == null) return '';
+        return d.day() + ' ' + d.format().substring(d.format().indexOf('/') + 1).left(2);
+    }
+
     private static void explainPeriodAggregate(Secondary_Target__c t, Target_Criteria__c crit, AchievementExplanation x) {
         Date startDate = t.Start_Date__c;
         Date endDate = t.End_Date__c;
@@ -511,6 +533,7 @@ public with sharing class SecondaryTarget_Controller {
             Decimal v = (sr.get('v') != null) ? (Decimal) sr.get('v') : 0;
             x.steps.add(new KV('Sum field', crit.Field__c));
             x.steps.add(new KV('SUM(' + crit.Field__c + ')', String.valueOf(v)));
+            x.formula = 'SUM(' + crit.Field__c + ') over ' + rowCount + ' matched rows = ' + v;
         } else if (crit.Operator__c == 'COUNT_DISTINCT' && String.isNotBlank(crit.Distinct_Field__c)) {
             String dSoql = 'SELECT COUNT_DISTINCT(' + crit.Distinct_Field__c + ') v FROM ' + crit.Object__c +
                 ' WHERE ' + buildBaseWhere(crit, startDate, endDate, true);
@@ -518,27 +541,133 @@ public with sharing class SecondaryTarget_Controller {
             Integer dc = (dr.get('v') != null) ? (Integer) dr.get('v') : 0;
             x.steps.add(new KV('Distinct field', crit.Distinct_Field__c));
             x.steps.add(new KV('COUNT_DISTINCT', String.valueOf(dc)));
+            x.formula = 'COUNT_DISTINCT(' + crit.Distinct_Field__c + ') over ' + rowCount + ' matched rows = ' + dc;
+        } else if (crit.Operator__c == 'COUNT') {
+            x.formula = 'COUNT(Id) = ' + rowCount;
         }
     }
 
     private static void explainDailyOperator(Secondary_Target__c t, Target_Criteria__c crit, AchievementExplanation x) {
-        Integer divisor = (crit.Use_Attendance_Divisor__c == true)
-            ? (x.workingDays == null ? 0 : x.workingDays)
-            : null;
-        x.steps.add(new KV('Divisor type', crit.Use_Attendance_Divisor__c == true ? 'Working days (attendance)' : 'Active days (days with data)'));
-        if (divisor != null) x.steps.add(new KV('Working days', String.valueOf(divisor)));
-        // Count the rows the engine evaluates so QA can sanity check
         Date startDate = t.Start_Date__c;
         Date endDate = t.End_Date__c;
         Set<String> userKeys = buildUserKeys(t.User__c);
-        String soql = 'SELECT Count(Id) cnt FROM ' + crit.Object__c +
-            ' WHERE ' + buildBaseWhere(crit, startDate, endDate, true);
-        AggregateResult ar = (AggregateResult) Database.query(soql)[0];
-        x.steps.add(new KV('Source rows in period', String.valueOf(ar.get('cnt'))));
-        if (String.isNotBlank(crit.Distinct_Field__c)) {
-            x.steps.add(new KV(crit.Operator__c == 'DAILY_LINES_PER_ORDER' ? 'Order field' : 'Distinct field', crit.Distinct_Field__c));
+        String op = crit.Operator__c;
+
+        x.steps.add(new KV('Divisor type',
+            crit.Use_Attendance_Divisor__c == true ? 'Working days (attendance)' : 'Active days (days with data)'));
+
+        if (op == 'DAILY_LINES_PER_ORDER') {
+            String orderField = crit.Distinct_Field__c;
+            if (String.isBlank(orderField)) {
+                x.steps.add(new KV('Result', String.valueOf(x.achievementValue)));
+                return;
+            }
+            // Pull raw rows and aggregate per day
+            String soql = 'SELECT ' + crit.Date_Field__c + ', ' + orderField +
+                ' FROM ' + crit.Object__c +
+                ' WHERE ' + buildBaseWhere(crit, startDate, endDate, true);
+            Map<Date, Integer> linesByDay = new Map<Date, Integer>();
+            Map<Date, Set<String>> ordersByDay = new Map<Date, Set<String>>();
+            for (SObject row : Database.query(soql)) {
+                Date d = safeToDate(row.get(crit.Date_Field__c));
+                if (d == null) continue;
+                Object ord = row.get(orderField);
+                if (ord == null) continue;
+                if (!linesByDay.containsKey(d)) {
+                    linesByDay.put(d, 0);
+                    ordersByDay.put(d, new Set<String>());
+                }
+                linesByDay.put(d, linesByDay.get(d) + 1);
+                ordersByDay.get(d).add(String.valueOf(ord));
+            }
+
+            List<Date> sortedDays = new List<Date>(linesByDay.keySet());
+            sortedDays.sort();
+            Decimal sumRatios = 0;
+            x.perDay = new List<DayRow>();
+            for (Date d : sortedDays) {
+                Integer lines = linesByDay.get(d);
+                Integer orders = ordersByDay.get(d).size();
+                Decimal ratio = orders > 0 ? (Decimal.valueOf(lines) / orders).setScale(2, System.RoundingMode.HALF_UP) : 0;
+                sumRatios += ratio;
+                DayRow dr = new DayRow();
+                dr.day = String.valueOf(d);
+                dr.count1 = lines;
+                dr.count2 = orders;
+                dr.value = ratio;
+                x.perDay.add(dr);
+            }
+            Integer divisor = (crit.Use_Attendance_Divisor__c == true)
+                ? (x.workingDays == null ? 0 : x.workingDays)
+                : sortedDays.size();
+            Decimal result = divisor > 0 ? (sumRatios / divisor).setScale(2, System.RoundingMode.HALF_UP) : 0;
+            x.steps.add(new KV('Sum of daily ratios', String.valueOf(sumRatios.setScale(2, System.RoundingMode.HALF_UP))));
+            x.steps.add(new KV('Divisor', String.valueOf(divisor)));
+            x.formula = sumRatios.setScale(2, System.RoundingMode.HALF_UP) + ' ÷ ' + divisor + ' = ' + result;
+        } else if (op == 'DAILY_UNIQUE_AVG') {
+            // Build distinct (day, outlet) tuples — also union secondary sources.
+            Set<String> tuples = new Set<String>();
+            Map<Date, Set<String>> outletsByDay = new Map<Date, Set<String>>();
+            String distinctField = crit.Distinct_Field__c;
+            if (String.isNotBlank(distinctField)) {
+                String soql = 'SELECT ' + crit.Date_Field__c + ', ' + distinctField +
+                    ' FROM ' + crit.Object__c +
+                    ' WHERE ' + buildBaseWhere(crit, startDate, endDate, true);
+                for (SObject row : Database.query(soql)) {
+                    Date d = safeToDate(row.get(crit.Date_Field__c));
+                    Object outlet = row.get(distinctField);
+                    if (d == null || outlet == null) continue;
+                    String key = String.valueOf(d) + '|' + String.valueOf(outlet);
+                    tuples.add(key);
+                    if (!outletsByDay.containsKey(d)) outletsByDay.put(d, new Set<String>());
+                    outletsByDay.get(d).add(String.valueOf(outlet));
+                }
+                // Secondary source objects (Visit__c, Visit_Form__c, etc.)
+                if (String.isNotBlank(crit.Secondary_Source_Objects__c)) {
+                    try {
+                        List<Object> srcs = (List<Object>) JSON.deserializeUntyped(crit.Secondary_Source_Objects__c);
+                        for (Object o : srcs) {
+                            Map<String, Object> s = (Map<String, Object>) o;
+                            String sObj = String.valueOf(s.get('object'));
+                            String sUF = String.valueOf(s.get('userField'));
+                            String sDF = String.valueOf(s.get('dateField'));
+                            String sDist = String.valueOf(s.get('distinctField'));
+                            if (String.isBlank(sObj) || String.isBlank(sUF) || String.isBlank(sDF) || String.isBlank(sDist)) continue;
+                            String soql2 = 'SELECT ' + sDF + ', ' + sDist +
+                                ' FROM ' + sObj +
+                                ' WHERE ' + sDF + ' >= :startDate AND ' + sDF + ' <= :endDate AND ' + sUF + ' IN :userKeys';
+                            for (SObject row : Database.query(soql2)) {
+                                Date d = safeToDate(row.get(sDF));
+                                Object outlet = row.get(sDist);
+                                if (d == null || outlet == null) continue;
+                                String key = String.valueOf(d) + '|' + String.valueOf(outlet);
+                                tuples.add(key);
+                                if (!outletsByDay.containsKey(d)) outletsByDay.put(d, new Set<String>());
+                                outletsByDay.get(d).add(String.valueOf(outlet));
+                            }
+                        }
+                    } catch (Exception ignored) { /* malformed source JSON — skip */ }
+                }
+            }
+            List<Date> sortedDays = new List<Date>(outletsByDay.keySet());
+            sortedDays.sort();
+            x.perDay = new List<DayRow>();
+            for (Date d : sortedDays) {
+                DayRow dr = new DayRow();
+                dr.day = String.valueOf(d);
+                dr.count1 = outletsByDay.get(d).size();
+                dr.value = dr.count1;
+                x.perDay.add(dr);
+            }
+            Integer divisor = (crit.Use_Attendance_Divisor__c == true)
+                ? (x.workingDays == null ? 0 : x.workingDays)
+                : sortedDays.size();
+            Integer totalTuples = tuples.size();
+            Decimal result = divisor > 0 ? (Decimal.valueOf(totalTuples) / divisor).setScale(2, System.RoundingMode.HALF_UP) : 0;
+            x.steps.add(new KV('Distinct (day, outlet) tuples', String.valueOf(totalTuples)));
+            x.steps.add(new KV('Divisor', String.valueOf(divisor)));
+            x.formula = totalTuples + ' ÷ ' + divisor + ' = ' + result;
         }
-        x.steps.add(new KV('Result', String.valueOf(x.achievementValue)));
     }
 
     private static void explainFocusPack(Secondary_Target__c t, Target_Criteria__c crit, AchievementExplanation x) {
@@ -577,12 +706,36 @@ public with sharing class SecondaryTarget_Controller {
             Decimal v = (sr.get('v') != null) ? (Decimal) sr.get('v') : 0;
             x.steps.add(new KV('Value field', valueField));
             x.steps.add(new KV('SUM(' + valueField + ')', String.valueOf(v)));
+            x.formula = 'SUM(' + valueField + ') over pack-SKU lines = ' + v;
         } else {
             String qtyField = String.isNotBlank(crit.Field__c) ? crit.Field__c : 'Quantity__c';
             String outletField = String.isNotBlank(crit.Distinct_Field__c) ? crit.Distinct_Field__c : 'Account__c';
             x.steps.add(new KV('Quantity field', qtyField));
             x.steps.add(new KV('Outlet field', outletField));
             x.steps.add(new KV('Minimum qualifying quantity', String.valueOf(x.minQualifyingQty)));
+
+            // Group by order / outlet, sum qty, count distinct qualifying outlets
+            String soql = 'SELECT Order__c, ' + outletField + ', ' + qtyField + ' FROM Order_Item__c WHERE ' + baseWhere;
+            Map<String, Decimal> qtyByKey = new Map<String, Decimal>();
+            Map<String, String> outletByKey = new Map<String, String>();
+            for (SObject oi : Database.query(soql)) {
+                Object outlet = oi.get(outletField);
+                if (outlet == null) continue;
+                String key = String.valueOf(oi.get('Order__c')) + '|' + String.valueOf(outlet);
+                Decimal q = (oi.get(qtyField) != null) ? (Decimal) oi.get(qtyField) : 0;
+                qtyByKey.put(key, (qtyByKey.containsKey(key) ? qtyByKey.get(key) : 0) + q);
+                outletByKey.put(key, String.valueOf(outlet));
+            }
+            Decimal minQty = (x.minQualifyingQty == null) ? 0 : x.minQualifyingQty;
+            Set<String> qualified = new Set<String>();
+            Integer totalOrderOutletGroups = qtyByKey.size();
+            for (String key : qtyByKey.keySet()) {
+                if (qtyByKey.get(key) >= minQty) qualified.add(outletByKey.get(key));
+            }
+            x.steps.add(new KV('(order × outlet) groups checked', String.valueOf(totalOrderOutletGroups)));
+            x.steps.add(new KV('Distinct qualifying outlets', String.valueOf(qualified.size())));
+            x.formula = 'Distinct outlets whose single-order pack-SKU qty ≥ ' + minQty +
+                ' = ' + qualified.size();
         }
     }
 }
