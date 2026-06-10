@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Task 4 (PBIS Actuals & Incentive calculation) ONLY.
-  Deploy with:
+  PBIS Actuals & Incentive calculation (Task 4 + the grouped-query / formula-policy
+  follow-ups). Deploy with:
     sf project deploy start -x manifest/pbis_task4.xml -o <sandbox>
   Depends on Tasks 1-3 (S_D_Parameter__c with SOQL_Query__c, PBIS_Policy__c +
-  PBIS_Incentive_Slab__c, PBIS_Target__c incl. its PBIS_Policy__c lookup) already
-  present in the org, and on the org-only User field Monthly_Gross_Salary_INR__c.
-  Policy is read from PBIS_Target.PBIS_Policy__c (set on import in Task 3).
+  PBIS_Incentive_Slab__c, PBIS_Target__c) and the org-only User field
+  Monthly_Gross_Salary_INR__c. Policy is read from PBIS_Target.PBIS_Policy__c
+  (a formula sourced from User.PBIS_Policy__c).
+  AFTER deploy, run scripts/apex/regen_sd_parameter_soql.apex once so existing
+  S&D Parameters pick up the new `uid` alias in their stored SOQL.
 -->
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
@@ -16,6 +18,8 @@
         <members>PBISActualsScheduler</members>
         <members>PBISActualsRefreshController</members>
         <members>PBISActuals_ServiceTest</members>
+        <members>SDParameter_Controller</members>
+        <members>SDParameter_ControllerTest</members>
         <name>ApexClass</name>
     </types>
     <types>
