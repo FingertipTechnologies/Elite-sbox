@@ -43,6 +43,9 @@ public with sharing class PBISPolicy_Controller {
         }
         if (slabs == null) slabs = new List<PBIS_Incentive_Slab__c>();
 
+        // Guard: an active policy may not share a Sales Channel with another active policy.
+        assertUniqueSalesChannels(policy);
+
         Savepoint sp = Database.setSavepoint();
         try {
             upsert policy;
@@ -75,5 +78,40 @@ public with sharing class PBISPolicy_Controller {
             Database.rollback(sp);
             throw new AuraHandledException(e.getDmlMessage(0));
         }
+    }
+
+    /**
+     * Enforces that each Sales Channel has at most one ACTIVE PBIS Policy. If the policy
+     * being saved is active and any of its channels is already used by another active
+     * policy, throws with the conflicting channel(s) and the existing policy name(s).
+     */
+    private static void assertUniqueSalesChannels(PBIS_Policy__c policy) {
+        if (policy.Is_Active__c != true || String.isBlank(policy.Sales_Channels__c)) {
+            return; // inactive policies (or no channel) don't reserve a channel
+        }
+        List<String> channels = policy.Sales_Channels__c.split(';');
+        Id selfId = policy.Id; // null on insert -> "Id != null" matches all rows
+
+        List<PBIS_Policy__c> clashes = [
+            SELECT Id, Name, Sales_Channels__c
+            FROM PBIS_Policy__c
+            WHERE Is_Active__c = true
+              AND Id != :selfId
+              AND Sales_Channels__c INCLUDES (:channels)
+        ];
+        if (clashes.isEmpty()) return;
+
+        Set<String> selected = new Set<String>(channels);
+        List<String> details = new List<String>();
+        for (PBIS_Policy__c c : clashes) {
+            Set<String> overlap = new Set<String>(c.Sales_Channels__c.split(';'));
+            overlap.retainAll(selected);
+            details.add('"' + c.Name + '" (' + String.join(new List<String>(overlap), ', ') + ')');
+        }
+        throw new AuraHandledException(
+            'A PBIS Policy with the same Sales Channel already exists: ' +
+            String.join(details, '; ') +
+            '. Each Sales Channel can have only one active PBIS Policy.'
+        );
     }
 }

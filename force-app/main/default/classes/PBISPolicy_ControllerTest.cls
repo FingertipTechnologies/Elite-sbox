@@ -76,4 +76,71 @@ private class PBISPolicy_ControllerTest {
         }
         Test.stopTest();
     }
+
+    // First active value from the Sales Channel (Chanel) global value set.
+    private static String firstChannel() {
+        for (Schema.PicklistEntry e : PBIS_Policy__c.Sales_Channels__c.getDescribe().getPicklistValues()) {
+            if (e.isActive()) return e.getValue();
+        }
+        return null;
+    }
+
+    @isTest
+    static void testDuplicateActiveChannelBlocked() {
+        String ch = firstChannel();
+        PBISPolicy_Controller.savePolicy(
+            new PBIS_Policy__c(Name = 'KA Policy', Basis__c = 'Value', Is_Active__c = true, Sales_Channels__c = ch),
+            new List<PBIS_Incentive_Slab__c>{ slab(1, 90, null, 4, 4) }
+        );
+
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            PBISPolicy_Controller.savePolicy(
+                new PBIS_Policy__c(Name = 'KA Policy 2', Basis__c = 'Value', Is_Active__c = true, Sales_Channels__c = ch),
+                new List<PBIS_Incentive_Slab__c>{ slab(1, 90, null, 4, 4) }
+            );
+        } catch (AuraHandledException e) {
+            threw = true;
+        }
+        Test.stopTest();
+
+        System.assert(threw, 'A second active policy with the same channel should be blocked');
+        System.assertEquals(1, [SELECT COUNT() FROM PBIS_Policy__c], 'The duplicate policy must not be created');
+    }
+
+    @isTest
+    static void testInactiveDuplicateChannelAllowed() {
+        String ch = firstChannel();
+        PBISPolicy_Controller.savePolicy(
+            new PBIS_Policy__c(Name = 'Active One', Basis__c = 'Value', Is_Active__c = true, Sales_Channels__c = ch),
+            new List<PBIS_Incentive_Slab__c>{ slab(1, 90, null, 4, 4) }
+        );
+
+        Test.startTest();
+        PBISPolicy_Controller.PolicyBundle b = PBISPolicy_Controller.savePolicy(
+            new PBIS_Policy__c(Name = 'Inactive Dup', Basis__c = 'Value', Is_Active__c = false, Sales_Channels__c = ch),
+            new List<PBIS_Incentive_Slab__c>{ slab(1, 90, null, 4, 4) }
+        );
+        Test.stopTest();
+
+        System.assertNotEquals(null, b.policy.Id, 'Inactive policy with the same channel is allowed');
+    }
+
+    @isTest
+    static void testEditingSameActivePolicyAllowed() {
+        String ch = firstChannel();
+        PBISPolicy_Controller.PolicyBundle saved = PBISPolicy_Controller.savePolicy(
+            new PBIS_Policy__c(Name = 'Self Edit', Basis__c = 'Value', Is_Active__c = true, Sales_Channels__c = ch),
+            new List<PBIS_Incentive_Slab__c>{ slab(1, 90, null, 4, 4) }
+        );
+
+        Test.startTest();
+        // Re-saving the same active policy must not clash with itself.
+        PBISPolicy_Controller.PolicyBundle again =
+            PBISPolicy_Controller.savePolicy(saved.policy, saved.slabs);
+        Test.stopTest();
+
+        System.assertEquals(saved.policy.Id, again.policy.Id, 'Re-saving the same policy is allowed');
+    }
 }
