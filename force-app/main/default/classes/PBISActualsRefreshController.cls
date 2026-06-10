@@ -14,7 +14,7 @@ public with sharing class PBISActualsRefreshController {
 
     public PageReference runAll() {
         targetCount = [SELECT COUNT() FROM PBIS_Target__c WHERE Is_Active__c = true];
-        Database.executeBatch(new PBISActualsBatch(), 10);
+        Database.executeBatch(new PBISActualsBatch(), 200);
         started = true;
         ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.CONFIRM,
             'Started actuals & incentive recalculation for ' + targetCount + ' active PBIS Targets. ' +

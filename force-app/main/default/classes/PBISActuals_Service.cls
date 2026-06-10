@@ -1,14 +1,18 @@
 /**
  * PBIS Task 4 — Actuals & Incentive calculation.
  *
- * For each PBIS_Target__c: runs every filled "S & D Parameter" slot's stored
- * SOQL_Query__c to get the actual achievement, derives achievement %, matches the
- * per-Profile incentive slab on the user's policy, computes the per-slot incentive
- * amount (Gross x Slab% x Weightage), and rolls up Total / Max / Eligibility.
+ * recalculate() runs in five clear steps:
+ *   1. queryTargets       - load the targets (header + 10 slots + parent param fields).  [1 SOQL]
+ *   2. loadSlabs          - load the per-Profile incentive slabs for those policies.     [1 SOQL]
+ *   3. computeAchievements - run ONE aggregate query per distinct (parameter, period)
+ *                            for all users at once, then split the totals back per user.
+ *                            Query count scales with parameters, not targets×slots.      [G SOQL]
+ *   4. applyResults       - per target: achievement %, slab match, incentive amount,
+ *                            eligibility, totals and validation message.
+ *   5. update             - one DML for the whole chunk.
  *
- * Shared by the daily scheduler/batch, the admin list-button page and the per-record
- * quick action. Bulk-safe: one target re-query (with parent fields), one slab query,
- * then one aggregate query per filled slot bound to the single target user.
+ * Incentive per filled slot = Gross x slab(Monthly|Quarterly)% x Weightage. Total is paid
+ * only when eligible (every mandatory slot reaches the lowest slab floor), else 0.
  */
 public without sharing class PBISActuals_Service {
 
@@ -27,55 +31,137 @@ public without sharing class PBISActuals_Service {
     public static void recalculate(Set<Id> targetIds) {
         if (targetIds == null || targetIds.isEmpty()) return;
 
+        // 1. targets
         List<PBIS_Target__c> targets = queryTargets(targetIds);
         if (targets.isEmpty()) return;
 
-        // Slabs for every policy referenced by the targets in scope.
+        // 2. slabs, keyed by policyId|profile
         Set<Id> policyIds = new Set<Id>();
         for (PBIS_Target__c t : targets) {
-            Id policyId = targetPolicyId(t);
+            Id policyId = (Id) t.get('PBIS_Policy__c');
             if (policyId != null) policyIds.add(policyId);
         }
         Map<String, List<PBIS_Incentive_Slab__c>> slabsByKey = loadSlabs(policyIds);
 
+        // 3. achievement[targetId][slot] from grouped queries
+        Map<Id, Map<Integer, Decimal>> achievement = computeAchievements(targets);
+
+        // 4. apply per target
         for (PBIS_Target__c t : targets) {
-            computeTarget(t, slabsByKey);
+            Map<Integer, Decimal> slotAchv = achievement.get(t.Id);
+            applyResults(t, slotAchv == null ? new Map<Integer, Decimal>() : slotAchv, slabsByKey);
         }
+
+        // 5. save
         update targets;
     }
 
-    // ===== per-target calculation =====
-    private static void computeTarget(PBIS_Target__c t, Map<String, List<PBIS_Incentive_Slab__c>> slabsByKey) {
+    // ===== step 3: grouped achievement =====
+    // A bucket of slots that share the same parameter + period, so one query serves them all.
+    private class AchvGroup {
+        String soql;
+        Date startDate;
+        Date endDate;
+        Set<Id> userIds = new Set<Id>();
+        List<SlotRef> refs = new List<SlotRef>();
+    }
+    // Points back to the (target, slot) and the user whose total we need.
+    private class SlotRef {
+        Id targetId;
+        Integer slot;
+        Id userId;
+        SlotRef(Id targetId, Integer slot, Id userId) {
+            this.targetId = targetId;
+            this.slot = slot;
+            this.userId = userId;
+        }
+    }
+
+    private static Map<Id, Map<Integer, Decimal>> computeAchievements(List<PBIS_Target__c> targets) {
+        // Bucket every runnable slot by parameter + period.
+        Map<String, AchvGroup> groups = new Map<String, AchvGroup>();
+        for (PBIS_Target__c t : targets) {
+            if (t.User__c == null || t.Start_Date__c == null || t.End_Date__c == null) continue;
+            for (Integer n = 1; n <= SLOTS; n++) {
+                Id paramId = (Id) t.get('S_D_Parameter_' + n + '__c');
+                if (paramId == null) continue;
+                SObject param = t.getSObject('S_D_Parameter_' + n + '__r');
+                String soql = param != null ? (String) param.get('SOQL_Query__c') : null;
+                if (String.isBlank(soql) || !soql.trim().toUpperCase().startsWith('SELECT')) continue;
+
+                String key = paramId + '|' + t.Start_Date__c + '|' + t.End_Date__c;
+                AchvGroup g = groups.get(key);
+                if (g == null) {
+                    g = new AchvGroup();
+                    g.soql = soql;
+                    g.startDate = t.Start_Date__c;
+                    g.endDate = t.End_Date__c;
+                    groups.put(key, g);
+                }
+                g.userIds.add(t.User__c);
+                g.refs.add(new SlotRef(t.Id, n, t.User__c));
+            }
+        }
+
+        // Run one query per group and fan the per-user totals back to each slot.
+        Map<Id, Map<Integer, Decimal>> out = new Map<Id, Map<Integer, Decimal>>();
+        for (AchvGroup g : groups.values()) {
+            Map<Id, Decimal> totalByUser = runGroupQuery(g);
+            for (SlotRef ref : g.refs) {
+                Decimal value = totalByUser.containsKey(ref.userId) ? totalByUser.get(ref.userId) : 0;
+                if (!out.containsKey(ref.targetId)) out.put(ref.targetId, new Map<Integer, Decimal>());
+                out.get(ref.targetId).put(ref.slot, value);
+            }
+        }
+        return out;
+    }
+
+    // Runs a parameter's stored aggregate SOQL once for all users in the group.
+    // Binds :startDate, :endDate and :userIds; reads the `uid` and `total` aliases.
+    private static Map<Id, Decimal> runGroupQuery(AchvGroup g) {
+        Date startDate = g.startDate;
+        Date endDate = g.endDate;
+        Set<Id> userIds = g.userIds;
+        Map<Id, Decimal> totalByUser = new Map<Id, Decimal>();
+        try {
+            for (AggregateResult ar : (List<AggregateResult>) Database.query(g.soql)) {
+                Id uid = (Id) ar.get('uid');
+                Object v = ar.get('total');
+                if (uid != null && v != null) totalByUser.put(uid, (Decimal) v);
+            }
+        } catch (Exception e) {
+            // A bad parameter query yields 0 for its slots rather than aborting the chunk.
+            System.debug('PBISActuals_Service group query failed: ' + e.getMessage());
+        }
+        return totalByUser;
+    }
+
+    // ===== step 4: per-target results =====
+    private static void applyResults(PBIS_Target__c t, Map<Integer, Decimal> slotAchv,
+            Map<String, List<PBIS_Incentive_Slab__c>> slabsByKey) {
         List<String> notes = new List<String>();
 
-        Id policyId = targetPolicyId(t);
+        Id policyId = (Id) t.get('PBIS_Policy__c');
         String profile = (String) t.get('Profile__c');
         List<PBIS_Incentive_Slab__c> slabs =
-            (policyId != null && String.isNotBlank(profile))
-                ? slabsByKey.get(policyId + '|' + profile)
-                : null;
+            (policyId != null && String.isNotBlank(profile)) ? slabsByKey.get(policyId + '|' + profile) : null;
 
         if (policyId == null) notes.add('No PBIS Policy on the target');
         else if (slabs == null || slabs.isEmpty()) notes.add('No active slabs for this policy/profile');
 
         Decimal floor = (slabs != null && !slabs.isEmpty()) ? slabs[0].Achievement_From__c : null;
         Boolean isQuarter = t.Incentive_Period__c == 'Quarterly';
-        Decimal gross = (Decimal) t.Gross_Salary__c;
-        if (gross == null) gross = 0;
+        Decimal gross = t.Gross_Salary__c == null ? 0 : t.Gross_Salary__c;
 
         Decimal totalIncentive = 0;
         Decimal maxIncentive = 0;
         Boolean anyMandatory = false;
-        Boolean mandatoryMet = true; // until a mandatory slot fails the floor
+        Boolean mandatoryMet = true;
 
         for (Integer n = 1; n <= SLOTS; n++) {
             Id paramId = (Id) t.get('S_D_Parameter_' + n + '__c');
             if (paramId == null) {
-                // clear any stale calc values for an empty slot
-                t.put('S_D_Parameter_' + n + '_Achievement__c', null);
-                t.put('S_D_Parameter_' + n + '_Achievement_Percent__c', null);
-                t.put('S_D_Parameter_' + n + '_Qualified_Slab__c', null);
-                t.put('S_D_Parameter_' + n + '_Incentive_Amount__c', null);
+                clearSlot(t, n);
                 continue;
             }
 
@@ -86,13 +172,14 @@ public without sharing class PBISActuals_Service {
             Decimal weightage = (Decimal) t.get('S_D_Parameter_' + n + '_Weightage__c');
             if (weightage == null) weightage = 0;
 
-            // 1) achievement from the stored SOQL
-            Decimal achievement = runAchievement(soql, t.User__c, t.Start_Date__c, t.End_Date__c, n, notes);
+            if (String.isBlank(soql) || !soql.trim().toUpperCase().startsWith('SELECT')) {
+                notes.add('Slot ' + n + ': parameter has no runnable query');
+            }
 
-            // 2) achievement %
+            // Achievement came from step 3 (0 if the slot/group produced nothing).
+            Decimal achievement = slotAchv.containsKey(n) ? slotAchv.get(n) : 0;
             Decimal pct = (target != null && target != 0) ? (achievement / target) * 100 : 0;
 
-            // 3) slab match + 4) incentive amount
             PBIS_Incentive_Slab__c slab = matchSlab(slabs, pct);
             Decimal amount = 0;
             if (slab != null) {
@@ -100,15 +187,12 @@ public without sharing class PBISActuals_Service {
                 if (slabPct == null) slabPct = 0;
                 amount = gross * (slabPct / 100) * (weightage / 100);
             }
-
-            // max possible for this slot = top slab % at this weightage
             if (slabs != null && !slabs.isEmpty()) {
                 PBIS_Incentive_Slab__c top = slabs[slabs.size() - 1];
                 Decimal topPct = isQuarter ? top.Quarterly_Incentive_Percent__c : top.Monthly_Incentive_Percent__c;
                 if (topPct == null) topPct = 0;
                 maxIncentive += gross * (topPct / 100) * (weightage / 100);
             }
-
             totalIncentive += amount;
 
             if (mandatory) {
@@ -128,31 +212,16 @@ public without sharing class PBISActuals_Service {
         t.Is_Eligible__c = eligible;
         t.Total_Incentive_Value__c = eligible ? totalIncentive : 0;
         t.Max_Incentive_Value__c = maxIncentive;
-        t.Validation_Message__c = notes.isEmpty() ? null : truncate(String.join(notes, '; '), 255);
+        String msg = notes.isEmpty() ? null : String.join(notes, '; ');
+        if (msg != null && msg.length() > 255) msg = msg.substring(0, 255);
+        t.Validation_Message__c = msg;
     }
 
-    // Runs one parameter's stored aggregate SOQL for a single user/period; returns the summed total.
-    private static Decimal runAchievement(String soql, Id userId, Date startDate, Date endDate, Integer slot, List<String> notes) {
-        if (String.isBlank(soql) || !soql.trim().toUpperCase().startsWith('SELECT')) {
-            notes.add('Slot ' + slot + ': parameter has no runnable query');
-            return 0;
-        }
-        if (startDate == null || endDate == null) {
-            notes.add('Slot ' + slot + ': missing period dates');
-            return 0;
-        }
-        Set<Id> userIds = new Set<Id>{ userId };
-        Decimal total = 0;
-        try {
-            for (AggregateResult ar : (List<AggregateResult>) Database.query(soql)) {
-                Object v = ar.get('total');
-                if (v != null) total += (Decimal) v;
-            }
-        } catch (Exception e) {
-            notes.add('Slot ' + slot + ': ' + e.getMessage());
-            return 0;
-        }
-        return total;
+    private static void clearSlot(PBIS_Target__c t, Integer n) {
+        t.put('S_D_Parameter_' + n + '_Achievement__c', null);
+        t.put('S_D_Parameter_' + n + '_Achievement_Percent__c', null);
+        t.put('S_D_Parameter_' + n + '_Qualified_Slab__c', null);
+        t.put('S_D_Parameter_' + n + '_Incentive_Amount__c', null);
     }
 
     // First slab (sorted by From asc) whose band contains pct; blank To = open-ended top band.
@@ -168,7 +237,7 @@ public without sharing class PBISActuals_Service {
         return null;
     }
 
-    // ===== data loaders =====
+    // ===== loaders =====
     private static Map<String, List<PBIS_Incentive_Slab__c>> loadSlabs(Set<Id> policyIds) {
         Map<String, List<PBIS_Incentive_Slab__c>> byKey = new Map<String, List<PBIS_Incentive_Slab__c>>();
         if (policyIds == null || policyIds.isEmpty()) return byKey;
@@ -187,10 +256,6 @@ public without sharing class PBISActuals_Service {
         return byKey;
     }
 
-    private static Id targetPolicyId(PBIS_Target__c t) {
-        return (Id) t.get('PBIS_Policy__c');
-    }
-
     // Builds the full target query (header + all 10 slots + parent param fields).
     private static List<PBIS_Target__c> queryTargets(Set<Id> ids) {
         List<String> fields = new List<String>{
@@ -204,12 +269,7 @@ public without sharing class PBISActuals_Service {
             fields.add('S_D_Parameter_' + n + '_Target__c');
             fields.add('S_D_Parameter_' + n + '_Weightage__c');
         }
-        String soql = 'SELECT ' + String.join(fields, ', ') +
-                      ' FROM PBIS_Target__c WHERE Id IN :ids';
+        String soql = 'SELECT ' + String.join(fields, ', ') + ' FROM PBIS_Target__c WHERE Id IN :ids';
         return (List<PBIS_Target__c>) Database.query(soql);
-    }
-
-    private static String truncate(String s, Integer max) {
-        return (s != null && s.length() > max) ? s.substring(0, max) : s;
     }
 }

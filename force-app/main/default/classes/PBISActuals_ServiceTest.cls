@@ -3,7 +3,7 @@ private class PBISActuals_ServiceTest {
 
     // A SOQL that counts Accounts owned by the bound user within the period.
     private static final String ACCOUNT_COUNT_SOQL =
-        'SELECT OwnerId, COUNT(Id) total FROM Account ' +
+        'SELECT OwnerId uid, COUNT(Id) total FROM Account ' +
         'WHERE CreatedDate >= :startDate AND CreatedDate <= :endDate ' +
         'AND OwnerId IN :userIds GROUP BY OwnerId';
 
@@ -172,6 +172,54 @@ private class PBISActuals_ServiceTest {
         ctl.runAll();
         Test.stopTest();
         System.assertEquals(true, ctl.started, 'Refresh should mark started');
+    }
+
+    @isTest
+    static void testGroupedAchievementSplitsByUser() {
+        // Two users sharing the same parameter + period must each get their own achievement
+        // from a single grouped query (the core scalability behaviour).
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1];
+        User u1 = buildUser(p.Id, 40000);
+        User u2 = buildUser(p.Id, 40000);
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert new List<User>{ u1, u2 };
+        }
+
+        // u1 owns 2 accounts, u2 owns 5.
+        List<Account> accts = new List<Account>();
+        for (Integer i = 0; i < 2; i++) accts.add(new Account(Name = 'U1-' + i, OwnerId = u1.Id));
+        for (Integer i = 0; i < 5; i++) accts.add(new Account(Name = 'U2-' + i, OwnerId = u2.Id));
+        insert accts;
+
+        S_D_Parameter__c param = new S_D_Parameter__c(
+            Name = 'Shared Param', Operator__c = 'COUNT', Object__c = 'Account',
+            Is_Mandatory__c = true, Is_Active__c = true, SOQL_Query__c = ACCOUNT_COUNT_SOQL
+        );
+        insert param;
+
+        Date s = Date.today().addDays(-1);
+        Date e = Date.today().addDays(1);
+        PBIS_Target__c t1 = target(u1.Id, param.Id, s, e, 10);
+        PBIS_Target__c t2 = target(u2.Id, param.Id, s, e, 10);
+        insert new List<PBIS_Target__c>{ t1, t2 };
+
+        Test.startTest();
+        PBISActuals_Service.recalculate(new Set<Id>{ t1.Id, t2.Id });
+        Test.stopTest();
+
+        Map<Id, PBIS_Target__c> byId = new Map<Id, PBIS_Target__c>([
+            SELECT Id, S_D_Parameter_1_Achievement__c FROM PBIS_Target__c WHERE Id IN :new List<Id>{ t1.Id, t2.Id }
+        ]);
+        System.assertEquals(2, byId.get(t1.Id).S_D_Parameter_1_Achievement__c, 'u1 achievement = 2 accounts');
+        System.assertEquals(5, byId.get(t2.Id).S_D_Parameter_1_Achievement__c, 'u2 achievement = 5 accounts');
+    }
+
+    private static PBIS_Target__c target(Id userId, Id paramId, Date s, Date e, Decimal targetVal) {
+        return new PBIS_Target__c(
+            User__c = userId, Is_Active__c = true, Incentive_Period__c = 'Monthly',
+            Start_Date__c = s, End_Date__c = e,
+            S_D_Parameter_1__c = paramId, S_D_Parameter_1_Weightage__c = 100, S_D_Parameter_1_Target__c = targetVal
+        );
     }
 
     // ===== helpers =====
