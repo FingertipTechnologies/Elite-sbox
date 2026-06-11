@@ -27,4 +27,17 @@ public with sharing class PBISActualsRefreshController {
             'Refresh the list view in a few moments to see the updated values.'));
         return null;
     }
+
+    /**
+     * Cancel / back: return to the PBIS Target list view. The StandardSetController's own
+     * cancel() can land on a "page not found" when this page is launched as a list button,
+     * so navigate explicitly to the object's list using its key prefix (Lightning upgrades
+     * the /{prefix}/o URL to the Lightning list view).
+     */
+    public PageReference backToList() {
+        String prefix = PBIS_Target__c.SObjectType.getDescribe().getKeyPrefix();
+        PageReference pr = new PageReference('/' + prefix + '/o');
+        pr.setRedirect(true);
+        return pr;
+    }
 }
