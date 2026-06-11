@@ -161,6 +161,102 @@
                 </div>
             </template>
 
+            <!-- Section: Unique Customers across multiple objects -->
+            <template if:true={isMultiObjectDistinct}>
+                <div class="sdp-section">
+                    <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_x-small">
+                        <p class="sdp-section-label slds-m-bottom_none">Sources (unique customers across objects)</p>
+                        <lightning-button
+                            label="Add Source"
+                            icon-name="utility:add"
+                            onclick={addSource}
+                            variant="brand-outline">
+                        </lightning-button>
+                    </div>
+                    <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
+                        Each source contributes one object + customer field. The achievement is the count of
+                        distinct customers across all sources, per salesperson, within the target period.
+                    </p>
+
+                    <template for:each={sources} for:item="source">
+                        <div key={source.key} class="slds-box slds-box_x-small slds-m-bottom_small">
+                            <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_x-small">
+                                <p class="sdp-section-label slds-m-bottom_none">Source</p>
+                                <lightning-button-icon
+                                    icon-name="utility:delete"
+                                    variant="border-filled"
+                                    alternative-text="Remove source"
+                                    data-key={source.key}
+                                    onclick={removeSource}>
+                                </lightning-button-icon>
+                            </div>
+                            <div class="slds-grid slds-wrap slds-gutters">
+                                <div class="slds-col slds-size_1-of-2">
+                                    <c-searchable-combobox
+                                        label="Object"
+                                        placeholder="Search object…"
+                                        options={objectOptions}
+                                        value={source.object}
+                                        data-key={source.key}
+                                        onchange={handleSourceObjectChange}>
+                                    </c-searchable-combobox>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2">
+                                    <c-searchable-combobox
+                                        label="Customer Field"
+                                        placeholder="Search customer field…"
+                                        options={source.fieldOptions}
+                                        value={source.customerField}
+                                        data-key={source.key}
+                                        data-field="customerField"
+                                        onchange={handleSourceField}>
+                                    </c-searchable-combobox>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2">
+                                    <c-searchable-combobox
+                                        label="User Field"
+                                        placeholder="Search user field…"
+                                        options={source.userFieldOptions}
+                                        value={source.userField}
+                                        data-key={source.key}
+                                        data-field="userField"
+                                        onchange={handleSourceField}>
+                                    </c-searchable-combobox>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2">
+                                    <c-searchable-combobox
+                                        label="Date Field"
+                                        placeholder="Search date field for the period…"
+                                        options={source.dateFieldOptions}
+                                        value={source.dateField}
+                                        data-key={source.key}
+                                        data-field="dateField"
+                                        onchange={handleSourceField}>
+                                    </c-searchable-combobox>
+                                </div>
+                            </div>
+                            <div class="slds-m-top_small">
+                                <p class="sdp-section-label">Filters</p>
+                                <c-tam-filter-builder
+                                    fields-metadata={source.fieldsMetadata}
+                                    value={source.filters}
+                                    data-key={source.key}
+                                    onfilterchange={handleSourceFilterChange}>
+                                </c-tam-filter-builder>
+                                <lightning-textarea
+                                    class="slds-m-top_small"
+                                    label="Filter Logic"
+                                    placeholder="e.g. 1 AND 2"
+                                    data-key={source.key}
+                                    value={source.filterLogic}
+                                    onchange={handleSourceFilterLogic}>
+                                </lightning-textarea>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
             <!-- Section: Generated SOQL -->
             <div class="sdp-section">
                 <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_x-small">

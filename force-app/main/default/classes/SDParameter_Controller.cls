@@ -17,6 +17,14 @@ public with sharing class SDParameter_Controller {
             throw new AuraHandledException('No parameter provided to save.');
         }
         try {
+            // For the multi-object unique-customer operator, generate one runnable query per
+            // source (object + customer field) and store them in Source_Config__c. Otherwise the
+            // single aggregate SOQL is generated; clear Source_Config__c so stale config can't run.
+            if (parameter.Operator__c == 'MULTI_OBJECT_DISTINCT') {
+                parameter.Source_Config__c = buildSourceConfig(parameter.Source_Config__c);
+            } else {
+                parameter.Source_Config__c = null;
+            }
             // Always (re)generate and store the SOQL so it matches the current config.
             parameter.SOQL_Query__c = buildSoql(parameter);
             // Stable external id (Sales Channel | Name) so PBIS Target imports can match this parameter.
@@ -36,7 +44,8 @@ public with sharing class SDParameter_Controller {
         return [
             SELECT Id, Name, Object__c, Operator__c, Field__c, User_Field__c, Date_Field__c,
                    SKU_Field__c, Focused_Pack__c, Focused_Pack__r.Name, Sales_Channel__c,
-                   Filters__c, Filter_Logic__c, SOQL_Query__c, Is_Mandatory__c, Is_Active__c
+                   Filters__c, Filter_Logic__c, SOQL_Query__c, Source_Config__c,
+                   Is_Mandatory__c, Is_Active__c
             FROM S_D_Parameter__c
             WHERE Id = :parameterId
             LIMIT 1
@@ -92,6 +101,12 @@ public with sharing class SDParameter_Controller {
         if (parameter == null) return '';
         String op = parameter.Operator__c;
         Boolean isFocusPack = (op == 'FOCUS_PACK_VOLUME' || op == 'FOCUS_PACK_REVENUE');
+
+        // Multi-object unique customers: there is no single SOQL (SOQL has no cross-object
+        // UNION). Show the per-source queries that PBISActuals_Service runs and unions.
+        if (op == 'MULTI_OBJECT_DISTINCT') {
+            return buildMultiPreview(buildSourceConfig(parameter.Source_Config__c));
+        }
 
         if (String.isBlank(parameter.Object__c)) {
             return '-- Select an Object to generate the SOQL.';
@@ -154,6 +169,89 @@ public with sharing class SDParameter_Controller {
             + ' FROM ' + parameter.Object__c
             + ' WHERE ' + String.join(conds, ' AND ')
             + ' GROUP BY ' + userField;
+    }
+
+    // ---- multi-object unique customers -----------------------------------
+
+    /**
+     * For the MULTI_OBJECT_DISTINCT operator: regenerate each source's runnable query from its
+     * definition (object + customer/user/date fields + filters) and store it back on the source.
+     * Input/output JSON: {"sources":[{object, customerField, userField, dateField, filters,
+     * filterLogic, soql}]}. PBISActuals_Service runs each `soql` and unions the `cust` values.
+     */
+    private static String buildSourceConfig(String json) {
+        if (String.isBlank(json)) return json;
+        Map<String, Object> root;
+        try {
+            root = (Map<String, Object>) JSON.deserializeUntyped(json);
+        } catch (Exception e) {
+            return json;
+        }
+        List<Object> rows = (List<Object>) root.get('sources');
+        if (rows == null) return json;
+        for (Object r : rows) {
+            Map<String, Object> src = (Map<String, Object>) r;
+            src.put('soql', buildSourceSoql(src));
+        }
+        return JSON.serialize(root);
+    }
+
+    /**
+     * One source = one (object, customer field). Mirrors buildSoql but selects the customer
+     * field as `cust` and groups by user + customer so the DB de-dupes pairs:
+     *   SELECT <userField> uid, <customerField> cust FROM <object>
+     *   WHERE <dateField> >= :startDate AND <dateField> <= :endDate AND (<filters>)
+     *     AND <userField> IN :userIds
+     *   GROUP BY <userField>, <customerField>
+     */
+    private static String buildSourceSoql(Map<String, Object> src) {
+        String objectName = (String) src.get('object');
+        String customerFieldRaw = (String) src.get('customerField');
+        if (String.isBlank(objectName) || String.isBlank(customerFieldRaw)) return '';
+
+        Set<String> selfRels = selfRelationshipNames(objectName);
+        String userField = stripSelfRel(
+            String.isBlank((String) src.get('userField')) ? 'OwnerId' : (String) src.get('userField'), selfRels);
+        String customerField = stripSelfRel(customerFieldRaw, selfRels);
+        String dateField = stripSelfRel((String) src.get('dateField'), selfRels);
+
+        List<String> conds = new List<String>();
+        if (String.isNotBlank(dateField)) {
+            conds.add(dateField + ' >= :startDate');
+            conds.add(dateField + ' <= :endDate');
+        }
+        String whereClause = TAM_FilterEngine_Service.buildWhereClause(
+            stripSelfRelFromFilters((String) src.get('filters'), selfRels), (String) src.get('filterLogic'));
+        if (String.isNotBlank(whereClause)) conds.add(whereClause);
+        conds.add(userField + ' IN :userIds');
+
+        return 'SELECT ' + userField + ' uid, ' + customerField + ' cust'
+            + ' FROM ' + objectName
+            + ' WHERE ' + String.join(conds, ' AND ')
+            + ' GROUP BY ' + userField + ', ' + customerField;
+    }
+
+    /** Readable preview of the per-source queries (the engine runs these and unions `cust`). */
+    private static String buildMultiPreview(String sourceConfig) {
+        if (String.isBlank(sourceConfig)) {
+            return '-- Add at least one source (object + customer field) to generate the queries.';
+        }
+        try {
+            Map<String, Object> root = (Map<String, Object>) JSON.deserializeUntyped(sourceConfig);
+            List<Object> rows = (List<Object>) root.get('sources');
+            if (rows == null || rows.isEmpty()) return '-- Add at least one source.';
+            List<String> parts = new List<String>();
+            Integer i = 1;
+            for (Object r : rows) {
+                Map<String, Object> src = (Map<String, Object>) r;
+                parts.add('-- Source ' + (i++) + ' (' + src.get('object') + ' -> ' + src.get('customerField')
+                    + ')\n' + (String) src.get('soql'));
+            }
+            return '-- Unique customers = distinct union of `cust` across these sources, per user:\n\n'
+                + String.join(parts, '\n\n');
+        } catch (Exception e) {
+            return '-- (could not build preview)';
+        }
     }
 
     // ---- helpers ---------------------------------------------------------

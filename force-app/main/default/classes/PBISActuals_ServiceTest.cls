@@ -221,6 +221,69 @@ private class PBISActuals_ServiceTest {
         );
     }
 
+    @isTest
+    static void testMultiObjectDistinctCustomers() {
+        // Unique customers across two objects (Opportunity + Case), unioned per user.
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1];
+        User u = buildUser(p.Id, 50000, null);
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert u;
+        }
+
+        // 3 accounts; u touches A1,A2 via Opportunity and A2,A3 via Case -> union = 3 distinct.
+        List<Account> accts = new List<Account>{
+            new Account(Name = 'A1'), new Account(Name = 'A2'), new Account(Name = 'A3')
+        };
+        insert accts;
+        insert new List<Opportunity>{
+            new Opportunity(Name = 'O1', StageName = 'Prospecting', CloseDate = Date.today(),
+                AccountId = accts[0].Id, OwnerId = u.Id),
+            new Opportunity(Name = 'O2', StageName = 'Prospecting', CloseDate = Date.today(),
+                AccountId = accts[1].Id, OwnerId = u.Id)
+        };
+        insert new List<Case>{
+            new Case(AccountId = accts[1].Id, OwnerId = u.Id),
+            new Case(AccountId = accts[2].Id, OwnerId = u.Id)
+        };
+
+        String oppSoql = 'SELECT OwnerId uid, AccountId cust FROM Opportunity ' +
+            'WHERE CreatedDate >= :startDate AND CreatedDate <= :endDate AND OwnerId IN :userIds ' +
+            'GROUP BY OwnerId, AccountId';
+        String caseSoql = 'SELECT OwnerId uid, AccountId cust FROM Case ' +
+            'WHERE CreatedDate >= :startDate AND CreatedDate <= :endDate AND OwnerId IN :userIds ' +
+            'GROUP BY OwnerId, AccountId';
+        String config = JSON.serialize(new Map<String, Object>{
+            'sources' => new List<Object>{
+                new Map<String, Object>{ 'soql' => oppSoql },
+                new Map<String, Object>{ 'soql' => caseSoql }
+            }
+        });
+
+        S_D_Parameter__c param = new S_D_Parameter__c(
+            Name = 'Unique Customers', Operator__c = 'MULTI_OBJECT_DISTINCT',
+            Is_Mandatory__c = true, Is_Active__c = true,
+            SOQL_Query__c = '-- multi-object preview', Source_Config__c = config
+        );
+        insert param;
+
+        PBIS_Target__c t = new PBIS_Target__c(
+            User__c = u.Id, Is_Active__c = true, Incentive_Period__c = 'Monthly',
+            Start_Date__c = Date.today().addDays(-1), End_Date__c = Date.today().addDays(1),
+            S_D_Parameter_1__c = param.Id, S_D_Parameter_1_Weightage__c = 100, S_D_Parameter_1_Target__c = 3
+        );
+        insert t;
+
+        Test.startTest();
+        PBISActuals_Service.recalculate(new Set<Id>{ t.Id });
+        Test.stopTest();
+
+        PBIS_Target__c r = [SELECT S_D_Parameter_1_Achievement__c, S_D_Parameter_1_Achievement_Percent__c
+                            FROM PBIS_Target__c WHERE Id = :t.Id];
+        System.assertEquals(3, r.S_D_Parameter_1_Achievement__c,
+            'Distinct customers across both objects: A1, A2 (shared), A3');
+        System.assertEquals(100, r.S_D_Parameter_1_Achievement_Percent__c, '3 of 3 target');
+    }
+
     // ===== helpers =====
     private static PBIS_Incentive_Slab__c slab(Id policyId, String profile, Integer num,
             Decimal fromPct, Decimal upto, Decimal monthly, Decimal quarterly) {

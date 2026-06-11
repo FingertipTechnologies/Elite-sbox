@@ -16,6 +16,7 @@ const OPERATOR_OPTIONS = [
     { label: 'SUM', value: 'SUM' },
     { label: 'COUNT', value: 'COUNT' },
     { label: 'COUNT DISTINCT', value: 'COUNT_DISTINCT' },
+    { label: 'Unique Customers (multi-object)', value: 'MULTI_OBJECT_DISTINCT' },
     { label: 'FOCUS PACK VOLUME', value: 'FOCUS_PACK_VOLUME' },
     { label: 'FOCUS PACK REVENUE', value: 'FOCUS_PACK_REVENUE' }
 ];
@@ -41,6 +42,11 @@ export default class SdParameterBuilder extends LightningElement {
     @track filters = [];
     @track fieldsMetadata = [];
     @track soqlPreview = '';
+
+    // MULTI_OBJECT_DISTINCT: each source = one (object, customer field) with its own
+    // user/date fields + filters and its own loaded field metadata/options.
+    @track sources = [];
+    _sourceSeq = 1;
 
     operatorOptions = OPERATOR_OPTIONS;
     objectOptions = [];
@@ -123,8 +129,54 @@ export default class SdParameterBuilder extends LightningElement {
                 }
             }
             this.soqlPreview = rec.SOQL_Query__c || '';
+            if (rec.Operator__c === 'MULTI_OBJECT_DISTINCT' && rec.Source_Config__c) {
+                return this.loadSourcesFromConfig(rec.Source_Config__c);
+            }
             return this.loadFields(rec.Object__c);
         });
+    }
+
+    // Rehydrate the per-source cards from Source_Config__c and reload each one's field metadata.
+    loadSourcesFromConfig(sourceConfig) {
+        let defs = [];
+        try {
+            defs = (JSON.parse(sourceConfig).sources) || [];
+        } catch (e) {
+            defs = [];
+        }
+        this.sources = defs.map((d) => {
+            let filters = [];
+            try {
+                if (d.filters) filters = JSON.parse(d.filters).filters || [];
+            } catch (e) {
+                filters = [];
+            }
+            return {
+                ...this.newSource(),
+                object: d.object || '',
+                customerField: d.customerField || '',
+                userField: d.userField || '',
+                dateField: d.dateField || '',
+                filterLogic: d.filterLogic || '',
+                filters
+            };
+        });
+        if (this.sources.length === 0) this.addSource();
+        // Load each source's field metadata/options.
+        return Promise.all(
+            this.sources
+                .filter((s) => s.object)
+                .map((s) =>
+                    getFields({ objectName: s.object }).then((rows) =>
+                        this.updateSource(s.key, {
+                            fieldsMetadata: rows || [],
+                            fieldOptions: this.mapFieldOptions(rows),
+                            userFieldOptions: this.mapUserFieldOptions(rows),
+                            dateFieldOptions: this.mapDateFieldOptions(rows)
+                        })
+                    )
+                )
+        );
     }
 
     // ===== operator-aware visibility =====
@@ -147,8 +199,12 @@ export default class SdParameterBuilder extends LightningElement {
     get isCountDistinct() {
         return this.param.Operator__c === 'COUNT_DISTINCT';
     }
+    get isMultiObjectDistinct() {
+        return this.param.Operator__c === 'MULTI_OBJECT_DISTINCT';
+    }
     // Source object/field/date/user mapping is needed for every operator now
-    // (Focus Pack sums a measure with an added SKU sub-filter).
+    // (Focus Pack sums a measure with an added SKU sub-filter), except the multi-object
+    // operator which has its own per-source builder.
     get showSourceMapping() {
         return this.isAggregateOperator || this.isFocusPackOperator;
     }
@@ -163,16 +219,25 @@ export default class SdParameterBuilder extends LightningElement {
     }
 
     get fieldOptions() {
-        return this.fieldsMetadata.map((f) => ({ label: `${f.label} (${f.apiName})`, value: f.apiName }));
+        return this.mapFieldOptions(this.fieldsMetadata);
     }
     get userFieldOptions() {
-        return this.fieldsMetadata
-            .filter((f) => f.isUserField)
-            .map((f) => ({ label: `${f.label} (${f.apiName})`, value: f.apiName }));
+        return this.mapUserFieldOptions(this.fieldsMetadata);
     }
     get dateFieldOptions() {
-        return this.fieldsMetadata
-            .filter((f) => f.type === 'Date' || f.type === 'DateTime')
+        return this.mapDateFieldOptions(this.fieldsMetadata);
+    }
+
+    // Shared option mappers (used by the main form and each multi-object source card).
+    mapFieldOptions(meta) {
+        return (meta || []).map((f) => ({ label: `${f.label} (${f.apiName})`, value: f.apiName }));
+    }
+    mapUserFieldOptions(meta) {
+        return (meta || []).filter((f) => f.isUserField)
+            .map((f) => ({ label: `${f.label} (${f.apiName})`, value: f.apiName }));
+    }
+    mapDateFieldOptions(meta) {
+        return (meta || []).filter((f) => f.type === 'Date' || f.type === 'DateTime')
             .map((f) => ({ label: `${f.label} (${f.apiName})`, value: f.apiName }));
     }
     get headerTitle() {
@@ -203,6 +268,72 @@ export default class SdParameterBuilder extends LightningElement {
             next.Focused_Pack__c = '';
         }
         this.param = next;
+        // Start the multi-object builder with one empty source row.
+        if (value === 'MULTI_OBJECT_DISTINCT' && this.sources.length === 0) {
+            this.addSource();
+        }
+    }
+
+    // ===== multi-object sources =====
+    newSource() {
+        return {
+            key: `src${this._sourceSeq++}`,
+            object: '',
+            customerField: '',
+            userField: '',
+            dateField: '',
+            filters: [],
+            filterLogic: '',
+            fieldsMetadata: [],
+            fieldOptions: [],
+            userFieldOptions: [],
+            dateFieldOptions: []
+        };
+    }
+    addSource() {
+        this.sources = [...this.sources, this.newSource()];
+    }
+    removeSource(event) {
+        const key = event.currentTarget.dataset.key;
+        this.sources = this.sources.filter((s) => s.key !== key);
+    }
+    updateSource(key, changes) {
+        this.sources = this.sources.map((s) => (s.key === key ? { ...s, ...changes } : s));
+    }
+    handleSourceObjectChange(event) {
+        const key = event.target.dataset.key;
+        const objectName = event.detail.value;
+        // Reset dependent fields and load this source's own metadata.
+        this.updateSource(key, {
+            object: objectName, customerField: '', userField: '', dateField: '',
+            filters: [], fieldsMetadata: [], fieldOptions: [], userFieldOptions: [], dateFieldOptions: []
+        });
+        if (!objectName) return;
+        this.isLoading = true;
+        getFields({ objectName })
+            .then((rows) => {
+                this.updateSource(key, {
+                    fieldsMetadata: rows || [],
+                    fieldOptions: this.mapFieldOptions(rows),
+                    userFieldOptions: this.mapUserFieldOptions(rows),
+                    dateFieldOptions: this.mapDateFieldOptions(rows)
+                });
+            })
+            .catch((e) => this.toast('Error', this.errMessage(e), 'error'))
+            .finally(() => (this.isLoading = false));
+    }
+    handleSourceField(event) {
+        const key = event.target.dataset.key;
+        const field = event.target.dataset.field;
+        this.updateSource(key, { [field]: event.detail.value });
+    }
+    handleSourceFilterLogic(event) {
+        const key = event.target.dataset.key;
+        this.updateSource(key, { filterLogic: event.target.value });
+    }
+    handleSourceFilterChange(event) {
+        const key = event.target.dataset.key;
+        this.updateSource(key, { filters: event.detail.filters || event.detail || [] });
     }
     handleObjectChange(event) {
         const value = event.detail.value;
@@ -233,6 +364,25 @@ export default class SdParameterBuilder extends LightningElement {
         record.Filters__c = this.filters && this.filters.length ? JSON.stringify({ filters: this.filters }) : null;
         if (!record.Focused_Pack__c) record.Focused_Pack__c = null;
         if (!record.Sales_Channel__c) record.Sales_Channel__c = null;
+
+        if (this.isMultiObjectDistinct) {
+            // The customer comes from per-source config, not the single-object fields.
+            record.Object__c = null;
+            record.Field__c = null;
+            record.Source_Config__c = JSON.stringify({
+                sources: this.sources.map((s) => ({
+                    object: s.object,
+                    customerField: s.customerField,
+                    userField: s.userField,
+                    dateField: s.dateField,
+                    // Per-source filters stored as the same {filters:[...]} JSON string the engine expects.
+                    filters: s.filters && s.filters.length ? JSON.stringify({ filters: s.filters }) : null,
+                    filterLogic: s.filterLogic || null
+                }))
+            });
+        } else {
+            record.Source_Config__c = null;
+        }
         return record;
     }
 
@@ -274,6 +424,18 @@ export default class SdParameterBuilder extends LightningElement {
         if (!this.param.Operator__c) {
             this.toast('Required', 'Choose an operator', 'warning');
             return false;
+        }
+        if (this.isMultiObjectDistinct) {
+            if (this.sources.length === 0) {
+                this.toast('Required', 'Add at least one source', 'warning');
+                return false;
+            }
+            const bad = this.sources.find((s) => !s.object || !s.customerField || !s.dateField);
+            if (bad) {
+                this.toast('Required', 'Each source needs an object, a customer field and a date field', 'warning');
+                return false;
+            }
+            return true;
         }
         if (this.showSourceMapping && !this.param.Object__c) {
             this.toast('Required', 'Choose a source object', 'warning');

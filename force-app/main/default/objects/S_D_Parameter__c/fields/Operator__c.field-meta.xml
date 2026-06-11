@@ -27,6 +27,11 @@
                 <label>COUNT_DISTINCT</label>
             </value>
             <value>
+                <fullName>MULTI_OBJECT_DISTINCT</fullName>
+                <default>false</default>
+                <label>MULTI_OBJECT_DISTINCT</label>
+            </value>
+            <value>
                 <fullName>FOCUS_PACK_VOLUME</fullName>
                 <default>false</default>
                 <label>FOCUS_PACK_VOLUME</label>
