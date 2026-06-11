@@ -159,84 +159,24 @@ public class EmployeeCustomerAssignmentTriggerHandler
                 }
             }
         }
-        
-        
-        List<Product_Mapping__c> subStockistMappings = new List<Product_Mapping__c>();
-        List<Product_Mapping__c> secondaryCustomerMappings = new List<Product_Mapping__c>();
-        if(!customerIdToRunAutoMappings.isEmpty())
-        {
-            system.debug('auto mapping');
-            //Step 2: Quering the secondary Customer assignments based on primary Customer
-            List<Product_Mapping__c> secondaryMappings = [
-                SELECT Id, Customer__c, Primary_Customer__c, Sub_Stockiest__c, Secondary_Customer_Type__c
-                FROM Product_Mapping__c WHERE Primary_Customer__c IN :primaryCustomerIds
-                and is_Executive_Active__c = true
-            ];
-            
-            //Step 3: Creating the Secondary Mappings
-            Set<String> uniqueCombinationKeys = new Set<String>();
-     
-            if(!secondaryMappings.isEmpty())
-            {
-                
-                for (Product_Mapping__c secPm : secondaryMappings) {
-                    string primaryId = secPm.Primary_Customer__c;
-                    
-                    string assignedExecutiveId = primaryCustomerToExecutiveMap.get(primaryId);
-                    string assignedEmployeeId = primaryCustomerToEmployeeMap.get(primaryId);
-                    
-                    if (assignedExecutiveId == null && assignedEmployeeId == null) continue;
-                    
-                    string secondaryId = secPm.Customer__c;
-                    string subStockistId = secPm.Sub_Stockiest__c;
-                    
-                    String key = primaryId + '-' + (assignedExecutiveId != null ? assignedExecutiveId : assignedEmployeeId)
-                        + '-' + secondaryId + '-' + (subStockistId != null ? subStockistId : '');
-                    
-                    if (!uniqueCombinationKeys.contains(key)) {
-                        uniqueCombinationKeys.add(key);
-                        
-                        Product_Mapping__c newMap = new Product_Mapping__c();
-                        newMap.Customer__c = secondaryId;
-                        newMap.Auto_Mapping_from_Primary_Assignment__c = true;
-                        newMap.Primary_Customer__c = primaryId;
-                        newMap.Sub_Stockiest__c = subStockistId;
-                        
-                        // Fill either Executive or Employee based on which is available
-                        if (assignedExecutiveId != null) {
-                            newMap.Exectuive__c = assignedExecutiveId;
-                        } else {
-                            newMap.Employee__c = assignedEmployeeId;
-                        }
-                        
-                        if (secPm.Secondary_Customer_Type__c == 'Sub Stockiest') {
-                            subStockistMappings.add(newMap);
-                        } else {
-                            secondaryCustomerMappings.add(newMap);
-                        }
-                    }
-                }
-                
-            }
-        }
-        
+
+
         //Sharing Primary Customer
         if(!sharesToInsert.isEmpty())
         {
             CustomSharingService.shareAccounts(sharesToInsert);
         }
-        
-        //Auto Mappnings of Secondary Customers
-        if(Label.AutoShareSecondaryCustomersBasedOnPrimaryCustomer == 'TRUE')
+
+        //Auto Mappnings of Secondary Customers.
+        //Offloaded to an async Queueable (shared with ProductMappingTriggerHandler) so the
+        //heavy query/loop/insert - and the ProductMapping beforeInsert it re-fires - runs in
+        //a separate transaction with its own CPU budget. The worker also narrows secondaries
+        //to the executives from each primary customer's 3 most-recent primary mappings.
+        if(Label.AutoShareSecondaryCustomersBasedOnPrimaryCustomer == 'TRUE'
+           && !customerIdToRunAutoMappings.isEmpty())
         {
-            if (!subStockistMappings.isEmpty()) {
-                system.debug('Sub Stockiest Mapping [0]');
-                database.insert(subStockistMappings,false);
-            }
-            if (!secondaryCustomerMappings.isEmpty()) {
-                system.debug('Secondary Mapping [1]');
-                database.insert(secondaryCustomerMappings,false);
-            }
+            System.enqueueJob(new AutoMapSecondaryCustomersQueueable(
+                primaryCustomerIds, new Set<Id>(), primaryCustomerToExecutiveMap, primaryCustomerToEmployeeMap));
         }
     }
      
