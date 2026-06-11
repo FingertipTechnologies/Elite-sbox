@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>New_Record_End_Date_Future</fullName>
+    <active>true</active>
+    <description>On new PBIS Targets, End Date must be later than today (the period must not already be over).</description>
+    <errorConditionFormula>AND(
+  ISNEW(),
+  OR(
+    ISBLANK(End_Date__c),
+    End_Date__c &lt;= TODAY()
+  )
+)</errorConditionFormula>
+    <errorDisplayField>End_Date__c</errorDisplayField>
+    <errorMessage>For new PBIS Targets, End Date must be later than today.</errorMessage>
+</ValidationRule>

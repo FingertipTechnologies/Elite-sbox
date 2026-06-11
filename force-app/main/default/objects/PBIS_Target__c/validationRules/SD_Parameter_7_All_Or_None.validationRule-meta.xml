@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>SD_Parameter_7_All_Or_None</fullName>
+    <active>true</active>
+    <description>S&amp;D Parameter slot 7: the Parameter, its Target and its Weightage must be entered together (all three) or left all blank.</description>
+    <errorConditionFormula>AND(
+  OR(
+    NOT(ISBLANK(S_D_Parameter_7__c)),
+    NOT(ISBLANK(S_D_Parameter_7_Target__c)),
+    NOT(ISBLANK(S_D_Parameter_7_Weightage__c))
+  ),
+  OR(
+    ISBLANK(S_D_Parameter_7__c),
+    ISBLANK(S_D_Parameter_7_Target__c),
+    ISBLANK(S_D_Parameter_7_Weightage__c)
+  )
+)</errorConditionFormula>
+    <errorDisplayField>S_D_Parameter_7__c</errorDisplayField>
+    <errorMessage>S &amp; D Parameter 7: enter the Parameter, its Target and its Weightage together, or leave all three blank.</errorMessage>
+</ValidationRule>

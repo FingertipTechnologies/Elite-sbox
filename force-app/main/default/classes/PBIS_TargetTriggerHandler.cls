@@ -19,6 +19,7 @@ public with sharing class PBIS_TargetTriggerHandler {
             }
         }
         applyGrossSalary(withUser);
+        checkDuplicates(rows, null);
     }
 
     public static void beforeUpdate(List<PBIS_Target__c> rows, Map<Id, PBIS_Target__c> oldMap) {
@@ -35,6 +36,7 @@ public with sharing class PBIS_TargetTriggerHandler {
             }
         }
         applyGrossSalary(changedWithUser);
+        checkDuplicates(rows, oldMap);
     }
 
     /**
@@ -59,5 +61,62 @@ public with sharing class PBIS_TargetTriggerHandler {
                 t.Gross_Salary__c = userMap.get(t.User__c).Monthly_Gross_Salary_INR__c;
             }
         }
+    }
+
+    /**
+     * Prevents duplicate PBIS Targets for the same User + Incentive Period + period
+     * (Start_Date + End_Date). Bulk-safe for a 1000-user upload: detects duplicates within
+     * the incoming batch and, with a single SOQL, against records already in the org. Each
+     * offending row is failed via addError so the rest of a partial-success upload still loads.
+     */
+    private static void checkDuplicates(List<PBIS_Target__c> rows, Map<Id, PBIS_Target__c> oldMap) {
+        Map<String, PBIS_Target__c> firstByKey = new Map<String, PBIS_Target__c>();
+        Set<Id> userIds = new Set<Id>();
+        Set<Date> starts = new Set<Date>();
+        Set<Date> ends = new Set<Date>();
+        Set<String> periods = new Set<String>();
+
+        for (PBIS_Target__c t : rows) {
+            if (!hasKeyFields(t)) continue;
+            String key = keyOf(t);
+            if (firstByKey.containsKey(key)) {
+                t.addError('Duplicate PBIS Target: another row in this upload has the same User, ' +
+                    'Incentive Period and Start/End dates.');
+            } else {
+                firstByKey.put(key, t);
+                userIds.add(t.User__c);
+                starts.add(t.Start_Date__c);
+                ends.add(t.End_Date__c);
+                periods.add(t.Incentive_Period__c);
+            }
+        }
+        if (firstByKey.isEmpty()) return;
+
+        Set<Id> selfIds = oldMap != null ? oldMap.keySet() : new Set<Id>();
+        for (PBIS_Target__c ex : [
+            SELECT Id, User__c, Incentive_Period__c, Start_Date__c, End_Date__c
+            FROM PBIS_Target__c
+            WHERE User__c IN :userIds
+              AND Start_Date__c IN :starts
+              AND End_Date__c IN :ends
+              AND Incentive_Period__c IN :periods
+        ]) {
+            if (selfIds.contains(ex.Id)) continue; // ignore the record being updated itself
+            PBIS_Target__c dup = firstByKey.get(keyOf(ex));
+            if (dup != null) {
+                dup.addError('A PBIS Target already exists for this User, Incentive Period and period ' +
+                    '(Start/End dates). Duplicates are not allowed.');
+            }
+        }
+    }
+
+    private static Boolean hasKeyFields(PBIS_Target__c t) {
+        return t.User__c != null && t.Incentive_Period__c != null
+            && t.Start_Date__c != null && t.End_Date__c != null;
+    }
+
+    private static String keyOf(PBIS_Target__c t) {
+        return t.Incentive_Period__c + '|' + t.User__c + '|'
+            + String.valueOf(t.Start_Date__c) + '|' + String.valueOf(t.End_Date__c);
     }
 }
