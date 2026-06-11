@@ -69,8 +69,8 @@
                         <template if:true={showMeasureField}>
                             <div class="slds-col slds-size_1-of-2">
                                 <c-searchable-combobox
-                                    label="Field"
-                                    placeholder="Search field to SUM…"
+                                    label={measureFieldLabel}
+                                    placeholder="Search field…"
                                     options={fieldOptions}
                                     value={param.Field__c}
                                     data-field="Field__c"
