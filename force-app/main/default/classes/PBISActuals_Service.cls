@@ -59,7 +59,8 @@ public without sharing class PBISActuals_Service {
     // ===== step 3: grouped achievement =====
     // A bucket of slots that share the same parameter + period, so one query serves them all.
     private class AchvGroup {
-        String soql;
+        String soql;                  // single-aggregate operators: one query, reads uid+total
+        List<String> sourceSoqls;     // MULTI_OBJECT_DISTINCT: one query per source, reads uid+cust
         Date startDate;
         Date endDate;
         Set<Id> userIds = new Set<Id>();
@@ -86,14 +87,25 @@ public without sharing class PBISActuals_Service {
                 Id paramId = (Id) t.get('S_D_Parameter_' + n + '__c');
                 if (paramId == null) continue;
                 SObject param = t.getSObject('S_D_Parameter_' + n + '__r');
-                String soql = param != null ? (String) param.get('SOQL_Query__c') : null;
-                if (String.isBlank(soql) || !soql.trim().toUpperCase().startsWith('SELECT')) continue;
+                if (param == null) continue;
+
+                Boolean isMulti = param.get('Operator__c') == 'MULTI_OBJECT_DISTINCT';
+                String soql = (String) param.get('SOQL_Query__c');
+                List<String> sourceSoqls = isMulti ? parseSourceSoqls((String) param.get('Source_Config__c')) : null;
+
+                // Skip slots with nothing runnable (no source queries / no single SELECT).
+                if (isMulti) {
+                    if (sourceSoqls.isEmpty()) continue;
+                } else if (String.isBlank(soql) || !soql.trim().toUpperCase().startsWith('SELECT')) {
+                    continue;
+                }
 
                 String key = paramId + '|' + t.Start_Date__c + '|' + t.End_Date__c;
                 AchvGroup g = groups.get(key);
                 if (g == null) {
                     g = new AchvGroup();
                     g.soql = soql;
+                    g.sourceSoqls = sourceSoqls;
                     g.startDate = t.Start_Date__c;
                     g.endDate = t.End_Date__c;
                     groups.put(key, g);
@@ -116,9 +128,12 @@ public without sharing class PBISActuals_Service {
         return out;
     }
 
-    // Runs a parameter's stored aggregate SOQL once for all users in the group.
-    // Binds :startDate, :endDate and :userIds; reads the `uid` and `total` aliases.
+    // Returns the achievement per user for a group. For single-aggregate operators this is the
+    // `total` from one query; for MULTI_OBJECT_DISTINCT it is the size of the distinct union of
+    // `cust` values across the source queries. Binds :startDate, :endDate and :userIds.
     private static Map<Id, Decimal> runGroupQuery(AchvGroup g) {
+        if (g.sourceSoqls != null) return runMultiDistinct(g);
+
         Date startDate = g.startDate;
         Date endDate = g.endDate;
         Set<Id> userIds = g.userIds;
@@ -134,6 +149,55 @@ public without sharing class PBISActuals_Service {
             System.debug('PBISActuals_Service group query failed: ' + e.getMessage());
         }
         return totalByUser;
+    }
+
+    // Unique customers across multiple objects: run one query per source, collect the distinct
+    // `cust` values per user into a Set, and return each user's set size.
+    private static Map<Id, Decimal> runMultiDistinct(AchvGroup g) {
+        Date startDate = g.startDate;
+        Date endDate = g.endDate;
+        Set<Id> userIds = g.userIds;
+        Map<Id, Set<String>> custByUser = new Map<Id, Set<String>>();
+        for (String soql : g.sourceSoqls) {
+            if (String.isBlank(soql)) continue;
+            try {
+                for (AggregateResult ar : (List<AggregateResult>) Database.query(soql)) {
+                    Id uid = (Id) ar.get('uid');
+                    Object cust = ar.get('cust');
+                    if (uid == null || cust == null) continue;
+                    if (!custByUser.containsKey(uid)) custByUser.put(uid, new Set<String>());
+                    custByUser.get(uid).add(String.valueOf(cust));
+                }
+            } catch (Exception e) {
+                System.debug('PBISActuals_Service source query failed: ' + e.getMessage());
+            }
+        }
+        Map<Id, Decimal> countByUser = new Map<Id, Decimal>();
+        for (Id uid : custByUser.keySet()) {
+            countByUser.put(uid, custByUser.get(uid).size());
+        }
+        return countByUser;
+    }
+
+    // Pulls the generated per-source queries out of a parameter's Source_Config__c JSON.
+    private static List<String> parseSourceSoqls(String sourceConfig) {
+        List<String> soqls = new List<String>();
+        if (String.isBlank(sourceConfig)) return soqls;
+        try {
+            Map<String, Object> root = (Map<String, Object>) JSON.deserializeUntyped(sourceConfig);
+            List<Object> rows = (List<Object>) root.get('sources');
+            if (rows == null) return soqls;
+            for (Object r : rows) {
+                Map<String, Object> src = (Map<String, Object>) r;
+                String soql = (String) src.get('soql');
+                if (String.isNotBlank(soql) && soql.trim().toUpperCase().startsWith('SELECT')) {
+                    soqls.add(soql);
+                }
+            }
+        } catch (Exception e) {
+            System.debug('PBISActuals_Service could not parse Source_Config__c: ' + e.getMessage());
+        }
+        return soqls;
     }
 
     // ===== step 4: per-target results =====
@@ -168,11 +232,14 @@ public without sharing class PBISActuals_Service {
             SObject param = t.getSObject('S_D_Parameter_' + n + '__r');
             String soql = param != null ? (String) param.get('SOQL_Query__c') : null;
             Boolean mandatory = param != null && param.get('Is_Mandatory__c') == true;
+            Boolean isMulti = param != null && param.get('Operator__c') == 'MULTI_OBJECT_DISTINCT';
             Decimal target = (Decimal) t.get('S_D_Parameter_' + n + '_Target__c');
             Decimal weightage = (Decimal) t.get('S_D_Parameter_' + n + '_Weightage__c');
             if (weightage == null) weightage = 0;
 
-            if (String.isBlank(soql) || !soql.trim().toUpperCase().startsWith('SELECT')) {
+            // Multi-object params run per-source queries (Source_Config__c), so their SOQL_Query__c
+            // is just a preview; only flag single-query params that have nothing runnable.
+            if (!isMulti && (String.isBlank(soql) || !soql.trim().toUpperCase().startsWith('SELECT'))) {
                 notes.add('Slot ' + n + ': parameter has no runnable query');
             }
 
@@ -278,6 +345,8 @@ public without sharing class PBISActuals_Service {
         for (Integer n = 1; n <= SLOTS; n++) {
             fields.add('S_D_Parameter_' + n + '__c');
             fields.add('S_D_Parameter_' + n + '__r.SOQL_Query__c');
+            fields.add('S_D_Parameter_' + n + '__r.Operator__c');
+            fields.add('S_D_Parameter_' + n + '__r.Source_Config__c');
             fields.add('S_D_Parameter_' + n + '__r.Is_Mandatory__c');
             fields.add('S_D_Parameter_' + n + '_Target__c');
             fields.add('S_D_Parameter_' + n + '_Weightage__c');

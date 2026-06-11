@@ -96,6 +96,39 @@ private class SDParameter_ControllerTest {
     }
 
     @isTest
+    static void testMultiObjectDistinctConfig() {
+        // Two sources (object + customer field); save generates one cust-aliased query per source.
+        String config = JSON.serialize(new Map<String, Object>{
+            'sources' => new List<Object>{
+                new Map<String, Object>{
+                    'object' => 'Opportunity', 'customerField' => 'AccountId',
+                    'userField' => 'OwnerId', 'dateField' => 'CreatedDate'
+                },
+                new Map<String, Object>{
+                    'object' => 'Case', 'customerField' => 'AccountId',
+                    'userField' => 'OwnerId', 'dateField' => 'CreatedDate'
+                }
+            }
+        });
+        S_D_Parameter__c p = new S_D_Parameter__c(
+            Name = 'Unique Customers', Operator__c = 'MULTI_OBJECT_DISTINCT', Source_Config__c = config
+        );
+
+        Test.startTest();
+        S_D_Parameter__c saved = SDParameter_Controller.save(p);
+        Test.stopTest();
+
+        System.assert(saved.Source_Config__c.contains('AccountId cust'),
+            'Each source query selects the customer field as cust: ' + saved.Source_Config__c);
+        System.assert(saved.Source_Config__c.contains('GROUP BY OwnerId, AccountId'),
+            'Each source groups by user + customer: ' + saved.Source_Config__c);
+        System.assert(saved.Source_Config__c.contains('FROM Opportunity')
+            && saved.Source_Config__c.contains('FROM Case'), 'Both sources generated');
+        System.assert(saved.SOQL_Query__c.contains('Unique customers'),
+            'Preview describes the union: ' + saved.SOQL_Query__c);
+    }
+
+    @isTest
     static void testBuildSoqlFocusPack() {
         Focused_Pack__c fp = [SELECT Id FROM Focused_Pack__c LIMIT 1];
         S_D_Parameter__c packParam = new S_D_Parameter__c(
