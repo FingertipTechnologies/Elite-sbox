@@ -124,11 +124,17 @@ private class PBIS_TargetTriggerHandlerTest {
         System.assertEquals(null, saved.get(rows[2].Id).Gross_Salary__c, 'No User leaves salary null');
     }
 
-    // ===== duplicate prevention =====
+    // ===== overlap prevention =====
+    static PBIS_Target__c newTargetDates(Id userId, String period, Date s, Date e) {
+        return new PBIS_Target__c(
+            User__c = userId, Incentive_Period__c = period, Start_Date__c = s, End_Date__c = e
+        );
+    }
+
     @isTest
     static void testDuplicateWithinBatch() {
         User u1 = userByAlias('pbisone');
-        // Two identical keys (same User + Period + Start + End) in one insert.
+        // Two identical periods (same User + Period + dates) in one insert -> overlap.
         List<PBIS_Target__c> rows = new List<PBIS_Target__c>{
             newTarget(u1.Id, 'Monthly'),
             newTarget(u1.Id, 'Monthly')
@@ -139,23 +145,41 @@ private class PBIS_TargetTriggerHandlerTest {
         Test.stopTest();
 
         System.assert(res[0].isSuccess(), 'First row inserts');
-        System.assert(!res[1].isSuccess(), 'Second identical row is rejected as a duplicate');
-        System.assert(res[1].getErrors()[0].getMessage().containsIgnoreCase('duplicate'),
-            'Error mentions duplicate: ' + res[1].getErrors()[0].getMessage());
+        System.assert(!res[1].isSuccess(), 'Second overlapping row is rejected');
+        System.assert(res[1].getErrors()[0].getMessage().containsIgnoreCase('overlap'),
+            'Error mentions overlap: ' + res[1].getErrors()[0].getMessage());
         System.assertEquals(1, [SELECT COUNT() FROM PBIS_Target__c WHERE User__c = :u1.Id]);
     }
 
     @isTest
-    static void testDuplicateAgainstExisting() {
+    static void testOverlappingPeriodBlocked() {
         User u1 = userByAlias('pbisone');
-        insert newTarget(u1.Id, 'Monthly');
+        // Existing 01..30 of the window; a contained 05..20 sub-range overlaps.
+        insert newTargetDates(u1.Id, 'Monthly', Date.today().addDays(1), Date.today().addDays(30));
 
         Test.startTest();
-        Database.SaveResult r = Database.insert(newTarget(u1.Id, 'Monthly'), false);
+        Database.SaveResult r = Database.insert(
+            newTargetDates(u1.Id, 'Monthly', Date.today().addDays(5), Date.today().addDays(20)), false);
         Test.stopTest();
 
-        System.assert(!r.isSuccess(), 'A matching existing target blocks the new one');
+        System.assert(!r.isSuccess(), 'A partly-overlapping period for the same user/period is blocked');
         System.assertEquals(1, [SELECT COUNT() FROM PBIS_Target__c WHERE User__c = :u1.Id]);
+    }
+
+    @isTest
+    static void testAdjacentPeriodsAllowed() {
+        User u1 = userByAlias('pbisone');
+        insert newTargetDates(u1.Id, 'Monthly', Date.today().addDays(1), Date.today().addDays(30));
+
+        Test.startTest();
+        // Back-to-back, non-overlapping window -> allowed.
+        Database.SaveResult r = Database.insert(
+            newTargetDates(u1.Id, 'Monthly', Date.today().addDays(31), Date.today().addDays(60)), false);
+        Test.stopTest();
+
+        System.assert(r.isSuccess(), 'Consecutive non-overlapping periods are allowed: '
+            + (r.isSuccess() ? '' : r.getErrors()[0].getMessage()));
+        System.assertEquals(2, [SELECT COUNT() FROM PBIS_Target__c WHERE User__c = :u1.Id]);
     }
 
     @isTest
