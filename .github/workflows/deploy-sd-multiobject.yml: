@@ -1,0 +1,39 @@
+name: Deploy S&D Multi-Object Unique Customers
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: 'Run the related tests during deploy'
+        type: boolean
+        default: true
+      check_only:
+        description: 'Validate only (dry run, no changes committed to the org)'
+        type: boolean
+        default: false
+
+jobs:
+  deploy-sd-multiobject:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Salesforce CLI
+        run: |
+          npm install --global @salesforce/cli
+          sf --version
+      - name: Authenticate to Salesforce
+        run: |
+          echo "${{ secrets.SALESFORCE_AUTH_URL }}" > authfile.txt
+          sf org login sfdx-url --sfdx-url-file authfile.txt --alias deployment-org --set-default
+      - name: Deploy manifest
+        run: |
+          ARGS="--manifest manifest/pbis_sd_multiobject.xml --target-org deployment-org --wait 30"
+          if [ "${{ inputs.check_only }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          if [ "${{ inputs.run_tests }}" = "true" ]; then
+            ARGS="$ARGS --test-level RunSpecifiedTests --tests SDParameter_ControllerTest --tests PBISActuals_ServiceTest"
+          fi
+          echo "sf project deploy start $ARGS"
+          sf project deploy start $ARGS
