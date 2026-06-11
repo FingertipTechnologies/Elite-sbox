@@ -3,7 +3,15 @@ private class SDParameter_ControllerTest {
 
     @testSetup
     static void setup() {
-        insert new Focused_Pack__c(Name = 'Test Focus Pack');
+        insert new Focused_Pack__c(Name = 'Test Focus Pack', Sales_Channel__c = firstChannel());
+    }
+
+    // First active value of the Chanel global value set used by Focused_Pack__c.Sales_Channel__c.
+    private static String firstChannel() {
+        for (Schema.PicklistEntry e : Focused_Pack__c.Sales_Channel__c.getDescribe().getPicklistValues()) {
+            if (e.isActive()) return e.getValue();
+        }
+        return null;
     }
 
     @isTest
@@ -174,23 +182,25 @@ private class SDParameter_ControllerTest {
 
     @isTest
     static void testGetParameterAndFocusedPacks() {
-        Focused_Pack__c fp = [SELECT Id FROM Focused_Pack__c LIMIT 1];
+        Focused_Pack__c fp = [SELECT Id, Sales_Channel__c FROM Focused_Pack__c LIMIT 1];
         S_D_Parameter__c param = SDParameter_Controller.save(new S_D_Parameter__c(
             Name = 'Focus Pack 1',
             Operator__c = 'FOCUS_PACK_REVENUE',
             Focused_Pack__c = fp.Id,
-            Sales_Channel__c = null,
+            Sales_Channel__c = fp.Sales_Channel__c,
             Is_Active__c = true
         ));
 
         Test.startTest();
         S_D_Parameter__c fetched = SDParameter_Controller.getParameter(param.Id);
-        List<Map<String, String>> packs = SDParameter_Controller.getFocusedPacks();
+        List<Map<String, String>> packs = SDParameter_Controller.getFocusedPacks(fp.Sales_Channel__c);
+        List<Map<String, String>> noChannel = SDParameter_Controller.getFocusedPacks(null);
         Test.stopTest();
 
         System.assertEquals('FOCUS_PACK_REVENUE', fetched.Operator__c);
         System.assertEquals(fp.Id, fetched.Focused_Pack__c);
-        System.assert(!packs.isEmpty(), 'Focused pack options should be returned');
+        System.assert(!packs.isEmpty(), 'Focused packs for the channel should be returned');
+        System.assert(noChannel.isEmpty(), 'Blank channel returns no packs (pick a channel first)');
     }
 
     @isTest

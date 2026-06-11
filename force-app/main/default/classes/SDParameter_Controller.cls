@@ -74,12 +74,17 @@ public with sharing class SDParameter_Controller {
         return out;
     }
 
-    /** Focused Pack options for the lookup shown on FOCUS_PACK_* operators. */
+    /** Focused Pack options for the lookup shown on FOCUS_PACK_* operators, scoped to the
+     *  chosen Sales Channel (Focused_Pack__c.Sales_Channel__c). Blank channel returns none so
+     *  the user picks a channel first. */
     @AuraEnabled(cacheable=true)
-    public static List<Map<String, String>> getFocusedPacks() {
+    public static List<Map<String, String>> getFocusedPacks(String salesChannel) {
         List<Map<String, String>> options = new List<Map<String, String>>();
+        if (String.isBlank(salesChannel)) return options;
         for (Focused_Pack__c fp : [
-            SELECT Id, Name FROM Focused_Pack__c ORDER BY Name LIMIT 1000
+            SELECT Id, Name FROM Focused_Pack__c
+            WHERE Sales_Channel__c = :salesChannel
+            ORDER BY Name LIMIT 1000
         ]) {
             options.add(new Map<String, String>{ 'label' => fp.Name, 'value' => fp.Id });
         }
