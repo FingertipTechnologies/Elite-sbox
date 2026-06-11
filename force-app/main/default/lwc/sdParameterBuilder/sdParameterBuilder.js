@@ -15,6 +15,7 @@ import CHANNEL_FIELD from '@salesforce/schema/S_D_Parameter__c.Sales_Channel__c'
 const OPERATOR_OPTIONS = [
     { label: 'SUM', value: 'SUM' },
     { label: 'COUNT', value: 'COUNT' },
+    { label: 'COUNT DISTINCT', value: 'COUNT_DISTINCT' },
     { label: 'FOCUS PACK VOLUME', value: 'FOCUS_PACK_VOLUME' },
     { label: 'FOCUS PACK REVENUE', value: 'FOCUS_PACK_REVENUE' }
 ];
@@ -128,7 +129,11 @@ export default class SdParameterBuilder extends LightningElement {
 
     // ===== operator-aware visibility =====
     get isAggregateOperator() {
-        return this.param.Operator__c === 'SUM' || this.param.Operator__c === 'COUNT';
+        return (
+            this.param.Operator__c === 'SUM' ||
+            this.param.Operator__c === 'COUNT' ||
+            this.param.Operator__c === 'COUNT_DISTINCT'
+        );
     }
     get isFocusPackOperator() {
         return (
@@ -139,14 +144,22 @@ export default class SdParameterBuilder extends LightningElement {
     get isSum() {
         return this.param.Operator__c === 'SUM';
     }
+    get isCountDistinct() {
+        return this.param.Operator__c === 'COUNT_DISTINCT';
+    }
     // Source object/field/date/user mapping is needed for every operator now
     // (Focus Pack sums a measure with an added SKU sub-filter).
     get showSourceMapping() {
         return this.isAggregateOperator || this.isFocusPackOperator;
     }
-    // The measure Field is summed for SUM and both Focus Pack operators (not COUNT).
+    // The measure Field is needed for SUM, COUNT_DISTINCT (field whose unique values are
+    // counted) and both Focus Pack operators — not plain COUNT (which counts rows).
     get showMeasureField() {
-        return this.isSum || this.isFocusPackOperator;
+        return this.isSum || this.isCountDistinct || this.isFocusPackOperator;
+    }
+    // Label that explains what the Field means for the chosen operator.
+    get measureFieldLabel() {
+        return this.isCountDistinct ? 'Field (count unique values)' : 'Field';
     }
 
     get fieldOptions() {
@@ -267,7 +280,9 @@ export default class SdParameterBuilder extends LightningElement {
             return false;
         }
         if (this.showMeasureField && !this.param.Field__c) {
-            this.toast('Required', 'Choose a field to SUM', 'warning');
+            this.toast('Required',
+                this.isCountDistinct ? 'Choose a field to count unique values' : 'Choose a field to aggregate',
+                'warning');
             return false;
         }
         if (this.isFocusPackOperator && !this.param.Focused_Pack__c) {

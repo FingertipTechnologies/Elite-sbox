@@ -70,6 +70,32 @@ private class SDParameter_ControllerTest {
     }
 
     @isTest
+    static void testBuildSoqlCountDistinct() {
+        // COUNT_DISTINCT aggregates unique values of the chosen Field (e.g. unique Accounts).
+        S_D_Parameter__c distinctParam = new S_D_Parameter__c(
+            Name = 'Unique Accounts Ordered',
+            Object__c = 'Order',
+            Operator__c = 'COUNT_DISTINCT',
+            Field__c = 'AccountId',
+            User_Field__c = 'OwnerId',
+            Date_Field__c = 'EffectiveDate'
+        );
+
+        Test.startTest();
+        String soql = SDParameter_Controller.buildSoql(distinctParam);
+        String noFieldNote = SDParameter_Controller.buildSoql(new S_D_Parameter__c(
+            Object__c = 'Order', Operator__c = 'COUNT_DISTINCT', User_Field__c = 'OwnerId'
+        ));
+        Test.stopTest();
+
+        System.assert(soql.contains('COUNT_DISTINCT(AccountId) total'),
+            'COUNT_DISTINCT aggregate expected: ' + soql);
+        System.assert(soql.contains('GROUP BY OwnerId'), 'GROUP BY expected: ' + soql);
+        System.assert(noFieldNote.contains('Select a Field to count distinct'),
+            'Missing field returns a guidance note: ' + noFieldNote);
+    }
+
+    @isTest
     static void testBuildSoqlFocusPack() {
         Focused_Pack__c fp = [SELECT Id FROM Focused_Pack__c LIMIT 1];
         S_D_Parameter__c packParam = new S_D_Parameter__c(

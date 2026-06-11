@@ -22,6 +22,11 @@
                 <label>COUNT</label>
             </value>
             <value>
+                <fullName>COUNT_DISTINCT</fullName>
+                <default>false</default>
+                <label>COUNT_DISTINCT</label>
+            </value>
+            <value>
                 <fullName>FOCUS_PACK_VOLUME</fullName>
                 <default>false</default>
                 <label>FOCUS_PACK_VOLUME</label>

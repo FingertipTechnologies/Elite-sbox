@@ -103,10 +103,16 @@ public with sharing class SDParameter_Controller {
         String dateField = stripSelfRel(parameter.Date_Field__c, selfRels);
         String measureField = stripSelfRel(parameter.Field__c, selfRels);
 
-        // Aggregate expression: COUNT counts rows; SUM and Focus Pack sum the measure field.
+        // Aggregate expression: COUNT counts rows; COUNT_DISTINCT counts unique values of
+        // the chosen field; SUM and Focus Pack sum the measure field.
         String agg;
         if (op == 'COUNT') {
             agg = 'COUNT(Id) total';
+        } else if (op == 'COUNT_DISTINCT') {
+            if (String.isBlank(measureField)) {
+                return '-- Select a Field to count distinct values to generate the SOQL.';
+            }
+            agg = 'COUNT_DISTINCT(' + measureField + ') total';
         } else {
             if (String.isBlank(measureField)) {
                 return '-- Select a Field to ' + (isFocusPack ? 'aggregate' : 'SUM') + ' to generate the SOQL.';
