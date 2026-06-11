@@ -343,6 +343,82 @@ public class ProductMappingTriggerHandlerTest {
         
     }
     
+    @isTest
+    static void testAutoMapSecondaryCustomers() {
+
+        User testUser = [SELECT Id FROM User WHERE Employee_Code__c = '123sfgg212231' LIMIT 1];
+
+        Account primaryAcc = new Account(
+            Name = 'Primary Customer',
+            OwnerId = testUser.Id,
+            Customer_Type__c = 'Primary Customer',
+            Pincode__c = '123456',
+            Primary_Phone_Number__c = '9876543210',
+            State__c = 'Karnataka',
+            District__c = 'Kolar'
+        );
+        insert primaryAcc;
+
+        Account secondaryAcc = new Account(
+            Name = 'Secondary Customer',
+            OwnerId = testUser.Id,
+            Customer_Type__c = 'Secondary Customer',
+            Pincode__c = '123456',
+            Primary_Phone_Number__c = '9876541210',
+            State__c = 'Karnataka',
+            District__c = 'Kolar'
+        );
+        insert secondaryAcc;
+
+        area__c tr = new area__c(Name = 'testauto', Sales_Channel__c = 'CPD', Region__c = 'Kerala', Area__c = 'Central');
+        insert tr;
+
+        // Existing primary mapping for the primary customer (provides the recent executive)
+        Product_Mapping__c primaryPm = new Product_Mapping__c(
+            Customer__c = primaryAcc.Id,
+            Primary_Customer__c = primaryAcc.Id,
+            Chanel__c = 'CPD',
+            Payment_Term__c = '0003',
+            Area__c = tr.Id,
+            Exectuive__c = testUser.Id
+        );
+        insert primaryPm;
+
+        // Existing secondary mapping linked to the primary customer under that executive
+        Product_Mapping__c secondaryPm = new Product_Mapping__c(
+            Customer__c = secondaryAcc.Id,
+            Primary_Customer__c = primaryAcc.Id,
+            Payment_Term__c = '0003',
+            Area__c = tr.Id,
+            Exectuive__c = testUser.Id
+        );
+        insert secondaryPm;
+
+        Map<Id, Id> customerToExecutiveMap = new Map<Id, Id>{ primaryAcc.Id => testUser.Id };
+        Map<Id, Id> customerToEmployeeMap = new Map<Id, Id>();
+
+        // Direct call covers the worker logic and lets us assert the result synchronously.
+        ProductMappingTriggerHandler.autoMapSecondaryCustomers(
+            new Set<Id>{ primaryAcc.Id },
+            new Set<Id>(),
+            customerToExecutiveMap,
+            customerToEmployeeMap
+        );
+
+        List<Product_Mapping__c> autoMapped = [
+            SELECT Id FROM Product_Mapping__c
+            WHERE Auto_Mapping_from_Primary_Assignment__c = true
+            AND Customer__c = :secondaryAcc.Id
+        ];
+        System.assert(!autoMapped.isEmpty(), 'Secondary customer should be auto-mapped under the recent executive');
+
+        // Exercise the Queueable wrapper end-to-end.
+        Test.startTest();
+        System.enqueueJob(new AutoMapSecondaryCustomersQueueable(
+            new Set<Id>{ primaryAcc.Id }, new Set<Id>(), customerToExecutiveMap, customerToEmployeeMap));
+        Test.stopTest();
+    }
+
     @IsTest
     public static void testSearchProducts_withString() {
       
