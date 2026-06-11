@@ -328,6 +328,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_1_Achievement__c</fieldItem>
                 <identifier>RecordS_D_Parameter_1_Achievement_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-f0cd9268-69c2-4129-b1a7-8226870230ec</name>
@@ -342,6 +349,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_1_Achievement_Percent__c</fieldItem>
                 <identifier>RecordS_D_Parameter_1_Achievement_Percent_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -352,6 +366,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_1_Qualified_Slab__c</fieldItem>
                 <identifier>RecordS_D_Parameter_1_Qualified_Slab_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -362,6 +383,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_1_Incentive_Amount__c</fieldItem>
                 <identifier>RecordS_D_Parameter_1_Incentive_Amount_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-696ceff0-09b2-4aef-b279-1288564996c2</name>
@@ -430,6 +458,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_2_Achievement__c</fieldItem>
                 <identifier>RecordS_D_Parameter_2_Achievement_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-b788cac6-4fdd-4bee-aa4e-4ed6d20d7374</name>
@@ -444,6 +479,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_2_Achievement_Percent__c</fieldItem>
                 <identifier>RecordS_D_Parameter_2_Achievement_Percent_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -454,6 +496,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_2_Qualified_Slab__c</fieldItem>
                 <identifier>RecordS_D_Parameter_2_Qualified_Slab_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -464,6 +513,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_2_Incentive_Amount__c</fieldItem>
                 <identifier>RecordS_D_Parameter_2_Incentive_Amount_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-84b19c36-1e73-43d9-83df-ca1332eb1583</name>
@@ -532,6 +588,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_3_Achievement__c</fieldItem>
                 <identifier>RecordS_D_Parameter_3_Achievement_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-8846f662-9d03-4773-87f8-7684bb409d07</name>
@@ -546,6 +609,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_3_Achievement_Percent__c</fieldItem>
                 <identifier>RecordS_D_Parameter_3_Achievement_Percent_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -556,6 +626,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_3_Qualified_Slab__c</fieldItem>
                 <identifier>RecordS_D_Parameter_3_Qualified_Slab_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -566,6 +643,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_3_Incentive_Amount__c</fieldItem>
                 <identifier>RecordS_D_Parameter_3_Incentive_Amount_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-7b55ec40-e7ae-4a07-b3ba-50426585746f</name>
@@ -634,6 +718,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_4_Achievement__c</fieldItem>
                 <identifier>RecordS_D_Parameter_4_Achievement_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-9105fe27-508c-475b-8ee8-0a5ac66d9c23</name>
@@ -648,6 +739,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_4_Achievement_Percent__c</fieldItem>
                 <identifier>RecordS_D_Parameter_4_Achievement_Percent_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -658,6 +756,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_4_Qualified_Slab__c</fieldItem>
                 <identifier>RecordS_D_Parameter_4_Qualified_Slab_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -668,6 +773,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_4_Incentive_Amount__c</fieldItem>
                 <identifier>RecordS_D_Parameter_4_Incentive_Amount_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-c6539b4e-c14a-4892-90d5-9a94f69d4696</name>
@@ -736,6 +848,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_5_Achievement__c</fieldItem>
                 <identifier>RecordS_D_Parameter_5_Achievement_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-9bd16ab7-a713-43dd-8a67-dccb4d10b124</name>
@@ -750,6 +869,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_5_Achievement_Percent__c</fieldItem>
                 <identifier>RecordS_D_Parameter_5_Achievement_Percent_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -760,6 +886,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_5_Qualified_Slab__c</fieldItem>
                 <identifier>RecordS_D_Parameter_5_Qualified_Slab_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -770,6 +903,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_5_Incentive_Amount__c</fieldItem>
                 <identifier>RecordS_D_Parameter_5_Incentive_Amount_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-6c27fa9e-5a33-4fca-b45e-00d77f294a25</name>
@@ -838,6 +978,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_6_Achievement__c</fieldItem>
                 <identifier>RecordS_D_Parameter_6_Achievement_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-abbf7ace-4232-43f0-942a-e4dd3852a5bd</name>
@@ -852,6 +999,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_6_Achievement_Percent__c</fieldItem>
                 <identifier>RecordS_D_Parameter_6_Achievement_Percent_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -862,6 +1016,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_6_Qualified_Slab__c</fieldItem>
                 <identifier>RecordS_D_Parameter_6_Qualified_Slab_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -872,6 +1033,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_6_Incentive_Amount__c</fieldItem>
                 <identifier>RecordS_D_Parameter_6_Incentive_Amount_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-d86fe38d-f5fa-4268-b17b-3b1a36c354a9</name>
@@ -940,6 +1108,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_7_Achievement__c</fieldItem>
                 <identifier>RecordS_D_Parameter_7_Achievement_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-e112621e-a2d9-44d0-8152-a3aeee6369bc</name>
@@ -954,6 +1129,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_7_Achievement_Percent__c</fieldItem>
                 <identifier>RecordS_D_Parameter_7_Achievement_Percent_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -964,6 +1146,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_7_Qualified_Slab__c</fieldItem>
                 <identifier>RecordS_D_Parameter_7_Qualified_Slab_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -974,6 +1163,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_7_Incentive_Amount__c</fieldItem>
                 <identifier>RecordS_D_Parameter_7_Incentive_Amount_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-c88b3f7a-fae1-47b2-94e4-e97e258612fe</name>
@@ -1042,6 +1238,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_8_Achievement__c</fieldItem>
                 <identifier>RecordS_D_Parameter_8_Achievement_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-e93e7c51-0999-4054-9a86-0e23ca443485</name>
@@ -1056,6 +1259,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_8_Achievement_Percent__c</fieldItem>
                 <identifier>RecordS_D_Parameter_8_Achievement_Percent_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -1066,6 +1276,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_8_Qualified_Slab__c</fieldItem>
                 <identifier>RecordS_D_Parameter_8_Qualified_Slab_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -1076,6 +1293,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_8_Incentive_Amount__c</fieldItem>
                 <identifier>RecordS_D_Parameter_8_Incentive_Amount_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-ced42bf0-38c9-47ff-9cf7-857a2afd1aa9</name>
@@ -1144,6 +1368,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_9_Achievement__c</fieldItem>
                 <identifier>RecordS_D_Parameter_9_Achievement_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-aa411683-6d6d-49be-8cc9-cdb6433c9cc1</name>
@@ -1158,6 +1389,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_9_Achievement_Percent__c</fieldItem>
                 <identifier>RecordS_D_Parameter_9_Achievement_Percent_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -1168,6 +1406,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_9_Qualified_Slab__c</fieldItem>
                 <identifier>RecordS_D_Parameter_9_Qualified_Slab_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -1178,6 +1423,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_9_Incentive_Amount__c</fieldItem>
                 <identifier>RecordS_D_Parameter_9_Incentive_Amount_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-17a8bcb6-bdf5-481d-a316-a533572b7c0a</name>
@@ -1246,6 +1498,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_10_Achievement__c</fieldItem>
                 <identifier>RecordS_D_Parameter_10_Achievement_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-1618a3b8-3dc9-406e-8bfc-0363306de6ac</name>
@@ -1260,6 +1519,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_10_Achievement_Percent__c</fieldItem>
                 <identifier>RecordS_D_Parameter_10_Achievement_Percent_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -1270,6 +1536,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_10_Qualified_Slab__c</fieldItem>
                 <identifier>RecordS_D_Parameter_10_Qualified_Slab_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -1280,6 +1553,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.S_D_Parameter_10_Incentive_Amount__c</fieldItem>
                 <identifier>RecordS_D_Parameter_10_Incentive_Amount_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.Is_New__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>false</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-e2ba6d3e-ccb9-413c-ac2b-b3a4f54080bc</name>
