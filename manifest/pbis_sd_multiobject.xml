@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  S&D Parameter "Unique Customers (multi-object)" feature (MULTI_OBJECT_DISTINCT) and the
+  COUNT_DISTINCT operator. Deploy with:
+    sf project deploy start -x manifest/pbis_sd_multiobject.xml -o <org>
+  Adds the Operator__c value + Source_Config__c field, the builder LWC, the controller and the
+  PBISActuals engine that runs the per-source queries and unions distinct customers per user.
+  Depends on Tasks 1-4 already present in the org.
+-->
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>S_D_Parameter__c.Operator__c</members>
+        <members>S_D_Parameter__c.Source_Config__c</members>
+        <name>CustomField</name>
+    </types>
+    <types>
+        <members>SDParameter_Controller</members>
+        <members>SDParameter_ControllerTest</members>
+        <members>PBISActuals_Service</members>
+        <members>PBISActuals_ServiceTest</members>
+        <name>ApexClass</name>
+    </types>
+    <types>
+        <members>sdParameterBuilder</members>
+        <name>LightningComponentBundle</name>
+    </types>
+    <types>
+        <members>PBIS_Admin_Access</members>
+        <name>PermissionSet</name>
+    </types>
+    <version>59.0</version>
+</Package>
