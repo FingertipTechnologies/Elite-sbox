@@ -59,7 +59,7 @@ export default class SdParameterBuilder extends LightningElement {
     // ===== lifecycle =====
     connectedCallback() {
         this.isLoading = true;
-        Promise.all([this.loadObjects(), this.loadFocusedPacks()])
+        Promise.all([this.loadObjects(), this.loadFocusedPacks(this.param.Sales_Channel__c)])
             .then(() => (this.recordId ? this.loadExisting() : null))
             .catch((e) => this.toast('Error', this.errMessage(e), 'error'))
             .finally(() => (this.isLoading = false));
@@ -88,8 +88,8 @@ export default class SdParameterBuilder extends LightningElement {
         });
     }
 
-    loadFocusedPacks() {
-        return getFocusedPacks().then((rows) => {
+    loadFocusedPacks(salesChannel) {
+        return getFocusedPacks({ salesChannel: salesChannel || '' }).then((rows) => {
             this.focusedPackOptions = rows || [];
         });
     }
@@ -129,6 +129,8 @@ export default class SdParameterBuilder extends LightningElement {
                 }
             }
             this.soqlPreview = rec.SOQL_Query__c || '';
+            // Scope the Focused Pack list to this parameter's saved Sales Channel.
+            this.loadFocusedPacks(rec.Sales_Channel__c);
             if (rec.Operator__c === 'MULTI_OBJECT_DISTINCT' && rec.Source_Config__c) {
                 return this.loadSourcesFromConfig(rec.Source_Config__c);
             }
@@ -351,7 +353,14 @@ export default class SdParameterBuilder extends LightningElement {
     }
     handleComboChange(event) {
         const field = event.target.dataset.field;
-        this.param = { ...this.param, [field]: event.detail.value };
+        const value = event.detail.value;
+        const next = { ...this.param, [field]: value };
+        // Changing the Sales Channel re-scopes the Focused Pack list and clears the old pick.
+        if (field === 'Sales_Channel__c') {
+            next.Focused_Pack__c = '';
+            this.loadFocusedPacks(value);
+        }
+        this.param = next;
     }
     handleFilterChange(event) {
         this.filters = event.detail.filters || event.detail || [];
