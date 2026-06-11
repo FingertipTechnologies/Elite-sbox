@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Total_Weightage__c</fullName>
+    <externalId>false</externalId>
+    <formula>BLANKVALUE(S_D_Parameter_1_Weightage__c, 0)
++ BLANKVALUE(S_D_Parameter_2_Weightage__c, 0)
++ BLANKVALUE(S_D_Parameter_3_Weightage__c, 0)
++ BLANKVALUE(S_D_Parameter_4_Weightage__c, 0)
++ BLANKVALUE(S_D_Parameter_5_Weightage__c, 0)
++ BLANKVALUE(S_D_Parameter_6_Weightage__c, 0)
++ BLANKVALUE(S_D_Parameter_7_Weightage__c, 0)
++ BLANKVALUE(S_D_Parameter_8_Weightage__c, 0)
++ BLANKVALUE(S_D_Parameter_9_Weightage__c, 0)
++ BLANKVALUE(S_D_Parameter_10_Weightage__c, 0)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>Total Weightage</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Percent</type>
+</CustomField>

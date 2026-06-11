@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>S_D_Parameter_8_Qualified_Slab__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <externalId>false</externalId>
+    <inlineHelpText>Slab matched for S&amp;D Parameter 8 in Task 4.</inlineHelpText>
+    <label>S &amp; D Parameter 8 Qualified Slab</label>
+    <referenceTo>PBIS_Incentive_Slab__c</referenceTo>
+    <relationshipName>PBIS_Targets_SDP_8_Slab</relationshipName>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

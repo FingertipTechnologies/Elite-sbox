@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Has_Mandatory_Parameter__c</fullName>
+    <externalId>false</externalId>
+    <formula>OR(
+  S_D_Parameter_1__r.Is_Mandatory__c,
+  S_D_Parameter_2__r.Is_Mandatory__c,
+  S_D_Parameter_3__r.Is_Mandatory__c,
+  S_D_Parameter_4__r.Is_Mandatory__c,
+  S_D_Parameter_5__r.Is_Mandatory__c,
+  S_D_Parameter_6__r.Is_Mandatory__c,
+  S_D_Parameter_7__r.Is_Mandatory__c,
+  S_D_Parameter_8__r.Is_Mandatory__c,
+  S_D_Parameter_9__r.Is_Mandatory__c,
+  S_D_Parameter_10__r.Is_Mandatory__c
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <inlineHelpText>True when at least one selected S&amp;D Parameter is flagged mandatory.</inlineHelpText>
+    <label>Has Mandatory Parameter</label>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

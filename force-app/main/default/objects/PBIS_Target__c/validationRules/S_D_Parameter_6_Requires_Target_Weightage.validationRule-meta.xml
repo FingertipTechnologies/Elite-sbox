@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>S_D_Parameter_6_Requires_Target_Weightage</fullName>
+    <active>true</active>
+    <description>If S &amp; D Parameter 6 is selected, its Target and Weightage are mandatory.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK( S_D_Parameter_6__c )),
+  OR(
+    ISBLANK( S_D_Parameter_6_Target__c ),
+    ISBLANK( S_D_Parameter_6_Weightage__c )
+  )
+)</errorConditionFormula>
+    <errorDisplayField>S_D_Parameter_6_Target__c</errorDisplayField>
+    <errorMessage>Enter both Target and Weightage for S &amp; D Parameter 6.</errorMessage>
+</ValidationRule>
