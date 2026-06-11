@@ -75,12 +75,12 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>S_D_Parameter__c.Source_Config__c</field>
+        <field>S_D_Parameter__c.Sales_Channel__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>S_D_Parameter__c.Sales_Channel__c</field>
+        <field>S_D_Parameter__c.Source_Config__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

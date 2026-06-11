@@ -1,5 +1,7 @@
 <template>
     <lightning-card title="Secondary Targets" icon-name="standard:goals">
+        <lightning-button slot="actions" label="Export" icon-name="utility:save"
+            onclick={handleExport} class="slds-m-right_x-small"></lightning-button>
         <lightning-button slot="actions" label="Download Template" icon-name="utility:download"
             onclick={handleDownloadTemplate} class="slds-m-right_x-small"></lightning-button>
         <lightning-button slot="actions" label="Import CSV" icon-name="utility:upload"
@@ -11,6 +13,7 @@
 
         <input type="file" accept=".csv,text/csv" class="csv-file-input"
             style="display:none;" onchange={handleImportFile} />
+        <a class="csv-download-link" style="display:none;"></a>
 
         <div class="slds-p-horizontal_medium">
             <!-- summary tiles -->
@@ -165,6 +168,152 @@
                         <lightning-button label="Cancel" onclick={handleCloseForm}
                             class="slds-m-right_x-small"></lightning-button>
                         <lightning-button variant="brand" label="Save" onclick={handleSaveForm}></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <template if:true={showExplain}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_medium">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={handleCloseExplain}>
+                        <lightning-icon icon-name="utility:close" size="small"
+                            variant="inverse"></lightning-icon>
+                    </button>
+                    <h2 class="slds-modal__title slds-hyphenate">Achievement Breakdown</h2>
+                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                        How {explain.targetName} for {explain.userName} was calculated.
+                    </p>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <div class="slds-box slds-box_x-small slds-m-bottom_medium">
+                        <div class="slds-grid slds-gutters slds-wrap">
+                            <div class="slds-col slds-size_1-of-2">
+                                <dl class="slds-dl_horizontal">
+                                    <dt class="slds-dl_horizontal__label">Criterion</dt>
+                                    <dd class="slds-dl_horizontal__detail">{explain.criterionName}</dd>
+                                    <dt class="slds-dl_horizontal__label">Source Object</dt>
+                                    <dd class="slds-dl_horizontal__detail">{explain.sourceObject}</dd>
+                                    <dt class="slds-dl_horizontal__label">Date Field</dt>
+                                    <dd class="slds-dl_horizontal__detail">{explain.dateField}</dd>
+                                    <dt class="slds-dl_horizontal__label">User Field</dt>
+                                    <dd class="slds-dl_horizontal__detail">{explain.userField}</dd>
+                                    <template if:true={explain.focusPackName}>
+                                        <dt class="slds-dl_horizontal__label">Focus Pack</dt>
+                                        <dd class="slds-dl_horizontal__detail">{explain.focusPackName}</dd>
+                                    </template>
+                                </dl>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2">
+                                <dl class="slds-dl_horizontal">
+                                    <dt class="slds-dl_horizontal__label">Operator</dt>
+                                    <dd class="slds-dl_horizontal__detail">
+                                        <span class="slds-badge slds-badge_lightest">{explain.operator}</span>
+                                    </dd>
+                                    <dt class="slds-dl_horizontal__label">Period</dt>
+                                    <dd class="slds-dl_horizontal__detail">
+                                        <lightning-formatted-date-time value={explain.startDate}
+                                            year="numeric" month="short" day="2-digit"></lightning-formatted-date-time>
+                                        &nbsp;–&nbsp;
+                                        <lightning-formatted-date-time value={explain.endDate}
+                                            year="numeric" month="short" day="2-digit"></lightning-formatted-date-time>
+                                    </dd>
+                                    <dt class="slds-dl_horizontal__label">Working Days</dt>
+                                    <dd class="slds-dl_horizontal__detail">{explain.workingDays}</dd>
+                                    <dt class="slds-dl_horizontal__label">Achievement Value</dt>
+                                    <dd class="slds-dl_horizontal__detail">
+                                        <strong>{explain.achievementValue}</strong>
+                                    </dd>
+                                    <template if:true={explain.focusPackName}>
+                                        <dt class="slds-dl_horizontal__label">Minimum Qualifying Qty</dt>
+                                        <dd class="slds-dl_horizontal__detail">{explain.minQualifyingQty}</dd>
+                                    </template>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+
+                    <template if:true={explainFilters}>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small">Filters applied</h3>
+                        <ul class="slds-list_dotted slds-m-bottom_medium">
+                            <template for:each={explainFilters} for:item="f">
+                                <li key={f.id}><code>{f.text}</code></li>
+                            </template>
+                        </ul>
+                    </template>
+
+                    <template if:true={explainSteps}>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small">Calculation steps</h3>
+                        <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-m-bottom_medium">
+                            <tbody>
+                                <template for:each={explainSteps} for:item="s">
+                                    <tr key={s.id}>
+                                        <td style="width: 45%;"><strong>{s.label}</strong></td>
+                                        <td>{s.value}</td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </template>
+
+                    <template if:true={explainPerDay}>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small">Per-day breakdown</h3>
+                        <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-m-bottom_medium">
+                            <thead>
+                                <tr class="slds-text-title_caps">
+                                    <th>Day</th>
+                                    <template if:true={explainIsTlsd}>
+                                        <th class="slds-text-align_right">Lines</th>
+                                        <th class="slds-text-align_right">Distinct Orders</th>
+                                        <th class="slds-text-align_right">Lines ÷ Orders</th>
+                                    </template>
+                                    <template if:true={explainIsDailyUnique}>
+                                        <th class="slds-text-align_right">Distinct Outlets</th>
+                                    </template>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={explainPerDay} for:item="r">
+                                    <tr key={r.id}>
+                                        <td>{r.day}</td>
+                                        <template if:true={explainIsTlsd}>
+                                            <td class="slds-text-align_right">{r.count1}</td>
+                                            <td class="slds-text-align_right">{r.count2}</td>
+                                            <td class="slds-text-align_right"><strong>{r.value}</strong></td>
+                                        </template>
+                                        <template if:true={explainIsDailyUnique}>
+                                            <td class="slds-text-align_right"><strong>{r.count1}</strong></td>
+                                        </template>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </template>
+
+                    <template if:true={explain.formula}>
+                        <div class="slds-box slds-box_x-small slds-theme_shade slds-m-bottom_medium">
+                            <span class="tcb-detail-label">Final calculation</span>
+                            <div class="slds-text-heading_small slds-m-top_x-small">
+                                <code>{explain.formula}</code>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template if:true={explainPackSkus}>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small">Pack SKUs ({explain.packSkus.length})</h3>
+                        <ul class="slds-list_dotted slds-m-bottom_medium">
+                            <template for:each={explainPackSkus} for:item="s">
+                                <li key={s.id}>{s.name}</li>
+                            </template>
+                        </ul>
+                    </template>
+
+                    <div class="slds-text-align_right">
+                        <lightning-button variant="brand" label="Close" onclick={handleCloseExplain}></lightning-button>
                     </div>
                 </div>
             </div>

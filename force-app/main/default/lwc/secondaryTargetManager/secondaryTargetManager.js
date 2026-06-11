@@ -10,15 +10,16 @@ import deleteTarget from '@salesforce/apex/SecondaryTarget_Controller.deleteTarg
 import recalculateAll from '@salesforce/apex/SecondaryTarget_Controller.recalculateAll';
 import recalculateTarget from '@salesforce/apex/SecondaryTarget_Controller.recalculateTarget';
 import importTargets from '@salesforce/apex/SecondaryTarget_Controller.importTargets';
+import explainAchievement from '@salesforce/apex/SecondaryTarget_Controller.explainAchievement';
 
 const CSV_HEADERS = [
-    'Target Id', 'User Username', 'Criteria Name', 'Focus Pack Name', 'Sales Channel',
+    'Target Name', 'User Employee Code', 'Criteria Name', 'Focus Pack Name', 'Sales Channel',
     'Year', 'Start Date (YYYY-MM-DD)', 'End Date (YYYY-MM-DD)', 'Target Value', 'Is Active'
 ];
 const CSV_SAMPLES = [
-    ['', 'sunny.pj@example.com', 'Sec Revenue', '', 'TN', '2026', '2026-05-01', '2026-05-31', '100000', 'TRUE'],
-    ['', 'sunny.pj@example.com', 'Focus Pack ECO', 'Brownie', 'TN', '2026', '2026-05-01', '2026-05-31', '3', 'TRUE'],
-    ['a0X5j00000ABCDE', 'sunny.pj@example.com', 'Sec Revenue', '', 'TN', '2026', '2026-05-01', '2026-05-31', '120000', 'TRUE']
+    ['', 'EMP001', 'Sec Revenue', '', 'TN', '2026', '2026-05-01', '2026-05-31', '100000', 'TRUE'],
+    ['', 'EMP001', 'Focus Pack ECO', 'Brownie', 'TN', '2026', '2026-05-01', '2026-05-31', '3', 'TRUE'],
+    ['STGT-0033', 'EMP001', 'Sec Revenue', '', 'TN', '2026', '2026-05-01', '2026-05-31', '120000', 'TRUE']
 ];
 
 const COLUMNS = [
@@ -48,6 +49,7 @@ const COLUMNS = [
             rowActions: [
                 { label: 'Edit', name: 'edit' },
                 { label: 'Recalculate', name: 'recalc' },
+                { label: 'View calculation', name: 'explain' },
                 { label: 'Delete', name: 'delete' }
             ]
         }
@@ -91,6 +93,10 @@ export default class SecondaryTargetManager extends LightningElement {
     @track importCreated = 0;
     @track importUpdated = 0;
     @track importErrors = [];
+
+    // achievement-breakdown modal state
+    @track showExplain = false;
+    @track explain = null;
 
     connectedCallback() {
         this.loadCriteriaOptions();
@@ -257,6 +263,19 @@ export default class SecondaryTargetManager extends LightningElement {
         if (!f.User__c) { this.toast('Validation', 'Select a User.', 'error'); return; }
         if (!f.Target_Criteria__c) { this.toast('Validation', 'Select a Target Criteria.', 'error'); return; }
         if (!f.Start_Date__c || !f.End_Date__c) { this.toast('Validation', 'Start and End dates are required.', 'error'); return; }
+        // Date sanity — server re-checks, but fail fast for nicer UX.
+        const startD = new Date(f.Start_Date__c);
+        const endD = new Date(f.End_Date__c);
+        if (endD < startD) {
+            this.toast('Validation', 'End Date cannot be before Start Date.', 'error'); return;
+        }
+        if (!f.Id) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (endD < today) {
+                this.toast('Validation', 'End Date cannot be in the past. The target must extend to today or later.', 'error'); return;
+            }
+        }
         if (this.isFocusPackCriteria && !f.Focused_Pack__c) {
             this.toast('Validation', 'This criteria is a Focus-Pack type — select a Focus Pack.', 'error');
             return;
@@ -310,6 +329,8 @@ export default class SecondaryTargetManager extends LightningElement {
             this.showForm = true;
         } else if (action === 'recalc') {
             this.recalcOne(row.Id);
+        } else if (action === 'explain') {
+            this.openExplain(row.Id);
         } else if (action === 'delete') {
             this.removeOne(row.Id);
         }
@@ -340,14 +361,58 @@ export default class SecondaryTargetManager extends LightningElement {
         const lines = [CSV_HEADERS, ...CSV_SAMPLES]
             .map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','))
             .join('\n');
-        // BOM for Excel UTF-8 friendliness
-        const blob = new Blob(['﻿' + lines], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'secondary_targets_template.csv';
-        a.click();
-        URL.revokeObjectURL(url);
+        // %EF%BB%BF is the URL-encoded UTF-8 BOM so Excel opens it cleanly.
+        const dataUri = 'data:text/csv;charset=utf-8,%EF%BB%BF' + encodeURIComponent(lines);
+        const link = this.template.querySelector('.csv-download-link');
+        if (!link) return;
+        link.setAttribute('href', dataUri);
+        link.setAttribute('download', 'secondary_targets_template.csv');
+        link.click();
+    }
+
+    // ===== Export current view to CSV =====
+    handleExport() {
+        if (!this.rows || !this.rows.length) {
+            this.toast('Nothing to export', 'The list is empty.', 'warning');
+            return;
+        }
+        const headers = [
+            'Target Name', 'User', 'Criteria', 'Focus Pack', 'Channel',
+            'Start Date', 'End Date', 'Year',
+            'Target Value', 'Achievement Value', 'Achievement %', 'Pending', 'Working Days',
+            'Active', 'Last Updated'
+        ];
+        const fmtBool = b => (b === true ? 'TRUE' : 'FALSE');
+        const fmtDate = d => (d ? String(d) : '');
+        const fmtNum = n => (n === null || n === undefined ? '' : String(n));
+        const csvRows = this.rows.map(r => [
+            r.Name,
+            r.userName,
+            r.criteriaName,
+            r.packName,
+            r.Sales_Channel__c,
+            fmtDate(r.Start_Date__c),
+            fmtDate(r.End_Date__c),
+            fmtNum(r.Year__c),
+            fmtNum(r.Target_Value__c),
+            fmtNum(r.Achievement_Value__c),
+            fmtNum(r.Achievement_Percent__c),
+            fmtNum(r.Pending_Target__c),
+            fmtNum(r.Working_Days__c),
+            fmtBool(r.Is_Active__c),
+            fmtDate(r.Last_Updated__c)
+        ]);
+        const csv = [headers, ...csvRows]
+            .map(row => row.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(','))
+            .join('\n');
+        const dataUri = 'data:text/csv;charset=utf-8,%EF%BB%BF' + encodeURIComponent(csv);
+        const link = this.template.querySelector('.csv-download-link');
+        if (!link) return;
+        const today = new Date().toISOString().slice(0, 10);
+        link.setAttribute('href', dataUri);
+        link.setAttribute('download', `secondary_targets_${today}.csv`);
+        link.click();
+        this.toast('Exported', `${this.rows.length} row${this.rows.length === 1 ? '' : 's'} downloaded.`, 'success');
     }
 
     // ===== CSV Import =====
@@ -366,6 +431,10 @@ export default class SecondaryTargetManager extends LightningElement {
         reader.onload = (ev) => {
             const text = ev.target.result;
             const rows = this.parseCsv(text);
+            // Diagnostic — open the browser console (F12) to inspect what the parser
+            // built before posting to Apex. Helps diagnose header mismatches.
+            // eslint-disable-next-line no-console
+            console.log('[Secondary Target Import] parsed rows:', JSON.stringify(rows, null, 2));
             if (!rows.length) {
                 this.toast('Validation', 'CSV has no data rows.', 'error');
                 return;
@@ -376,42 +445,64 @@ export default class SecondaryTargetManager extends LightningElement {
         reader.readAsText(file);
     }
 
+    // Normalize a header cell so "Target Name", " Target  Name ", "TARGET NAME"
+    // all hash to the same key.
+    normHeader(s) { return (s || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+
     parseCsv(text) {
+        // Strip UTF-8 BOM that Excel adds to the first cell of column A.
+        if (text && text.charCodeAt(0) === 0xFEFF) text = text.substring(1);
         const lines = text.split(/\r?\n/).filter(l => l.length > 0);
         if (lines.length < 2) return [];
-        const headers = this.splitCsvLine(lines[0]).map(h => h.trim());
+        // Auto-detect the delimiter from the header line — Excel locales
+        // may export CSVs with ';' or '\t' instead of ','.
+        const headerLine = lines[0];
+        const counts = {
+            ',': (headerLine.match(/,/g) || []).length,
+            ';': (headerLine.match(/;/g) || []).length,
+            '\t': (headerLine.match(/\t/g) || []).length
+        };
+        let sep = ',';
+        let best = counts[','];
+        if (counts[';'] > best) { sep = ';'; best = counts[';']; }
+        if (counts['\t'] > best) { sep = '\t'; best = counts['\t']; }
+
+        const rawHeaders = this.splitCsvLine(headerLine, sep);
+        const headers = rawHeaders.map(h => this.normHeader(h));
         const out = [];
         for (let i = 1; i < lines.length; i++) {
-            const cells = this.splitCsvLine(lines[i]);
+            const cells = this.splitCsvLine(lines[i], sep);
             if (cells.every(c => !c || !c.trim())) continue;
             const row = {};
             headers.forEach((h, j) => { row[h] = (cells[j] !== undefined ? String(cells[j]).trim() : ''); });
+            const get = (label) => row[this.normHeader(label)] || '';
             out.push({
-                targetId: row['Target Id'] || null,
-                username: row['User Username'] || '',
-                criteriaName: row['Criteria Name'] || '',
-                focusPackName: row['Focus Pack Name'] || null,
-                salesChannel: row['Sales Channel'] || null,
-                targetYear: row['Year'] ? Number(row['Year']) : null,
-                startDate: row['Start Date (YYYY-MM-DD)'] || '',
-                endDate: row['End Date (YYYY-MM-DD)'] || '',
-                targetValue: row['Target Value'] ? Number(row['Target Value']) : null,
-                isActive: (row['Is Active'] || '').toUpperCase() === 'TRUE'
+                targetName: get('Target Name') || null,
+                employeeCode: get('User Employee Code'),
+                criteriaName: get('Criteria Name'),
+                focusPackName: get('Focus Pack Name') || null,
+                salesChannel: get('Sales Channel') || null,
+                targetYear: get('Year') ? Number(get('Year')) : null,
+                startDate: get('Start Date (YYYY-MM-DD)') || get('Start Date'),
+                endDate: get('End Date (YYYY-MM-DD)') || get('End Date'),
+                targetValue: get('Target Value') ? Number(get('Target Value')) : null,
+                isActive: get('Is Active').toUpperCase() === 'TRUE'
             });
         }
         return out;
     }
 
-    splitCsvLine(line) {
+    splitCsvLine(line, sep) {
         const out = [];
         let cur = '';
         let inQ = false;
+        const delim = sep || ',';
         for (let i = 0; i < line.length; i++) {
             const c = line[i];
             if (c === '"') {
                 if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
                 else inQ = !inQ;
-            } else if (c === ',' && !inQ) {
+            } else if (c === delim && !inQ) {
                 out.push(cur);
                 cur = '';
             } else {
@@ -424,7 +515,7 @@ export default class SecondaryTargetManager extends LightningElement {
 
     runImport(rows) {
         this.isLoading = true;
-        importTargets({ rows })
+        importTargets({ rowsJson: JSON.stringify(rows) })
             .then(res => {
                 this.importCreated = res.createdCount || 0;
                 this.importUpdated = res.updatedCount || 0;
@@ -437,6 +528,45 @@ export default class SecondaryTargetManager extends LightningElement {
     }
 
     handleCloseImportResults() { this.showImportResults = false; }
+
+    // ===== Achievement Breakdown =====
+    get hasExplain() { return this.explain != null; }
+    get explainFilters() {
+        return (this.explain && this.explain.filterClauses && this.explain.filterClauses.length)
+            ? this.explain.filterClauses.map((c, i) => ({ id: i + 1, text: c }))
+            : null;
+    }
+    get explainSteps() {
+        return (this.explain && this.explain.steps && this.explain.steps.length)
+            ? this.explain.steps.map((s, i) => ({ id: i + 1, ...s }))
+            : null;
+    }
+    get explainPackSkus() {
+        return (this.explain && this.explain.packSkus && this.explain.packSkus.length)
+            ? this.explain.packSkus.map((n, i) => ({ id: i + 1, name: n }))
+            : null;
+    }
+    get explainPerDay() {
+        return (this.explain && this.explain.perDay && this.explain.perDay.length)
+            ? this.explain.perDay.map((r, i) => ({ id: i + 1, ...r }))
+            : null;
+    }
+    get explainIsTlsd() {
+        return this.explain && this.explain.operator === 'DAILY_LINES_PER_ORDER';
+    }
+    get explainIsDailyUnique() {
+        return this.explain && this.explain.operator === 'DAILY_UNIQUE_AVG';
+    }
+
+    openExplain(id) {
+        this.isLoading = true;
+        explainAchievement({ targetId: id })
+            .then(x => { this.explain = x; this.showExplain = true; })
+            .catch(e => this.toast('Error', this.msg(e), 'error'))
+            .finally(() => { this.isLoading = false; });
+    }
+
+    handleCloseExplain() { this.showExplain = false; this.explain = null; }
 
     handleRecalcAll() {
         this.isLoading = true;

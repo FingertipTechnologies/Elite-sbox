@@ -1,6 +1,8 @@
 import { LightningElement, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import runMonth from '@salesforce/apex/SecondaryPBIS_Controller.runMonth';
+import runMonthAsync from '@salesforce/apex/SecondaryPBIS_Controller.runMonthAsync';
+import getOverlappingTargets from '@salesforce/apex/SecondaryPBIS_Controller.getOverlappingTargets';
+import getAllMonthlyRows from '@salesforce/apex/SecondaryPBIS_Controller.getAllMonthlyRows';
 import getUserMonthlyTotals from '@salesforce/apex/SecondaryPBIS_Controller.getUserMonthlyTotals';
 import getUserMonthlyRows from '@salesforce/apex/SecondaryPBIS_Controller.getUserMonthlyRows';
 
@@ -29,8 +31,8 @@ const TOTAL_COLUMNS = [
 ];
 
 const LINE_COLUMNS = [
+    { label: 'Target', fieldName: 'targetName', type: 'text', initialWidth: 110 },
     { label: 'Criterion', fieldName: 'criteriaName', type: 'text' },
-    { label: 'Type', fieldName: 'operator', type: 'text', initialWidth: 160 },
     { label: 'Focus Pack', fieldName: 'packName', type: 'text' },
     { label: 'Compare', fieldName: 'Compare_On__c', type: 'text', initialWidth: 90 },
     { label: 'Achievement Value', fieldName: 'Achievement_Value__c', type: 'number',
@@ -57,6 +59,7 @@ export default class SecondaryPbisConsole extends LightningElement {
     @track selectedUserName = '';
     @track isLoading = false;
     @track showLines = false;
+    @track skippedDuplicates = [];
 
     connectedCallback() {
         const now = new Date();
@@ -68,6 +71,8 @@ export default class SecondaryPbisConsole extends LightningElement {
 
     get hasTotals() { return this.totals && this.totals.length > 0; }
     get hasLines() { return this.lines && this.lines.length > 0; }
+    get hasSkippedDuplicates() { return this.skippedDuplicates && this.skippedDuplicates.length > 0; }
+    get skippedCount() { return this.skippedDuplicates ? this.skippedDuplicates.length : 0; }
     get periodLabel() {
         const opt = MONTHS.find(o => o.value === Number(this.month));
         return (opt ? opt.label : '') + ' ' + (this.year || '');
@@ -91,11 +96,18 @@ export default class SecondaryPbisConsole extends LightningElement {
             return;
         }
         this.isLoading = true;
-        runMonth({ year: this.year, month: this.month })
-            .then(count => {
-                this.toast('Done', `Wrote ${count} incentive row${count === 1 ? '' : 's'} for ${this.periodLabel}.`, 'success');
-                this.loadTotals();
+        this.skippedDuplicates = [];   // clear stale info from a previous sync run
+        runMonthAsync({ year: this.year, month: this.month })
+            .then(() => {
+                this.toast(
+                    'Started',
+                    `PBIS computation started for ${this.periodLabel}. Refreshing shortly…`,
+                    'success'
+                );
                 this.showLines = false;
+                // Auto-refresh after a short delay so the queueable has time to commit.
+                // eslint-disable-next-line @lwc/lwc/no-async-operation
+                setTimeout(() => this.loadTotals(), 5000);
             })
             .catch(e => this.toast('Error', this.msg(e), 'error'))
             .finally(() => { this.isLoading = false; });
@@ -103,11 +115,71 @@ export default class SecondaryPbisConsole extends LightningElement {
 
     handleRefresh() { this.loadTotals(); }
 
+    handleExport() {
+        if (!this.year || !this.month) {
+            this.toast('Validation', 'Pick Year and Month first.', 'error');
+            return;
+        }
+        this.isLoading = true;
+        getAllMonthlyRows({ year: this.year, month: this.month })
+            .then(rows => {
+                if (!rows || !rows.length) {
+                    this.toast('Nothing to export', `No PBIS rows for ${this.periodLabel}.`, 'warning');
+                    return;
+                }
+                const headers = [
+                    'Executive', 'Channel', 'Year', 'Month', 'Secondary Target',
+                    'Criterion', 'Operator', 'Focus Pack', 'Compare On',
+                    'Achievement Value', 'Achievement %',
+                    'Slab From', 'Slab To', 'Incentive Amount', 'Computed At'
+                ];
+                const fmt = v => (v === null || v === undefined ? '' : String(v));
+                const csvRows = rows.map(r => [
+                    (r.Executive__r && r.Executive__r.Name) || r.User_Name__c || '',
+                    fmt(r.Sales_Channel__c),
+                    fmt(r.Year__c),
+                    fmt(r.Month__c),
+                    (r.Secondary_Target__r && r.Secondary_Target__r.Name) || '',
+                    (r.Target_Criteria__r && r.Target_Criteria__r.Name) || '',
+                    (r.Target_Criteria__r && r.Target_Criteria__r.Operator__c) || '',
+                    (r.Focused_Pack__r && r.Focused_Pack__r.Name) || '',
+                    fmt(r.Compare_On__c),
+                    fmt(r.Achievement_Value__c),
+                    fmt(r.Achievement_Percent__c),
+                    fmt(r.Matched_Slab__r && r.Matched_Slab__r.Achievement_From__c),
+                    fmt(r.Matched_Slab__r && r.Matched_Slab__r.Achievement_To__c),
+                    fmt(r.Credit_Amount__c),
+                    fmt(r.Computed_At__c)
+                ]);
+                const csv = [headers, ...csvRows]
+                    .map(row => row.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(','))
+                    .join('\n');
+                const dataUri = 'data:text/csv;charset=utf-8,%EF%BB%BF' + encodeURIComponent(csv);
+                const link = this.template.querySelector('.pbis-download-link');
+                if (!link) return;
+                const yearStr = String(this.year);
+                const monthStr = String(this.month).padStart(2, '0');
+                link.setAttribute('href', dataUri);
+                link.setAttribute('download', `secondary_pbis_${yearStr}_${monthStr}.csv`);
+                link.click();
+                this.toast('Exported', `${rows.length} row${rows.length === 1 ? '' : 's'} downloaded.`, 'success');
+            })
+            .catch(e => this.toast('Error', this.msg(e), 'error'))
+            .finally(() => { this.isLoading = false; });
+    }
+
     loadTotals() {
         if (!this.year || !this.month) return;
         this.isLoading = true;
-        getUserMonthlyTotals({ year: this.year, month: this.month })
-            .then(d => { this.totals = d || []; this.showLines = false; })
+        Promise.all([
+            getUserMonthlyTotals({ year: this.year, month: this.month }),
+            getOverlappingTargets({ year: this.year, month: this.month })
+        ])
+            .then(([totals, dupes]) => {
+                this.totals = totals || [];
+                this.skippedDuplicates = (dupes || []).map((s, i) => ({ id: i + 1, ...s }));
+                this.showLines = false;
+            })
             .catch(e => this.toast('Error', this.msg(e), 'error'))
             .finally(() => { this.isLoading = false; });
     }
@@ -123,6 +195,7 @@ export default class SecondaryPbisConsole extends LightningElement {
                     ...r,
                     criteriaName: (r.Target_Criteria__r && r.Target_Criteria__r.Name) || '',
                     operator: (r.Target_Criteria__r && r.Target_Criteria__r.Operator__c) || '',
+                    targetName: (r.Secondary_Target__r && r.Secondary_Target__r.Name) || '',
                     packName: (r.Focused_Pack__r && r.Focused_Pack__r.Name) || '',
                     achPct: r.Achievement_Percent__c != null ? r.Achievement_Percent__c / 100 : null,
                     slabFrom: (r.Matched_Slab__r && r.Matched_Slab__r.Achievement_From__c) ?? null,

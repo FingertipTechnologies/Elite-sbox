@@ -140,6 +140,22 @@ public with sharing class TAM_TargetCriteria_Controller {
     // =====================
     @AuraEnabled
     public static Target_Criteria__c saveCriteria(Target_Criteria__c criteria) {
+        // Block duplicate Names so the CSV import (and any other lookup-by-Name flow)
+        // can resolve criteria unambiguously.
+        if (String.isNotBlank(criteria.Name)) {
+            Integer dupCount;
+            if (criteria.Id == null) {
+                dupCount = [SELECT COUNT() FROM Target_Criteria__c WHERE Name = :criteria.Name];
+            } else {
+                Id existingId = criteria.Id;
+                dupCount = [SELECT COUNT() FROM Target_Criteria__c WHERE Name = :criteria.Name AND Id != :existingId];
+            }
+            if (dupCount > 0) {
+                throw new AuraHandledException(
+                    'A Target Criteria named "' + criteria.Name + '" already exists. Pick a unique name.'
+                );
+            }
+        }
         upsert criteria;
         return getCriteria(criteria.Id);
     }
