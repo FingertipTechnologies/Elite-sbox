@@ -179,16 +179,16 @@ public with sharing class SDParameter_Controller {
      * Input/output JSON: {"sources":[{object, customerField, userField, dateField, filters,
      * filterLogic, soql}]}. PBISActuals_Service runs each `soql` and unions the `cust` values.
      */
-    private static String buildSourceConfig(String json) {
-        if (String.isBlank(json)) return json;
+    private static String buildSourceConfig(String configJson) {
+        if (String.isBlank(configJson)) return configJson;
         Map<String, Object> root;
         try {
-            root = (Map<String, Object>) JSON.deserializeUntyped(json);
+            root = (Map<String, Object>) JSON.deserializeUntyped(configJson);
         } catch (Exception e) {
-            return json;
+            return configJson;
         }
         List<Object> rows = (List<Object>) root.get('sources');
-        if (rows == null) return json;
+        if (rows == null) return configJson;
         for (Object r : rows) {
             Map<String, Object> src = (Map<String, Object>) r;
             src.put('soql', buildSourceSoql(src));
