@@ -25,6 +25,7 @@ export default class FocusedPackForm extends NavigationMixin(LightningElement) {
 
     @track skuRows = [];
     @track selectedSkuIds = new Set();
+    @track viewMode = 'all'; // 'all' | 'selected'
 
     salesChannelOptions = [];
     categoryOptions = [];
@@ -58,6 +59,7 @@ export default class FocusedPackForm extends NavigationMixin(LightningElement) {
         this.filters = { category: '', productGroup: '', productSubGroup: '', searchTerm: '' };
         this.skuRows = [];
         this.selectedSkuIds = new Set();
+        this.viewMode = 'all';
         this.nameError = '';
         this.isSaving = false;
     }
@@ -108,7 +110,11 @@ export default class FocusedPackForm extends NavigationMixin(LightningElement) {
     }
 
     get rowsForDisplay() {
-        return this.skuRows.map((r, i) => ({
+        const selectedOnly = this.viewMode === 'selected';
+        const rows = selectedOnly
+            ? this.skuRows.filter(r => this.selectedSkuIds.has(r.id))
+            : this.skuRows;
+        return rows.map((r, i) => ({
             ...r,
             sNo: i + 1,
             isSelected: this.selectedSkuIds.has(r.id)
@@ -121,7 +127,21 @@ export default class FocusedPackForm extends NavigationMixin(LightningElement) {
     }
 
     get isEmpty() {
-        return !this.isLoading && this.skuRows.length === 0;
+        return !this.isLoading && this.rowsForDisplay.length === 0;
+    }
+
+    // All / Selected view toggle (mirrors schemeProductGroupBuilder).
+    get allViewClass() {
+        return this.viewMode === 'all' ? 'view-btn view-btn--active' : 'view-btn';
+    }
+    get selectedViewClass() {
+        return this.viewMode === 'selected' ? 'view-btn view-btn--active' : 'view-btn';
+    }
+    handleViewToggle(event) {
+        const next = event.target.dataset.view;
+        if (next && next !== this.viewMode) {
+            this.viewMode = next;
+        }
     }
 
     get isSubmitDisabled() {
