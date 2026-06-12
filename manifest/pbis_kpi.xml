@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  KPI Dashboard (Primary KPI + Secondary KPI). Deploy with:
+    sf project deploy start -x manifest/pbis_kpi.xml -o <org>
+  Depends on: the existing secondaryKpiDashboard LWC + SecondaryKpiDashboard_Controller
+  (already in the org), RoleHeirarchyUtility, and the PBIS_Target__c Task-4 calc fields.
+  The kpiDashboard container references c-secondary-kpi-dashboard, so that component must
+  exist in the target org.
+-->
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>PrimaryKpiDashboard_Controller</members>
+        <members>PrimaryKpiDashboard_ControllerTest</members>
+        <name>ApexClass</name>
+    </types>
+    <types>
+        <members>primaryKpiDashboard</members>
+        <members>kpiDashboard</members>
+        <name>LightningComponentBundle</name>
+    </types>
+    <types>
+        <members>KPI_Dashboard</members>
+        <name>CustomTab</name>
+    </types>
+    <types>
+        <members>KPI_Dashboard_Access</members>
+        <name>PermissionSet</name>
+    </types>
+    <version>59.0</version>
+</Package>
