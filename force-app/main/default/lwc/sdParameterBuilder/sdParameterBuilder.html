@@ -1,27 +1,20 @@
 <template>
-    <div class="sdp-card">
-        <!-- Header -->
-        <div class="sdp-header">
-            <div class="sdp-header-inner">
-                <div class="sdp-header-icon">
-                    <lightning-icon icon-name="custom:custom63" size="small" variant="inverse"></lightning-icon>
-                </div>
-                <div>
-                    <h1 class="sdp-title">{headerTitle}</h1>
-                    <p class="sdp-subtitle">Define how this S&amp;D parameter's achievement is measured</p>
+    <div class="sdp-page">
+        <div class="sdp-card">
+            <!-- Header -->
+            <div class="sdp-header">
+                <div class="sdp-header-inner">
+                    <div class="sdp-header-icon">
+                        <lightning-icon icon-name="custom:custom63" size="small" variant="inverse"></lightning-icon>
+                    </div>
+                    <div>
+                        <h1 class="sdp-title">{headerTitle}</h1>
+                        <p class="sdp-subtitle">Define how this S&amp;D parameter's achievement is measured</p>
+                    </div>
                 </div>
             </div>
-            <lightning-button-icon
-                icon-name="utility:close"
-                variant="bare-inverse"
-                size="large"
-                alternative-text="Close"
-                class="sdp-close"
-                onclick={handleCancel}>
-            </lightning-button-icon>
-        </div>
 
-        <!-- Body -->
+            <!-- Body -->
         <div class="sdp-body">
             <template if:true={isLoading}>
                 <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
@@ -309,6 +302,7 @@
                 disabled={isLoading}
                 class="slds-m-left_x-small">
             </lightning-button>
+        </div>
         </div>
     </div>
 </template>

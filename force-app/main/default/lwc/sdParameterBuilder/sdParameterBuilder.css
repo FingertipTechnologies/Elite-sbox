@@ -1,16 +1,29 @@
-/* Rendered inside an Aura overlayLibrary modal — fill the modal box edge to edge
-   and lay out as a flex column so the header/footer pin and only the body scrolls. */
-.sdp-card {
-    display: flex;
-    flex-direction: column;
-    max-height: 74vh;
-    overflow: hidden;
-    margin: -1rem -1.5rem;
+/* Full-page screen, rounded corners (matches pbisPolicyBuilder).
+   :host is transparent so the page background shows in the gutter and the
+   card's rounded corners are visible. */
+:host {
+    display: block;
+    background: transparent;
+    min-height: 100%;
 }
 
-/* Header (pinned) */
+.sdp-page {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.sdp-card {
+    background: #fff;
+    border: 1px solid #e0e5ee;
+    border-radius: 1rem !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    overflow: hidden !important;
+}
+
+/* Header */
 .sdp-header {
-    flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -18,7 +31,8 @@
     background: linear-gradient(90deg, #0b5cab 0%, #1589ee 100%);
     color: #fff;
     padding: 1.1rem 1.5rem;
-    border-radius: 0.25rem 0.25rem 0 0;
+    border-top-left-radius: 1rem !important;
+    border-top-right-radius: 1rem !important;
 }
 
 .sdp-header-inner {
@@ -54,11 +68,8 @@
     color: #fff;
 }
 
-/* Body (only this scrolls) */
+/* Body (flows with the page) */
 .sdp-body {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
     position: relative;
     padding: 0.5rem 1.5rem;
     background: #fff;
