@@ -4,6 +4,6 @@
     <lightning:navigation aura:id="navService"/>
     <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
     <aura:if isTrue="{!v.openPopup}">
-        <c:focusedPackForm onsaved="{!c.onSaved}" oncancel="{!c.onCancel}"/>
+        <c:focusedPackForm recordId="{!v.recordId}" onsaved="{!c.onSaved}" oncancel="{!c.onCancel}"/>
     </aura:if>
 </aura:component>

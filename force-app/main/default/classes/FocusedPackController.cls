@@ -32,6 +32,34 @@ public with sharing class FocusedPackController {
         @AuraEnabled public String productSubGroup { get; set; }
     }
 
+    /** Existing Focused Pack header + its selected SKU ids, for the edit form. */
+    public class FocusedPackData {
+        @AuraEnabled public String name { get; set; }
+        @AuraEnabled public String salesChannel { get; set; }
+        @AuraEnabled public Decimal minimumQuantity { get; set; }
+        @AuraEnabled public List<Id> skuIds { get; set; }
+    }
+
+    @AuraEnabled(cacheable=false)
+    public static FocusedPackData getFocusedPack(Id recordId) {
+        Focused_Pack__c fp = [
+            SELECT Id, Name, Sales_Channel__c, Minimum_Qualifying_Quantity__c
+            FROM Focused_Pack__c WHERE Id = :recordId LIMIT 1
+        ];
+        FocusedPackData d = new FocusedPackData();
+        d.name = fp.Name;
+        d.salesChannel = fp.Sales_Channel__c;
+        d.minimumQuantity = fp.Minimum_Qualifying_Quantity__c;
+        d.skuIds = new List<Id>();
+        for (Focused_Pack_Item__c it : [
+            SELECT SKU__c FROM Focused_Pack_Item__c
+            WHERE Focused_Pack__c = :recordId AND SKU__c != null
+        ]) {
+            d.skuIds.add(it.SKU__c);
+        }
+        return d;
+    }
+
     @AuraEnabled(cacheable=true)
     public static FocusedPackPicklists getPicklists() {
         FocusedPackPicklists result = new FocusedPackPicklists();
@@ -53,17 +81,19 @@ public with sharing class FocusedPackController {
     }
 
     @AuraEnabled
-    public static Boolean isNameAvailable(String name) {
+    public static Boolean isNameAvailable(String name, Id excludeId) {
         if (String.isBlank(name)) {
             return false;
         }
-        Integer count = [
-            SELECT COUNT()
-            FROM Focused_Pack__c
-            WHERE Name = :name.trim()
-            LIMIT 1
-        ];
-        return count == 0;
+        // Available unless another record (not the one being edited) already has the name.
+        for (Focused_Pack__c fp : [
+            SELECT Id FROM Focused_Pack__c WHERE Name = :name.trim() LIMIT 50
+        ]) {
+            if (fp.Id != excludeId) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @AuraEnabled
@@ -131,6 +161,7 @@ public with sharing class FocusedPackController {
 
     @AuraEnabled
     public static Id saveFocusedPack(
+        Id recordId,
         String name,
         String salesChannel,
         Decimal minimumQuantity,
@@ -145,16 +176,22 @@ public with sharing class FocusedPackController {
         if (skuIds == null || skuIds.isEmpty()) {
             throw new AuraHandledException('Select at least one SKU.');
         }
-        if (!isNameAvailable(name)) {
+        if (!isNameAvailable(name, recordId)) {
             throw new AuraHandledException('A Focused Pack with this name already exists.');
         }
 
         Focused_Pack__c header = new Focused_Pack__c(
+            Id = recordId, // null -> insert, set -> update
             Name = name.trim(),
             Sales_Channel__c = salesChannel,
             Minimum_Qualifying_Quantity__c = minimumQuantity
         );
-        insert header;
+        upsert header;
+
+        // Replace the line items so an edit reflects the new SKU selection.
+        if (recordId != null) {
+            delete [SELECT Id FROM Focused_Pack_Item__c WHERE Focused_Pack__c = :recordId];
+        }
 
         List<Focused_Pack_Item__c> items = new List<Focused_Pack_Item__c>();
         for (Id skuId : new Set<Id>(skuIds)) {

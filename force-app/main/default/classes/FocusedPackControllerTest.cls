@@ -56,21 +56,51 @@ private class FocusedPackControllerTest {
         Product__c p = [SELECT Id FROM Product__c LIMIT 1];
         Test.startTest();
         Id headerId = FocusedPackController.saveFocusedPack(
-            'FP Unit Test', 'Cake', 10, new List<Id>{ p.Id }
+            null, 'FP Unit Test', 'Cake', 10, new List<Id>{ p.Id }
         );
         Test.stopTest();
         System.assertNotEquals(null, headerId);
         System.assertEquals(1, [SELECT COUNT() FROM Focused_Pack_Item__c WHERE Focused_Pack__c = :headerId]);
-        System.assertEquals(false, FocusedPackController.isNameAvailable('FP Unit Test'));
+        System.assertEquals(false, FocusedPackController.isNameAvailable('FP Unit Test', null));
+    }
+
+    @isTest
+    static void getAndUpdateFocusedPack() {
+        List<Product__c> ps = [SELECT Id FROM Product__c ORDER BY Name];
+        Id headerId = FocusedPackController.saveFocusedPack(
+            null, 'Editable Pack', 'Cake', 5, new List<Id>{ ps[0].Id }
+        );
+
+        Test.startTest();
+        // Edit form loads the existing record.
+        FocusedPackController.FocusedPackData data = FocusedPackController.getFocusedPack(headerId);
+        System.assertEquals('Editable Pack', data.name);
+        System.assertEquals('Cake', data.salesChannel);
+        System.assertEquals(1, data.skuIds.size());
+
+        // Update: rename + swap to both SKUs.
+        Id sameId = FocusedPackController.saveFocusedPack(
+            headerId, 'Editable Pack v2', 'Cake', 12, new List<Id>{ ps[0].Id, ps[1].Id }
+        );
+        Test.stopTest();
+
+        System.assertEquals(headerId, sameId, 'Update keeps the same record');
+        Focused_Pack__c fp = [SELECT Name, Minimum_Qualifying_Quantity__c FROM Focused_Pack__c WHERE Id = :headerId];
+        System.assertEquals('Editable Pack v2', fp.Name);
+        System.assertEquals(12, fp.Minimum_Qualifying_Quantity__c);
+        System.assertEquals(2, [SELECT COUNT() FROM Focused_Pack_Item__c WHERE Focused_Pack__c = :headerId],
+            'Items replaced with the new selection');
+        // The record may keep its own name on edit.
+        System.assertEquals(true, FocusedPackController.isNameAvailable('Editable Pack v2', headerId));
     }
 
     @isTest
     static void saveRejectsDuplicateName() {
         Product__c p = [SELECT Id FROM Product__c LIMIT 1];
-        FocusedPackController.saveFocusedPack('Dup Pack', 'Cake', null, new List<Id>{ p.Id });
+        FocusedPackController.saveFocusedPack(null, 'Dup Pack', 'Cake', null, new List<Id>{ p.Id });
         Boolean threw = false;
         try {
-            FocusedPackController.saveFocusedPack('Dup Pack', 'Cake', null, new List<Id>{ p.Id });
+            FocusedPackController.saveFocusedPack(null, 'Dup Pack', 'Cake', null, new List<Id>{ p.Id });
         } catch (AuraHandledException e) {
             threw = true;
         }
@@ -81,7 +111,7 @@ private class FocusedPackControllerTest {
     static void saveRejectsMissingInputs() {
         Boolean threw = false;
         try {
-            FocusedPackController.saveFocusedPack(null, 'Cake', null, new List<Id>{});
+            FocusedPackController.saveFocusedPack(null, null, 'Cake', null, new List<Id>{});
         } catch (AuraHandledException e) {
             threw = true;
         }

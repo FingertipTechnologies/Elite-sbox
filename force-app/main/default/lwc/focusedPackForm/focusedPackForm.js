@@ -1,12 +1,15 @@
-import { LightningElement, track } from 'lwc';
+import { LightningElement, api, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
 import getPicklists from '@salesforce/apex/FocusedPackController.getPicklists';
 import getSkusForChannel from '@salesforce/apex/FocusedPackController.getSkusForChannel';
 import isNameAvailable from '@salesforce/apex/FocusedPackController.isNameAvailable';
 import saveFocusedPack from '@salesforce/apex/FocusedPackController.saveFocusedPack';
+import getFocusedPack from '@salesforce/apex/FocusedPackController.getFocusedPack';
 
 export default class FocusedPackForm extends NavigationMixin(LightningElement) {
+    @api recordId; // set in edit mode; blank for create
+
     @track header = {
         name: '',
         salesChannel: '',
@@ -32,8 +35,52 @@ export default class FocusedPackForm extends NavigationMixin(LightningElement) {
     isSaving = false;
     nameError = '';
 
+    // connectedCallback re-fires when LEX re-inserts a cached override instance, so reset
+    // the form here (class-field initializers only run once) to avoid stale values on New.
     connectedCallback() {
+        this.resetForm();
         this.loadPicklists();
+        if (this.recordId) {
+            this.loadRecord();
+        }
+    }
+
+    get isEdit() {
+        return !!this.recordId;
+    }
+
+    get formTitle() {
+        return this.isEdit ? 'Edit Focused Pack' : 'New Focused Pack';
+    }
+
+    resetForm() {
+        this.header = { name: '', salesChannel: '', minimumQuantity: null };
+        this.filters = { category: '', productGroup: '', productSubGroup: '', searchTerm: '' };
+        this.skuRows = [];
+        this.selectedSkuIds = new Set();
+        this.nameError = '';
+        this.isSaving = false;
+    }
+
+    // Edit mode: load the existing header + its SKUs and pre-select them.
+    async loadRecord() {
+        this.isLoading = true;
+        try {
+            const data = await getFocusedPack({ recordId: this.recordId });
+            this.header = {
+                name: data.name || '',
+                salesChannel: data.salesChannel || '',
+                minimumQuantity: data.minimumQuantity
+            };
+            if (data.salesChannel) {
+                await this.refreshSkus();
+            }
+            this.selectedSkuIds = new Set(data.skuIds || []);
+        } catch (error) {
+            this.toast('Error', this.reduceError(error), 'error');
+        } finally {
+            this.isLoading = false;
+        }
     }
 
     async loadPicklists() {
@@ -109,7 +156,7 @@ export default class FocusedPackForm extends NavigationMixin(LightningElement) {
             return;
         }
         try {
-            const available = await isNameAvailable({ name });
+            const available = await isNameAvailable({ name, excludeId: this.recordId });
             if (!available) {
                 this.nameError = 'A Focused Pack with this name already exists.';
             }
@@ -195,13 +242,15 @@ export default class FocusedPackForm extends NavigationMixin(LightningElement) {
         }
         this.isSaving = true;
         try {
+            const wasEdit = this.isEdit;
             const recordId = await saveFocusedPack({
+                recordId: this.recordId,
                 name: this.header.name,
                 salesChannel: this.header.salesChannel,
                 minimumQuantity: this.header.minimumQuantity,
                 skuIds: Array.from(this.selectedSkuIds)
             });
-            this.toast('Success', 'Focused Pack created.', 'success');
+            this.toast('Success', wasEdit ? 'Focused Pack updated.' : 'Focused Pack created.', 'success');
             this.dispatchEvent(new CustomEvent('saved', { detail: { recordId } }));
             this[NavigationMixin.Navigate]({
                 type: 'standard__recordPage',
