@@ -1,0 +1,16 @@
+<template>
+    <div class="kpi-dashboard">
+        <lightning-tabset variant="scoped">
+            <lightning-tab label="Primary KPI" value="primary" onactive={handleTabActive}>
+                <template if:true={primaryLoaded}>
+                    <c-primary-kpi-dashboard></c-primary-kpi-dashboard>
+                </template>
+            </lightning-tab>
+            <lightning-tab label="Secondary KPI" value="secondary" onactive={handleTabActive}>
+                <template if:true={secondaryLoaded}>
+                    <c-secondary-kpi-dashboard></c-secondary-kpi-dashboard>
+                </template>
+            </lightning-tab>
+        </lightning-tabset>
+    </div>
+</template>

@@ -1,0 +1,9 @@
+:host {
+    display: block;
+    background: #f3f6f9;
+    min-height: 100%;
+}
+.kpi-dashboard {
+    width: 100%;
+    box-sizing: border-box;
+}
