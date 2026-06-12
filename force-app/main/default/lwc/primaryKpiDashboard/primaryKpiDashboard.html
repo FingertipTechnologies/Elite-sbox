@@ -1,91 +1,179 @@
 <template>
-    <div class="pkpi">
-        <!-- Filter bar -->
-        <div class="pkpi-filters">
-            <div class="pkpi-filters-left">
-                <lightning-input type="number" label="Year" value={year} onchange={handleYear}
-                    class="pkpi-field" variant="label-inline"></lightning-input>
-                <lightning-combobox label="Month" value={month} options={monthOptions}
-                    onchange={handleMonth} class="pkpi-field" variant="label-inline"></lightning-combobox>
-                <lightning-combobox label="Period" value={incentivePeriod} options={periodOptions}
-                    onchange={handlePeriod} class="pkpi-field" variant="label-inline"></lightning-combobox>
+    <lightning-card title="Primary KPI Dashboard" icon-name="standard:dashboard">
+        <lightning-button slot="actions" label="Refresh" icon-name="utility:refresh"
+            onclick={handleRefresh}></lightning-button>
+
+        <div class="slds-p-horizontal_small slds-p-bottom_medium kpi-root">
+
+            <!-- Filters -->
+            <div class="slds-grid slds-gutters_x-small slds-wrap slds-m-bottom_small">
                 <template if:true={showPicker}>
-                    <lightning-combobox label="User" value={viewUserId} options={pickerOptions}
-                        onchange={handlePicker} class="pkpi-field pkpi-field_wide" variant="label-inline"></lightning-combobox>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
+                        <lightning-combobox label="User" value={viewUserId} options={pickerOptions}
+                            onchange={handlePicker}></lightning-combobox>
+                    </div>
                 </template>
-            </div>
-            <lightning-button label="Refresh" icon-name="utility:refresh" onclick={handleRefresh}
-                variant="brand-outline"></lightning-button>
-        </div>
-
-        <template if:true={isLoading}>
-            <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
-        </template>
-
-        <!-- Empty -->
-        <template if:true={isEmpty}>
-            <div class="kpi-panel pkpi-empty">
-                <lightning-icon icon-name="utility:moneybag" size="medium" class="pkpi-empty-icon"></lightning-icon>
-                <p class="pkpi-empty-title">No Primary PBIS for this period</p>
-                <p class="pkpi-empty-sub">Pick another period, or check that targets are loaded and recalculated.</p>
-            </div>
-        </template>
-
-        <!-- Header + hero tiles -->
-        <template if:true={hasHero}>
-            <div class="kpi-header">
-                <div>
-                    <h2 class="kpi-h2">My Primary PBIS</h2>
-                    <p class="kpi-header-sub">{heroSubHeading}</p>
+                <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                    <lightning-input type="number" label="Year" value={year} onchange={handleYear}></lightning-input>
                 </div>
-                <template if:true={isDrilled}>
-                    <lightning-button label="Back to team" icon-name="utility:back"
-                        onclick={handleBack} variant="neutral"></lightning-button>
-                </template>
+                <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                    <lightning-combobox label="Month" value={month} options={monthOptions}
+                        onchange={handleMonth}></lightning-combobox>
+                </div>
+                <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                    <lightning-combobox label="Period" value={incentivePeriod} options={periodOptions}
+                        onchange={handlePeriod}></lightning-combobox>
+                </div>
             </div>
 
-            <div class="kpi-tiles">
-                <div class="kpi-tile kpi-tile_incentive">
-                    <p class="kpi-label">Total Incentive</p>
-                    <p class="kpi-value">{heroTotalIncentive}</p>
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+
+            <!-- Empty -->
+            <template if:true={isEmpty}>
+                <div class="slds-p-around_large slds-text-align_center">
+                    <lightning-icon icon-name="utility:moneybag" alternative-text="Info"
+                        size="medium" variant="warning"></lightning-icon>
+                    <p class="slds-text-heading_small slds-m-top_small">No Primary PBIS for this period</p>
+                    <p class="slds-text-body_regular slds-text-color_weak">
+                        Pick another period, or check that targets are loaded and recalculated.
+                    </p>
                 </div>
-                <div class="kpi-tile kpi-tile_target">
-                    <p class="kpi-label">Max Possible</p>
-                    <p class="kpi-value">{heroMaxIncentive}</p>
+            </template>
+
+            <template if:true={hasHero}>
+                <!-- Heading -->
+                <div class="kpi-header slds-grid slds-grid_align-spread slds-grid_vertical-align-end slds-m-bottom_small slds-wrap">
+                    <div>
+                        <h2 class="slds-text-heading_medium">My Primary PBIS</h2>
+                        <p class="slds-text-color_weak">{heroSubHeading}</p>
+                    </div>
+                    <template if:true={isDrilled}>
+                        <lightning-button label="Back to team" icon-name="utility:back"
+                            onclick={handleBack}></lightning-button>
+                    </template>
                 </div>
-                <div class="kpi-tile kpi-tile_ach">
-                    <p class="kpi-label">Achievement</p>
-                    <p class={heroPctClass}>{heroPctText}</p>
-                    <div class="kpi-progress">
-                        <div class="kpi-progress-fill" style={heroProgressStyle}></div>
+
+                <!-- Hero KPI tiles -->
+                <div class="slds-grid slds-gutters_x-small slds-wrap kpi-tiles slds-m-bottom_medium">
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <div class="kpi-tile kpi-tile_incentive">
+                            <div class="kpi-label">Total Incentive</div>
+                            <div class="kpi-value">{heroTotalIncentive}</div>
+                        </div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <div class="kpi-tile kpi-tile_target">
+                            <div class="kpi-label">Max Possible</div>
+                            <div class="kpi-value">{heroMaxIncentive}</div>
+                        </div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <div class="kpi-tile kpi-tile_ach">
+                            <div class="kpi-label">Achievement</div>
+                            <div class="kpi-value"><span class={heroPctClass}>{heroPctText}</span></div>
+                            <div class="kpi-progress">
+                                <div class="kpi-progress-fill" style={heroProgressStyle}></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <div class="kpi-tile kpi-tile_elig">
+                            <div class="kpi-label">Eligibility</div>
+                            <div class="kpi-value"><span class={heroEligibleClass}>{heroEligibleText}</span></div>
+                        </div>
                     </div>
                 </div>
-                <div class="kpi-tile kpi-tile_elig">
-                    <p class="kpi-label">Eligibility</p>
-                    <span class={heroEligibleClass}>{heroEligibleText}</span>
+
+                <!-- Per-parameter breakdown -->
+                <div class="kpi-panel">
+                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">S &amp; D Parameter breakdown</h3>
+                    <template if:true={hasParameters}>
+                        <template if:true={isMobile}>
+                            <template for:each={parameters} for:item="p">
+                                <div key={p.id} class="kpi-card kpi-card_static">
+                                    <div class="kpi-card-head">
+                                        <div>
+                                            <div class="kpi-card-title">{p.parameter}</div>
+                                            <div class="kpi-card-sub">Slab {p.slab}</div>
+                                        </div>
+                                        <span class={p.badgeClass}>{p.pctText}</span>
+                                    </div>
+                                    <div class="progress-track">
+                                        <div class={p.barClass} style={p.barStyle}></div>
+                                    </div>
+                                    <div class="kpi-card-grid">
+                                        <div>
+                                            <div class="kpi-mini-label">Weight</div>
+                                            <div class="kpi-mini-value">{p.weightage}%</div>
+                                        </div>
+                                        <div>
+                                            <div class="kpi-mini-label">Target</div>
+                                            <div class="kpi-mini-value">{p.targetText}</div>
+                                        </div>
+                                        <div>
+                                            <div class="kpi-mini-label">Achievement</div>
+                                            <div class="kpi-mini-value">{p.achText}</div>
+                                        </div>
+                                        <div>
+                                            <div class="kpi-mini-label">Incentive</div>
+                                            <div class="kpi-mini-value">{p.incentiveText}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </template>
+                        <template if:false={isMobile}>
+                            <lightning-datatable key-field="id" data={parameters} columns={paramColumns}
+                                hide-checkbox-column column-widths-mode="auto"></lightning-datatable>
+                        </template>
+                    </template>
+                    <template if:false={hasParameters}>
+                        <p class="slds-text-body_regular slds-text-color_weak">No parameters on this target.</p>
+                    </template>
                 </div>
-            </div>
+            </template>
 
-            <!-- Per-parameter breakdown -->
-            <div class="kpi-panel">
-                <p class="kpi-panel-title">S &amp; D Parameter breakdown</p>
-                <template if:true={hasParameters}>
-                    <lightning-datatable key-field="id" data={parameters} columns={paramColumns}
-                        hide-checkbox-column column-widths-mode="auto"></lightning-datatable>
-                </template>
-                <template if:false={hasParameters}>
-                    <p class="pkpi-muted">No parameters on this target.</p>
-                </template>
-            </div>
-        </template>
-
-        <!-- Team table -->
-        <template if:true={hasTeam}>
-            <div class="kpi-panel">
-                <p class="kpi-panel-title">My team</p>
-                <lightning-datatable key-field="userId" data={teamRows} columns={teamColumns}
-                    hide-checkbox-column onrowaction={handleRowAction} column-widths-mode="auto"></lightning-datatable>
-            </div>
-        </template>
-    </div>
+            <!-- Team -->
+            <template if:true={hasTeam}>
+                <div class="kpi-panel slds-m-top_medium">
+                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">My team</h3>
+                    <template if:true={isMobile}>
+                        <template for:each={teamRows} for:item="u">
+                            <div key={u.userId} class="kpi-card" data-id={u.userId} onclick={handleTeamCardClick}>
+                                <div class="kpi-card-head">
+                                    <div>
+                                        <div class="kpi-card-title">{u.userName}</div>
+                                        <div class="kpi-card-sub">{u.role}</div>
+                                    </div>
+                                    <span class={u.badgeClass}>{u.pctText}</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div class={u.barClass} style={u.barStyle}></div>
+                                </div>
+                                <div class="kpi-card-grid">
+                                    <div>
+                                        <div class="kpi-mini-label">Incentive</div>
+                                        <div class="kpi-mini-value">{u.incentiveText}</div>
+                                    </div>
+                                    <div>
+                                        <div class="kpi-mini-label">Eligible</div>
+                                        <div class="kpi-mini-value">{u.eligibleText}</div>
+                                    </div>
+                                </div>
+                                <div class="kpi-card-cta">Tap to view this user
+                                    <lightning-icon icon-name="utility:chevronright" size="xx-small"></lightning-icon>
+                                </div>
+                            </div>
+                        </template>
+                    </template>
+                    <template if:false={isMobile}>
+                        <lightning-datatable key-field="userId" data={teamRows} columns={teamColumns}
+                            hide-checkbox-column onrowaction={handleRowAction} column-widths-mode="auto"></lightning-datatable>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
 </template>
