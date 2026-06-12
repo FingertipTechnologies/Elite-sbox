@@ -41,26 +41,39 @@
                     </div>
                     <template if:true={isDrilled}>
                         <lightning-button label="Back to team" icon-name="utility:back"
-                            onclick={handleBack} variant="neutral"></lightning-button>
+                            onclick={handleBack} variant="neutral" class="pkpi-back"></lightning-button>
                     </template>
                 </div>
-                <div class="pkpi-cards">
-                    <div class="pkpi-card">
+            </div>
+
+            <div class="pkpi-cards">
+                <div class="pkpi-card pkpi-card--emerald">
+                    <span class="pkpi-card-icon"><lightning-icon icon-name="utility:moneybag" size="small"></lightning-icon></span>
+                    <div class="pkpi-card-body">
                         <p class="pkpi-card-label">Total Incentive</p>
                         <p class="pkpi-card-value">{heroTotalIncentive}</p>
                     </div>
-                    <div class="pkpi-card">
+                </div>
+                <div class="pkpi-card pkpi-card--sky">
+                    <span class="pkpi-card-icon"><lightning-icon icon-name="utility:trending" size="small"></lightning-icon></span>
+                    <div class="pkpi-card-body">
                         <p class="pkpi-card-label">Max Possible</p>
                         <p class="pkpi-card-value">{heroMaxIncentive}</p>
                     </div>
-                    <div class="pkpi-card">
+                </div>
+                <div class="pkpi-card pkpi-card--violet">
+                    <span class="pkpi-card-icon"><lightning-icon icon-name="utility:graph" size="small"></lightning-icon></span>
+                    <div class="pkpi-card-body">
                         <p class="pkpi-card-label">Achievement</p>
                         <p class={heroPctClass}>{heroPctText}</p>
                         <div class="progress-track">
                             <div class={heroProgressClass} style={heroProgressStyle}></div>
                         </div>
                     </div>
-                    <div class="pkpi-card pkpi-card_center">
+                </div>
+                <div class="pkpi-card pkpi-card--amber">
+                    <span class="pkpi-card-icon"><lightning-icon icon-name="utility:success" size="small"></lightning-icon></span>
+                    <div class="pkpi-card-body">
                         <p class="pkpi-card-label">Eligibility</p>
                         <span class={heroEligibleClass}>{heroEligibleText}</span>
                     </div>
