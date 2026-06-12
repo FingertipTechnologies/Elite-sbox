@@ -1,16 +1,28 @@
 <template>
-    <div class="kpi-dashboard">
-        <lightning-tabset variant="scoped">
-            <lightning-tab label="Primary KPI" value="primary" onactive={handleTabActive}>
-                <template if:true={primaryLoaded}>
-                    <c-primary-kpi-dashboard></c-primary-kpi-dashboard>
-                </template>
-            </lightning-tab>
-            <lightning-tab label="Secondary KPI" value="secondary" onactive={handleTabActive}>
-                <template if:true={secondaryLoaded}>
-                    <c-secondary-kpi-dashboard></c-secondary-kpi-dashboard>
-                </template>
-            </lightning-tab>
-        </lightning-tabset>
+    <div class="kd">
+        <div class="kd-header">
+            <h1 class="kd-title">KPI Dashboard</h1>
+            <div class="kd-tabs" role="tablist">
+                <button type="button" class={primaryTabClass} onclick={selectPrimary} role="tab">
+                    <lightning-icon icon-name="utility:moneybag" size="x-small" class="kd-tab-icon"></lightning-icon>
+                    <span>Primary KPI</span>
+                </button>
+                <button type="button" class={secondaryTabClass} onclick={selectSecondary} role="tab">
+                    <lightning-icon icon-name="utility:cart" size="x-small" class="kd-tab-icon"></lightning-icon>
+                    <span>Secondary KPI</span>
+                </button>
+            </div>
+        </div>
+
+        <div class={primaryPaneClass}>
+            <template if:true={primaryLoaded}>
+                <c-primary-kpi-dashboard></c-primary-kpi-dashboard>
+            </template>
+        </div>
+        <div class={secondaryPaneClass}>
+            <template if:true={secondaryLoaded}>
+                <c-secondary-kpi-dashboard></c-secondary-kpi-dashboard>
+            </template>
+        </div>
     </div>
 </template>
