@@ -15,14 +15,18 @@
         </div>
 
         <div class={primaryPaneClass}>
-            <template if:true={primaryLoaded}>
-                <c-primary-kpi-dashboard></c-primary-kpi-dashboard>
-            </template>
+            <div class="kd-card">
+                <template if:true={primaryLoaded}>
+                    <c-primary-kpi-dashboard></c-primary-kpi-dashboard>
+                </template>
+            </div>
         </div>
         <div class={secondaryPaneClass}>
-            <template if:true={secondaryLoaded}>
-                <c-secondary-kpi-dashboard></c-secondary-kpi-dashboard>
-            </template>
+            <div class="kd-card kd-secondary">
+                <template if:true={secondaryLoaded}>
+                    <c-secondary-kpi-dashboard></c-secondary-kpi-dashboard>
+                </template>
+            </div>
         </div>
     </div>
 </template>
