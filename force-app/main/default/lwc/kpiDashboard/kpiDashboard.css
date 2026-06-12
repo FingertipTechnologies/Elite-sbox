@@ -1,9 +1,6 @@
 :host {
     display: block;
-    background:
-        radial-gradient(1200px 380px at 0% -10%, #eef4ff 0%, rgba(238, 244, 255, 0) 60%),
-        radial-gradient(1000px 340px at 100% -10%, #fdeefe 0%, rgba(253, 238, 254, 0) 55%),
-        #f5f7fb;
+    background: #f3f3f3;
     min-height: 100%;
 }
 
@@ -62,13 +59,11 @@
 .kd-pane { width: 100%; }
 .kd-hidden { display: none; }
 
-/* Rounded pane cards; the embedded dashboards get a 10px margin all round. */
+/* Each embedded dashboard (lightning-card) gets a 10px margin all round + rounded corners. */
 .kd-card {
-    border: 1px solid #e7eaf3;
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 8px 20px rgba(31, 45, 91, 0.06);
     margin: 10px;
+    border-radius: 12px;
+    overflow: hidden;
 }
 
 @media (max-width: 600px) {

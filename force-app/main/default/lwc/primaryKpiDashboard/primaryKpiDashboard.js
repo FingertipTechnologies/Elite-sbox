@@ -104,25 +104,43 @@ export default class PrimaryKpiDashboard extends LightningElement {
 
     // ===== tables =====
     get parameters() {
-        return ((this.data && this.data.parameters) || []).map(r => ({
-            ...r,
-            target: num(r.target),
-            achievement: num(r.achievement),
-            achievementPct: num(r.achievementPct),
-            weightage: num(r.weightage),
-            incentive: num(r.incentive),
-            pctClass: this.pctCell(r.achievementPct)
-        }));
+        return ((this.data && this.data.parameters) || []).map(r => {
+            const pct = num(r.achievementPct);
+            return {
+                ...r,
+                target: num(r.target),
+                achievement: num(r.achievement),
+                achievementPct: pct,
+                weightage: num(r.weightage),
+                incentive: num(r.incentive),
+                pctClass: this.pctCell(pct),
+                pctText: pct.toFixed(1) + '%',
+                badgeClass: 'kpi-badge ' + this.bucket(pct),
+                barClass: 'progress-fill ' + this.bucket(pct),
+                barStyle: `width:${Math.min(pct, 100)}%;`,
+                targetText: this.fmtNum(r.target),
+                achText: this.fmtNum(r.achievement),
+                incentiveText: INR.format(num(r.incentive))
+            };
+        });
     }
     get hasParameters() { return this.parameters.length > 0; }
     get teamRows() {
-        return ((this.data && this.data.team) || []).map(r => ({
-            ...r,
-            achievementPct: num(r.achievementPct),
-            totalIncentive: num(r.totalIncentive),
-            eligibleText: r.isEligible ? 'Yes' : 'No',
-            pctClass: this.pctCell(r.achievementPct)
-        }));
+        return ((this.data && this.data.team) || []).map(r => {
+            const pct = num(r.achievementPct);
+            return {
+                ...r,
+                achievementPct: pct,
+                totalIncentive: num(r.totalIncentive),
+                eligibleText: r.isEligible ? 'Yes' : 'No',
+                pctClass: this.pctCell(pct),
+                pctText: pct.toFixed(1) + '%',
+                badgeClass: 'kpi-badge ' + this.bucket(pct),
+                barClass: 'progress-fill ' + this.bucket(pct),
+                barStyle: `width:${Math.min(pct, 100)}%;`,
+                incentiveText: INR.format(num(r.totalIncentive))
+            };
+        });
     }
     get hasTeam() { return this.teamRows.length > 0; }
 
@@ -131,6 +149,13 @@ export default class PrimaryKpiDashboard extends LightningElement {
         if (v >= 100) return 'slds-text-color_success';
         if (v >= 80) return '';
         return 'slds-text-color_error';
+    }
+    bucket(p) {
+        const v = num(p);
+        return v >= 100 ? 'pct-green' : v >= 80 ? 'pct-amber' : 'pct-red';
+    }
+    fmtNum(v) {
+        return new Intl.NumberFormat('en-IN').format(num(v));
     }
 
     // ===== handlers =====
@@ -141,6 +166,10 @@ export default class PrimaryKpiDashboard extends LightningElement {
     handleRefresh() { this.load(); }
     handleRowAction(e) {
         if (e.detail.action.name === 'drill') { this.viewUserId = e.detail.row.userId; this.load(); }
+    }
+    handleTeamCardClick(e) {
+        const uid = e.currentTarget.dataset.id;
+        if (uid) { this.viewUserId = uid; this.load(); }
     }
     handleBack() { this.viewUserId = ''; this.load(); }
 
