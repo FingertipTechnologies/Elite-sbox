@@ -119,6 +119,10 @@
                     <lightning-button label="Clear Filters" onclick={handleClearFilters}></lightning-button>
                     <lightning-button label="Select All Visible" onclick={handleSelectAllVisible}></lightning-button>
                     <lightning-button label="Clear Selection" onclick={handleClearSelection}></lightning-button>
+                    <div class="view-toggle">
+                        <button class={allViewClass} data-view="all" onclick={handleViewToggle}>All</button>
+                        <button class={selectedViewClass} data-view="selected" onclick={handleViewToggle}>Selected ({selectedCount})</button>
+                    </div>
                     <span class="filter-card__count">{selectedCount} selected</span>
                 </div>
             </div>

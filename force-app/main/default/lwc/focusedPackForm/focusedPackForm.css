@@ -309,3 +309,38 @@
     .top-bar__actions { padding: 0.5rem 0.75rem 0.75rem; width: 100%; justify-content: flex-end; }
     .top-bar__field { max-width: 100%; }
 }
+/* All / Selected view toggle (mirrors schemeProductGroupBuilder) */
+.view-toggle {
+    display: inline-flex;
+    border: 1px solid var(--brand-primary);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.view-btn {
+    background: var(--white);
+    color: var(--brand-primary);
+    border: none;
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.view-btn + .view-btn {
+    border-left: 1px solid var(--brand-primary);
+}
+
+.view-btn:hover {
+    background: var(--brand-light);
+}
+
+.view-btn--active {
+    background: var(--brand-primary);
+    color: var(--white);
+}
+
+.view-btn--active:hover {
+    background: var(--brand-dark);
+}
