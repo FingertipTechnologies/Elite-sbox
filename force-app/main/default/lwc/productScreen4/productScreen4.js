@@ -479,7 +479,7 @@ export default class ProductScreen4 extends LightningElement {
         inc++;
         this.productData[index1].value = inc//.products[index2].value = inc;
         this.syncQuantityToSchemeOffer(this.productData[index1].id, this.productData[index1].value);
-        this.autoSelectBestScheme(productId);
+        this.autoSelectBestScheme(this.productData[index1].id);
         //this.sendUpdatedValue(index1)
         /*if(inc > 0){
             var offerDta = this.handleOfferDta(this.productData[index1]);
@@ -496,8 +496,8 @@ export default class ProductScreen4 extends LightningElement {
         for (var i = 0; i < this.allProDtas.length; i++) {
             if (dta.id == this.allProDtas[i].id) {
                 this.allProDtas[i].value = inc;
-                this.allProDtas[i].hoverDta = this.schemePro[index1].hoverDta;
-                this.allProDtas[i].offer = this.schemePro[index1].offer;
+                this.allProDtas[i].hoverDta = this.productData[index1].hoverDta;
+                this.allProDtas[i].offer = this.productData[index1].offer;
                 break;
             }
         }
@@ -551,7 +551,7 @@ export default class ProductScreen4 extends LightningElement {
         }
         this.productData[index1].value = dec//.products[index2].value = inc;
         this.syncQuantityToSchemeOffer(this.productData[index1].id, this.productData[index1].value);
-        this.autoSelectBestScheme(productId);
+        this.autoSelectBestScheme(this.productData[index1].id);
         //this.sendUpdatedValue(index1);
 
         /*if(dec >= 0){
@@ -570,8 +570,8 @@ export default class ProductScreen4 extends LightningElement {
         for (var i = 0; i < this.allProDtas.length; i++) {
             if (dta.id == this.allProDtas[i].id) {
                 this.allProDtas[i].value = dec;
-                this.allProDtas[i].hoverDta = this.schemePro[index1].hoverDta;
-                this.allProDtas[i].offer = this.schemePro[index1].offer;
+                this.allProDtas[i].hoverDta = this.productData[index1].hoverDta;
+                this.allProDtas[i].offer = this.productData[index1].offer;
                 break;
             }
         }
@@ -710,18 +710,18 @@ export default class ProductScreen4 extends LightningElement {
             }
             this.productData[index1].value = value;
             this.syncQuantityToSchemeOffer(this.productData[index1].id, this.productData[index1].value);
-            this.autoSelectBestScheme(productId);
+            this.autoSelectBestScheme(this.productData[index1].id);
             var dta = this.productData[index1];
             for (var i = 0; i < this.allProDtas.length; i++) {
                 if (dta.id == this.allProDtas[i].id) {
                     this.allProDtas[i].value = value;
-                    this.allProDtas[i].hoverDta = this.schemePro[index1].hoverDta;
-                    this.allProDtas[i].offer = this.schemePro[index1].offer;
+                    this.allProDtas[i].hoverDta = this.productData[index1].hoverDta;
+                    this.allProDtas[i].offer = this.productData[index1].offer;
                     break;
                 }
             }
         } else {
-            this.schemePro[index1].value = 0;
+            this.productData[index1].value = 0;
             this.allProDtas[index1].hoverDta = [];
             this.allProDtas[index1].offer = false;
         }
@@ -794,6 +794,8 @@ export default class ProductScreen4 extends LightningElement {
 
             this.showAccountSearch = false;
             //this.calculateTotal();
+            // Recompute scheme state before rendering so the summary never shows stale engine output
+            if (this.isSecondaryAccount) this.applySchemeEngine();
             var storePro = this.setProducts();
             /*if(storePro.length == 0){
                 this.genericDispatchToastEvent('','Select order','warning');
