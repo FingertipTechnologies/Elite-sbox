@@ -828,4 +828,89 @@ private class SchemeDefinitionControllerTest {
         Scheme__c saved = [SELECT IsActive__c FROM Scheme__c WHERE Id = :id];
         System.assertEquals(false, saved.IsActive__c);
     }
+
+    // ----- Scheme Task 1: FOC giveaway product vs active Scheme Product Group -----
+
+    private static void addProductToGroup(Id groupId, Id productId) {
+        insert new Scheme_Product_Group_Item__c(
+            Scheme_Product_Group__c = groupId,
+            Product__c = productId
+        );
+    }
+
+    @isTest
+    static void saveScheme_blocksFocProductInActiveGroup() {
+        Product__c x = makeProduct('FOCX1');
+        Scheme_Product_Group__c activeGrp = makeGroup('ActiveGrp1', 'Price Division');
+        addProductToGroup(activeGrp.Id, x.Id);
+
+        Scheme_Product_Group__c focQ = makeGroup('FocQual1', 'FOC Qualifier');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_FOC_GIVEAWAY, focQ.Id);
+        SchemeDefinitionController.SlabDto s = slab();
+        s.qtyMin = 10; s.qtyMax = null; s.freeQty = 1; s.focProductId = x.Id;
+
+        Test.startTest();
+        Boolean blocked = false;
+        try {
+            SchemeDefinitionController.saveSchemeWithSlabs(
+                m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+        } catch (Exception e) {
+            blocked = true;
+            System.assert(e.getMessage().contains('active Scheme Product Group'),
+                'Expected FOC-vs-active-group message, got: ' + e.getMessage());
+        }
+        Test.stopTest();
+        System.assert(blocked, 'Saving an active FOC scheme whose FOC product is in an active group must be blocked.');
+    }
+
+    @isTest
+    static void saveScheme_inactiveFocAllowed_thenBlockedOnActivate() {
+        Product__c x = makeProduct('FOCX2');
+        Scheme_Product_Group__c activeGrp = makeGroup('ActiveGrp2', 'Price Division');
+        addProductToGroup(activeGrp.Id, x.Id);
+
+        Scheme_Product_Group__c focQ = makeGroup('FocQual2', 'FOC Qualifier');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_FOC_GIVEAWAY, focQ.Id);
+        m.isActive = false;
+        SchemeDefinitionController.SlabDto s = slab();
+        s.qtyMin = 10; s.qtyMax = null; s.freeQty = 1; s.focProductId = x.Id;
+
+        Test.startTest();
+        // Inactive save is allowed even though the FOC product is in an active group
+        Id id = SchemeDefinitionController.saveSchemeWithSlabs(
+            m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+        System.assertNotEquals(null, id, 'Inactive FOC scheme should save.');
+
+        // Activating it must now be blocked
+        m.isActive = true;
+        Boolean blocked = false;
+        try {
+            SchemeDefinitionController.saveSchemeWithSlabs(
+                m, new List<SchemeDefinitionController.SlabDto>{ s }, id);
+        } catch (Exception e) {
+            blocked = true;
+        }
+        Test.stopTest();
+        System.assert(blocked, 'Activating the FOC scheme must be blocked while the product is in an active group.');
+    }
+
+    @isTest
+    static void saveScheme_focProductInInactiveGroupSucceeds() {
+        Product__c x = makeProduct('FOCX3');
+        Scheme_Product_Group__c inactiveGrp = makeGroup('InactiveGrp3', 'Price Division');
+        inactiveGrp.Is_Active__c = false;
+        update inactiveGrp;
+        addProductToGroup(inactiveGrp.Id, x.Id);
+
+        Scheme_Product_Group__c focQ = makeGroup('FocQual3', 'FOC Qualifier');
+        SchemeDefinitionController.MasterDto m = masterFor(TYPE_FOC_GIVEAWAY, focQ.Id);
+        SchemeDefinitionController.SlabDto s = slab();
+        s.qtyMin = 10; s.qtyMax = null; s.freeQty = 1; s.focProductId = x.Id;
+
+        Test.startTest();
+        Id id = SchemeDefinitionController.saveSchemeWithSlabs(
+            m, new List<SchemeDefinitionController.SlabDto>{ s }, null);
+        Test.stopTest();
+        System.assertNotEquals(null, id, 'Active FOC scheme should save when the product is only in an inactive group.');
+    }
 }

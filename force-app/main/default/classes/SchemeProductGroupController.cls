@@ -211,6 +211,42 @@ public with sharing class SchemeProductGroupController {
         return conflicts;
     }
 
+    // Scheme Task 1: a product that is the FOC giveaway product of an ACTIVE FOC
+    // Giveaway scheme cannot be a member of an ACTIVE Scheme Product Group. Only
+    // enforced when the group is/becomes active (symmetric with the scheme side).
+    private static void validateProductsVsActiveFocSchemes(Set<Id> productIds, GroupHeader header) {
+        Boolean willBeActive = (header.isActive == null) ? true : header.isActive;
+        if (!willBeActive || productIds == null || productIds.isEmpty()) return;
+
+        // product Id -> active FOC Giveaway scheme names that give it away
+        Map<Id, Set<String>> schemesByProduct = new Map<Id, Set<String>>();
+        Map<Id, String> productNames = new Map<Id, String>();
+        for (Scheme_Slab__c sl : [
+            SELECT FOC_Product__c, FOC_Product__r.Name, Scheme__r.Name
+            FROM Scheme_Slab__c
+            WHERE FOC_Product__c IN :productIds
+              AND Scheme__r.IsActive__c = true
+              AND Scheme__r.Scheme_Type__c = 'FOC Giveaway'
+        ]) {
+            if (!schemesByProduct.containsKey(sl.FOC_Product__c)) {
+                schemesByProduct.put(sl.FOC_Product__c, new Set<String>());
+            }
+            schemesByProduct.get(sl.FOC_Product__c).add(sl.Scheme__r.Name);
+            productNames.put(sl.FOC_Product__c, sl.FOC_Product__r.Name);
+        }
+        if (schemesByProduct.isEmpty()) return;
+
+        List<String> parts = new List<String>();
+        for (Id pid : schemesByProduct.keySet()) {
+            parts.add('"' + productNames.get(pid) + '" (FOC product of '
+                + String.join(new List<String>(schemesByProduct.get(pid)), ', ') + ')');
+        }
+        throw new AuraHandledException(
+            'These SKUs are the FOC giveaway product of an active FOC Giveaway scheme and cannot be in an active Scheme Product Group: '
+            + String.join(parts, '; ')
+            + '. Deactivate the scheme or this group, or remove the SKU.');
+    }
+
     @AuraEnabled
     public static Id saveGroup(GroupHeader header, List<Id> productIds, Id existingId) {
         if (header == null) {
@@ -273,6 +309,8 @@ public with sharing class SchemeProductGroupController {
                 String.join(new List<String>(groupNames), ', ')
             );
         }
+
+        validateProductsVsActiveFocSchemes(uniqueProductIds, header);
 
         Scheme_Product_Group__c grp;
         if (existingId == null) {

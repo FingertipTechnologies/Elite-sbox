@@ -359,6 +359,7 @@ public without sharing class SchemeDefinitionController {
         validateLinkage(master);
         validateActiveDuplicate(master, existingId);
         validateSlabs(master.schemeType, slabs);
+        validateFocVsActiveGroups(master, slabs);
         if (applicability != null) {
             validateApplicability(applicability);
         }
@@ -616,6 +617,49 @@ public without sharing class SchemeDefinitionController {
                 + ' and an overlapping date range already exists ("'
                 + dupes[0].Name + '"). Deactivate it or use non-overlapping dates.');
         }
+    }
+
+    // Scheme Task 1: a FOC giveaway product cannot also be a member of an ACTIVE
+    // Scheme Product Group. Only enforced when this scheme is/becomes active.
+    private static void validateFocVsActiveGroups(MasterDto m, List<SlabDto> slabs) {
+        if (m.schemeType != TYPE_FOC_GIVEAWAY) return;
+        Boolean willBeActive = (m.isActive == null) ? true : m.isActive;
+        if (!willBeActive) return;
+
+        Set<Id> focIds = new Set<Id>();
+        if (slabs != null) {
+            for (SlabDto d : slabs) {
+                if (d != null && d.focProductId != null) focIds.add(d.focProductId);
+            }
+        }
+        if (focIds.isEmpty()) return;
+
+        // product Id -> active group names it already belongs to
+        Map<Id, Set<String>> groupsByProduct = new Map<Id, Set<String>>();
+        Map<Id, String> productNames = new Map<Id, String>();
+        for (Scheme_Product_Group_Item__c item : [
+            SELECT Product__c, Product__r.Name, Scheme_Product_Group__r.Name
+            FROM Scheme_Product_Group_Item__c
+            WHERE Product__c IN :focIds
+              AND Scheme_Product_Group__r.Is_Active__c = true
+        ]) {
+            if (!groupsByProduct.containsKey(item.Product__c)) {
+                groupsByProduct.put(item.Product__c, new Set<String>());
+            }
+            groupsByProduct.get(item.Product__c).add(item.Scheme_Product_Group__r.Name);
+            productNames.put(item.Product__c, item.Product__r.Name);
+        }
+        if (groupsByProduct.isEmpty()) return;
+
+        List<String> parts = new List<String>();
+        for (Id pid : groupsByProduct.keySet()) {
+            parts.add('"' + productNames.get(pid) + '" (in '
+                + String.join(new List<String>(groupsByProduct.get(pid)), ', ') + ')');
+        }
+        throw new AuraHandledException(
+            'These FOC giveaway products are already members of an active Scheme Product Group: '
+            + String.join(parts, '; ')
+            + '. Remove them from the group or deactivate the group before activating this FOC Giveaway scheme.');
     }
 
     private static void validateSlabs(String schemeType, List<SlabDto> slabs) {
