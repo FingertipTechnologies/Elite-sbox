@@ -249,10 +249,13 @@ public without sharing class PBISActuals_Service {
 
             PBIS_Incentive_Slab__c slab = matchSlab(slabs, pct);
             Decimal amount = 0;
+            Decimal slabPct = null;
+            String slabBand = null;
             if (slab != null) {
-                Decimal slabPct = isQuarter ? slab.Quarterly_Incentive_Percent__c : slab.Monthly_Incentive_Percent__c;
+                slabPct = isQuarter ? slab.Quarterly_Incentive_Percent__c : slab.Monthly_Incentive_Percent__c;
                 if (slabPct == null) slabPct = 0;
                 amount = gross * (slabPct / 100) * (weightage / 100);
+                slabBand = bandLabel(slab.Achievement_From__c, slab.Achievement_To__c);
             }
             if (slabs != null && !slabs.isEmpty()) {
                 PBIS_Incentive_Slab__c top = slabs[slabs.size() - 1];
@@ -271,6 +274,9 @@ public without sharing class PBISActuals_Service {
             t.put('S_D_Parameter_' + n + '_Achievement_Percent__c', pct);
             t.put('S_D_Parameter_' + n + '_Qualified_Slab__c', slab != null ? slab.Id : null);
             t.put('S_D_Parameter_' + n + '_Incentive_Amount__c', amount);
+            // Snapshot the slab band + % so the record keeps a trace if the slab is later deleted.
+            t.put('S_D_Parameter_' + n + '_Slab__c', slabBand);
+            t.put('S_D_Parameter_' + n + '_Incentive_Percentage__c', slabPct);
         }
 
         Boolean eligible = anyMandatory && mandatoryMet;
@@ -289,6 +295,15 @@ public without sharing class PBISActuals_Service {
         t.put('S_D_Parameter_' + n + '_Achievement_Percent__c', null);
         t.put('S_D_Parameter_' + n + '_Qualified_Slab__c', null);
         t.put('S_D_Parameter_' + n + '_Incentive_Amount__c', null);
+        t.put('S_D_Parameter_' + n + '_Slab__c', null);
+        t.put('S_D_Parameter_' + n + '_Incentive_Percentage__c', null);
+    }
+
+    // "from - to" band label for the snapshot field; blank To = open-ended top band.
+    private static String bandLabel(Decimal fromPct, Decimal toPct) {
+        String f = fromPct == null ? '' : String.valueOf(fromPct);
+        String t = toPct == null ? '+' : String.valueOf(toPct);
+        return f + ' - ' + t;
     }
 
     // First slab (sorted by From asc) whose band contains pct; blank To = open-ended top band.

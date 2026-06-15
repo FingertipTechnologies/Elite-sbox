@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>S_D_Parameter_2_Slab__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>Snapshot of the qualified slab band (Achievement From - To) for S&amp;D Parameter 2, captured at calculation time so it survives if the slab record is later changed or deleted.</inlineHelpText>
+    <label>S &amp; D Parameter 2 Slab</label>
+    <length>50</length>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

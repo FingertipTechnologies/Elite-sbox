@@ -47,9 +47,16 @@ export default class PrimaryKpiDashboard extends LightningElement {
     teamColumns = TEAM_COLUMNS;
     isMobile = FORM_FACTOR === 'Small';
 
+    viewModeOptions = [
+        { label: 'My', value: 'my' },
+        { label: 'My Team', value: 'team' },
+        { label: 'User Search', value: 'search' }
+    ];
+
     @track year;
     @track month;
     @track incentivePeriod = 'Monthly';
+    @track viewMode = 'my';      // my | team | search
     @track viewUserId = '';
     @track data;
     @track isLoading = false;
@@ -65,8 +72,19 @@ export default class PrimaryKpiDashboard extends LightningElement {
     get hasData() { return !!this.data; }
     get isEmpty() { return !!this.data && this.data.mode === 'EMPTY'; }
     get viewerIsManager() { return !!this.data && this.data.viewerIsManager; }
-    get showPicker() { return this.viewerIsManager && (this.data.userPickerOptions || []).length > 0; }
-    get isDrilled() { return !!this.viewUserId; }
+    get showViewControl() { return this.viewerIsManager; }
+    get isMyView() { return this.viewMode === 'my'; }
+    get isTeamView() { return this.viewMode === 'team'; }
+    get isSearchView() { return this.viewMode === 'search'; }
+    get showPersonalBlock() { return this.hasHero && (this.isMyView || (this.isSearchView && !!this.viewUserId)); }
+    get showTeamBlock() { return this.isTeamView; }
+    get isDrilled() { return this.isSearchView && !!this.viewUserId; }
+    get searchUserOptions() {
+        return ((this.data && this.data.userPickerOptions) || []).map(o => ({ label: o.label, value: o.userId }));
+    }
+    get noPersonalForMy() {
+        return this.isMyView && this.hasData && !this.isEmpty && !this.hasHero;
+    }
     get pickerOptions() {
         const opts = (this.data && this.data.userPickerOptions) || [];
         return [{ label: '— Me —', value: '' }, ...opts.map(o => ({ label: o.label, value: o.userId }))];
@@ -162,16 +180,21 @@ export default class PrimaryKpiDashboard extends LightningElement {
     handleYear(e) { this.year = e.target.value ? Number(e.target.value) : null; this.load(); }
     handleMonth(e) { this.month = Number(e.detail.value); this.load(); }
     handlePeriod(e) { this.incentivePeriod = e.detail.value; this.load(); }
-    handlePicker(e) { this.viewUserId = e.detail.value; this.load(); }
+    handleViewMode(e) { this.viewMode = e.detail.value; this.viewUserId = ''; this.load(); }
+    handleUserSearch(e) { this.viewUserId = e.detail.value; this.load(); }
     handleRefresh() { this.load(); }
     handleRowAction(e) {
-        if (e.detail.action.name === 'drill') { this.viewUserId = e.detail.row.userId; this.load(); }
+        if (e.detail.action.name === 'drill') {
+            this.viewMode = 'search';
+            this.viewUserId = e.detail.row.userId;
+            this.load();
+        }
     }
     handleTeamCardClick(e) {
         const uid = e.currentTarget.dataset.id;
-        if (uid) { this.viewUserId = uid; this.load(); }
+        if (uid) { this.viewMode = 'search'; this.viewUserId = uid; this.load(); }
     }
-    handleBack() { this.viewUserId = ''; this.load(); }
+    handleBack() { this.viewMode = 'team'; this.viewUserId = ''; this.load(); }
 
     // ===== apex =====
     load() {

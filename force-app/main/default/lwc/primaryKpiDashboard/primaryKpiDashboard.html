@@ -7,12 +7,6 @@
 
             <!-- Filters -->
             <div class="slds-grid slds-gutters_x-small slds-wrap slds-m-bottom_small">
-                <template if:true={showPicker}>
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
-                        <lightning-combobox label="User" value={viewUserId} options={pickerOptions}
-                            onchange={handlePicker}></lightning-combobox>
-                    </div>
-                </template>
                 <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
                     <lightning-input type="number" label="Year" value={year} onchange={handleYear}></lightning-input>
                 </div>
@@ -24,6 +18,19 @@
                     <lightning-combobox label="Period" value={incentivePeriod} options={periodOptions}
                         onchange={handlePeriod}></lightning-combobox>
                 </div>
+                <template if:true={showViewControl}>
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <lightning-combobox label="View" value={viewMode} options={viewModeOptions}
+                            onchange={handleViewMode}></lightning-combobox>
+                    </div>
+                    <template if:true={isSearchView}>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                            <c-searchable-combobox label="User" placeholder="Search user…"
+                                options={searchUserOptions} value={viewUserId}
+                                onchange={handleUserSearch}></c-searchable-combobox>
+                        </div>
+                    </template>
+                </template>
             </div>
 
             <template if:true={isLoading}>
@@ -42,7 +49,8 @@
                 </div>
             </template>
 
-            <template if:true={hasHero}>
+            <!-- My / User Search: personal detail -->
+            <template if:true={showPersonalBlock}>
                 <!-- Heading -->
                 <div class="kpi-header slds-grid slds-grid_align-spread slds-grid_vertical-align-end slds-m-bottom_small slds-wrap">
                     <div>
@@ -55,21 +63,15 @@
                     </template>
                 </div>
 
-                <!-- Hero KPI tiles -->
+                <!-- Hero KPI tiles: Total Incentive · Achievement · Eligibility -->
                 <div class="slds-grid slds-gutters_x-small slds-wrap kpi-tiles slds-m-bottom_medium">
-                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
                         <div class="kpi-tile kpi-tile_incentive">
                             <div class="kpi-label">Total Incentive</div>
                             <div class="kpi-value">{heroTotalIncentive}</div>
                         </div>
                     </div>
-                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
-                        <div class="kpi-tile kpi-tile_target">
-                            <div class="kpi-label">Max Possible</div>
-                            <div class="kpi-value">{heroMaxIncentive}</div>
-                        </div>
-                    </div>
-                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
                         <div class="kpi-tile kpi-tile_ach">
                             <div class="kpi-label">Achievement</div>
                             <div class="kpi-value"><span class={heroPctClass}>{heroPctText}</span></div>
@@ -78,7 +80,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
                         <div class="kpi-tile kpi-tile_elig">
                             <div class="kpi-label">Eligibility</div>
                             <div class="kpi-value"><span class={heroEligibleClass}>{heroEligibleText}</span></div>
@@ -135,42 +137,56 @@
                 </div>
             </template>
 
-            <!-- Team -->
-            <template if:true={hasTeam}>
+            <!-- My view but no personal target -->
+            <template if:true={noPersonalForMy}>
+                <div class="kpi-panel slds-text-align_center slds-p-around_medium">
+                    <p class="slds-text-body_regular slds-text-color_weak">
+                        You have no Primary PBIS target for this period. Switch to "My Team" to see your team.
+                    </p>
+                </div>
+            </template>
+
+            <!-- My Team -->
+            <template if:true={showTeamBlock}>
                 <div class="kpi-panel slds-m-top_medium">
                     <h3 class="slds-text-heading_small slds-m-bottom_x-small">My team</h3>
-                    <template if:true={isMobile}>
-                        <template for:each={teamRows} for:item="u">
-                            <div key={u.userId} class="kpi-card" data-id={u.userId} onclick={handleTeamCardClick}>
-                                <div class="kpi-card-head">
-                                    <div>
-                                        <div class="kpi-card-title">{u.userName}</div>
-                                        <div class="kpi-card-sub">{u.role}</div>
+                    <template if:true={hasTeam}>
+                        <template if:true={isMobile}>
+                            <template for:each={teamRows} for:item="u">
+                                <div key={u.userId} class="kpi-card" data-id={u.userId} onclick={handleTeamCardClick}>
+                                    <div class="kpi-card-head">
+                                        <div>
+                                            <div class="kpi-card-title">{u.userName}</div>
+                                            <div class="kpi-card-sub">{u.role}</div>
+                                        </div>
+                                        <span class={u.badgeClass}>{u.pctText}</span>
                                     </div>
-                                    <span class={u.badgeClass}>{u.pctText}</span>
-                                </div>
-                                <div class="progress-track">
-                                    <div class={u.barClass} style={u.barStyle}></div>
-                                </div>
-                                <div class="kpi-card-grid">
-                                    <div>
-                                        <div class="kpi-mini-label">Incentive</div>
-                                        <div class="kpi-mini-value">{u.incentiveText}</div>
+                                    <div class="progress-track">
+                                        <div class={u.barClass} style={u.barStyle}></div>
                                     </div>
-                                    <div>
-                                        <div class="kpi-mini-label">Eligible</div>
-                                        <div class="kpi-mini-value">{u.eligibleText}</div>
+                                    <div class="kpi-card-grid">
+                                        <div>
+                                            <div class="kpi-mini-label">Incentive</div>
+                                            <div class="kpi-mini-value">{u.incentiveText}</div>
+                                        </div>
+                                        <div>
+                                            <div class="kpi-mini-label">Eligible</div>
+                                            <div class="kpi-mini-value">{u.eligibleText}</div>
+                                        </div>
+                                    </div>
+                                    <div class="kpi-card-cta">Tap to view this user
+                                        <lightning-icon icon-name="utility:chevronright" size="xx-small"></lightning-icon>
                                     </div>
                                 </div>
-                                <div class="kpi-card-cta">Tap to view this user
-                                    <lightning-icon icon-name="utility:chevronright" size="xx-small"></lightning-icon>
-                                </div>
-                            </div>
+                            </template>
+                        </template>
+                        <template if:false={isMobile}>
+                            <lightning-datatable key-field="userId" data={teamRows} columns={teamColumns}
+                                hide-checkbox-column onrowaction={handleRowAction} column-widths-mode="auto"></lightning-datatable>
                         </template>
                     </template>
-                    <template if:false={isMobile}>
-                        <lightning-datatable key-field="userId" data={teamRows} columns={teamColumns}
-                            hide-checkbox-column onrowaction={handleRowAction} column-widths-mode="auto"></lightning-datatable>
+                    <template if:false={hasTeam}>
+                        <p class="slds-text-body_regular slds-text-color_weak">No team targets for this period.</p>
                     </template>
                 </div>
             </template>
