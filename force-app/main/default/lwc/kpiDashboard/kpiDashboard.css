@@ -59,11 +59,12 @@
 .kd-pane { width: 100%; }
 .kd-hidden { display: none; }
 
-/* Each embedded dashboard (lightning-card) gets a 10px margin all round + rounded corners. */
+/* Each embedded dashboard (lightning-card) gets a 10px margin all round + rounded corners.
+   Keep overflow visible so the searchable-combobox dropdown isn't clipped by the card. */
 .kd-card {
     margin: 10px;
     border-radius: 12px;
-    overflow: hidden;
+    overflow: visible;
 }
 
 @media (max-width: 600px) {
