@@ -2145,8 +2145,10 @@ export default class ProductScreen4 extends LightningElement {
             if (!cat) return;
             const members = this._allEngineItems().filter(p =>
                 p.subGroup === cat && (parseFloat(p.value) || 0) > 0);
-            const catVal = members.reduce((s, m) =>
-                s + (m._wkUnit * (parseFloat(m.value) || 0) * this._gstMult(m)), 0);
+            // Base on the rounded per-line price (discountedUnitPrice = round2(_wkUnit))
+            // so the discount matches the displayed GST-inclusive subtotal.
+            const catVal = this._round2(members.reduce((s, m) =>
+                s + (this._round2(m._wkUnit) * (parseFloat(m.value) || 0) * this._gstMult(m)), 0));
             if (catVal <= 0) return;
             const slab = this._pickSlabByValue(scheme.slabsRaw, catVal);
             if (!slab || slab.benefitPercent == null) return;
@@ -2165,8 +2167,10 @@ export default class ProductScreen4 extends LightningElement {
     _pass5OrderValue(byType) {
         byType['Order Value'].forEach(scheme => {
             const members = this._allEngineItems().filter(p => (parseFloat(p.value) || 0) > 0);
-            const orderVal = members.reduce((s, m) =>
-                s + (m._wkUnit * (parseFloat(m.value) || 0) * this._gstMult(m)), 0);
+            // Base on the rounded per-line price so the discount equals pct% of the
+            // displayed Total Amount (grandTotalAmt also uses round2(_wkUnit)).
+            const orderVal = this._round2(members.reduce((s, m) =>
+                s + (this._round2(m._wkUnit) * (parseFloat(m.value) || 0) * this._gstMult(m)), 0));
             if (orderVal <= 0) return;
             const slab = this._pickSlabByValue(scheme.slabsRaw, orderVal);
             if (!slab || slab.benefitPercent == null) return;
