@@ -85,6 +85,31 @@ export default class PrimaryKpiDashboard extends LightningElement {
     get noPersonalForMy() {
         return this.isMyView && this.hasData && !this.isEmpty && !this.hasHero;
     }
+    // User Search: a user is picked but has no target this period.
+    get noTargetForSelected() {
+        return this.isSearchView && !!this.viewUserId && this.hasData && !this.hasHero;
+    }
+    // Heading above the personal block: "My Primary PBIS" for My view, the user's name in Search.
+    get personalHeading() {
+        return this.isMyView ? 'My Primary PBIS' : ((this.data && this.data.selectedUserName) || 'Primary PBIS');
+    }
+
+    // ===== team totals (cards like My view) =====
+    get teamTotalIncentiveText() {
+        let s = 0;
+        ((this.data && this.data.team) || []).forEach(r => { s += num(r.totalIncentive); });
+        return INR.format(s);
+    }
+    get teamAchievementPctValue() {
+        const rows = (this.data && this.data.team) || [];
+        if (!rows.length) return 0;
+        let s = 0;
+        rows.forEach(r => { s += num(r.achievementPct); });
+        return s / rows.length;
+    }
+    get teamAchievementPctText() { return this.teamAchievementPctValue.toFixed(1) + '%'; }
+    get teamPctClass() { return 'kpi-pct ' + this.bucket(this.teamAchievementPctValue); }
+    get teamProgressStyle() { return `width:${Math.min(this.teamAchievementPctValue, 100)}%;`; }
     get pickerOptions() {
         const opts = (this.data && this.data.userPickerOptions) || [];
         return [{ label: '— Me —', value: '' }, ...opts.map(o => ({ label: o.label, value: o.userId }))];

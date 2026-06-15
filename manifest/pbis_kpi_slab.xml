@@ -50,6 +50,10 @@
         <name>CustomTab</name>
     </types>
     <types>
+        <members>Primary_PBIS_Target_Record_Page</members>
+        <name>FlexiPage</name>
+    </types>
+    <types>
         <members>KPI_Dashboard_Access</members>
         <name>PermissionSet</name>
     </types>

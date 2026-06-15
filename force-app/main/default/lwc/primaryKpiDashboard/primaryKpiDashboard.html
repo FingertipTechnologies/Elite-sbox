@@ -54,7 +54,7 @@
                 <!-- Heading -->
                 <div class="kpi-header slds-grid slds-grid_align-spread slds-grid_vertical-align-end slds-m-bottom_small slds-wrap">
                     <div>
-                        <h2 class="slds-text-heading_medium">My Primary PBIS</h2>
+                        <h2 class="slds-text-heading_medium">{personalHeading}</h2>
                         <p class="slds-text-color_weak">{heroSubHeading}</p>
                     </div>
                     <template if:true={isDrilled}>
@@ -146,10 +146,45 @@
                 </div>
             </template>
 
+            <!-- User Search: selected user has no target -->
+            <template if:true={noTargetForSelected}>
+                <div class="kpi-panel slds-text-align_center slds-p-around_medium">
+                    <lightning-icon icon-name="utility:moneybag" size="small" class="slds-m-bottom_x-small"></lightning-icon>
+                    <p class="slds-text-body_regular slds-text-color_weak">
+                        There are no Primary PBIS targets for this user in {data.periodLabel}.
+                    </p>
+                </div>
+            </template>
+
             <!-- My Team -->
             <template if:true={showTeamBlock}>
+                <!-- Team summary cards (like My view) -->
+                <div class="kpi-header slds-grid slds-grid_align-spread slds-grid_vertical-align-end slds-m-bottom_small slds-wrap">
+                    <div>
+                        <h2 class="slds-text-heading_medium">My Team</h2>
+                        <p class="slds-text-color_weak">{data.periodLabel}</p>
+                    </div>
+                </div>
+                <div class="slds-grid slds-gutters_x-small slds-wrap kpi-tiles slds-m-bottom_medium">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <div class="kpi-tile kpi-tile_incentive">
+                            <div class="kpi-label">Total Team Incentive</div>
+                            <div class="kpi-value">{teamTotalIncentiveText}</div>
+                        </div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <div class="kpi-tile kpi-tile_ach">
+                            <div class="kpi-label">Achievement</div>
+                            <div class="kpi-value"><span class={teamPctClass}>{teamAchievementPctText}</span></div>
+                            <div class="kpi-progress">
+                                <div class="kpi-progress-fill" style={teamProgressStyle}></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="kpi-panel slds-m-top_medium">
-                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">My team</h3>
+                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">Team members</h3>
                     <template if:true={hasTeam}>
                         <template if:true={isMobile}>
                             <template for:each={teamRows} for:item="u">
