@@ -584,7 +584,11 @@
                                                                         <span class="slds-badge slds-theme_success slds-m-left_xx-small">FREE</span>
                                                                     </template>
                                                                 </td>
-                                                                <td>{item.displayQty}</td>
+                                                                <td>{item.displayQty}
+                                                                    <template if:true={item.focFreeQty}>
+                                                                        <span class="slds-badge slds-theme_success slds-m-left_xx-small">+{item.focFreeQty} free</span>
+                                                                    </template>
+                                                                </td>
                                                                 <td>₹{item.unitPrice} * {item.displayQty}</td>
                                                                 <td>{item.taxPercent}%</td>
                                                                 <td>₹{item.taxAmt}</td>

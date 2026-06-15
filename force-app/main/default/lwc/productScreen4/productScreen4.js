@@ -2577,6 +2577,7 @@ export default class ProductScreen4 extends LightningElement {
                 plantGroups['All Products'].products.push({
                     ...product,
                     displayQty: quantity,
+                    focFreeQty: parseInt(product._focMergeQty) || 0, // FOC giveaway units merged into this paid line
                     unitPrice: unitPrice.toFixed(2),
                     taxPercent,
                     taxAmt: taxAmt.toFixed(2),
