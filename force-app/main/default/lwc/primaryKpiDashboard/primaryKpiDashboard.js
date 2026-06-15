@@ -27,6 +27,8 @@ const PARAM_COLUMNS = [
     { label: 'Ach %', fieldName: 'achievementPct', type: 'number', typeAttributes: { maximumFractionDigits: '1' },
       cellAttributes: { alignment: 'right', class: { fieldName: 'pctClass' } }, initialWidth: 100 },
     { label: 'Slab', fieldName: 'slab', type: 'text', initialWidth: 110 },
+    { label: 'Incentive %', fieldName: 'incentivePct', type: 'number', typeAttributes: { maximumFractionDigits: '2' },
+      cellAttributes: { alignment: 'right' }, initialWidth: 100 },
     { label: 'Incentive', fieldName: 'incentive', type: 'currency', typeAttributes: CCY, cellAttributes: { alignment: 'right' } }
 ];
 
@@ -173,6 +175,7 @@ export default class PrimaryKpiDashboard extends LightningElement {
                 achievement: num(r.achievement),
                 achievementPct: pct,
                 weightage: num(r.weightage),
+                incentivePct: num(r.incentivePct),
                 incentive: num(r.incentive),
                 pctClass: this.pctCell(pct),
                 pctText: pct.toFixed(1) + '%',

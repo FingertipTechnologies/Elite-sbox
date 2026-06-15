@@ -41,7 +41,8 @@ public with sharing class PrimaryKpiDashboard_Controller {
         @AuraEnabled public Decimal achievement;
         @AuraEnabled public Decimal achievementPct;
         @AuraEnabled public Decimal weightage;
-        @AuraEnabled public String slab;
+        @AuraEnabled public String slab;            // snapshot band "from - to"
+        @AuraEnabled public Decimal incentivePct;   // snapshot slab incentive %
         @AuraEnabled public Decimal incentive;
     }
     public class TeamRow {
@@ -225,8 +226,9 @@ public with sharing class PrimaryKpiDashboard_Controller {
             r.achievement = nz((Decimal) t.get('S_D_Parameter_' + n + '_Achievement__c'));
             r.achievementPct = nz((Decimal) t.get('S_D_Parameter_' + n + '_Achievement_Percent__c'));
             r.weightage = nz((Decimal) t.get('S_D_Parameter_' + n + '_Weightage__c'));
-            SObject slab = t.getSObject('S_D_Parameter_' + n + '_Qualified_Slab__r');
-            r.slab = slab != null ? (String) slab.get('Name') : '—';
+            String band = (String) t.get('S_D_Parameter_' + n + '_Slab__c');
+            r.slab = String.isBlank(band) ? '—' : band;
+            r.incentivePct = nz((Decimal) t.get('S_D_Parameter_' + n + '_Incentive_Percentage__c'));
             r.incentive = nz((Decimal) t.get('S_D_Parameter_' + n + '_Incentive_Amount__c'));
             rows.add(r);
         }
@@ -247,7 +249,8 @@ public with sharing class PrimaryKpiDashboard_Controller {
             fields.add('S_D_Parameter_' + n + '_Achievement__c');
             fields.add('S_D_Parameter_' + n + '_Achievement_Percent__c');
             fields.add('S_D_Parameter_' + n + '_Incentive_Amount__c');
-            fields.add('S_D_Parameter_' + n + '_Qualified_Slab__r.Name');
+            fields.add('S_D_Parameter_' + n + '_Slab__c');
+            fields.add('S_D_Parameter_' + n + '_Incentive_Percentage__c');
         }
         String soql = 'SELECT ' + String.join(fields, ', ') +
             ' FROM PBIS_Target__c' +
