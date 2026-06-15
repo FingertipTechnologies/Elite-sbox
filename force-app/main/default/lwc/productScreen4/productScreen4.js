@@ -2057,11 +2057,13 @@ export default class ProductScreen4 extends LightningElement {
                 m._wkUnit = m._wkUnit * factor;
                 this._flagLine(m, scheme);
                 this._addPriceStep(m, 'Free Quantity — ' + scheme.name);
-            });
-            this.appliedSchemeRecords.push({
-                schemeId: scheme.id, slabId: slab.slabId, schemeType: 'Free Quantity',
-                freeQty: free, sequence: slab.seq,
-                description: 'Free Quantity: ' + free + ' EA free on ' + totalQty + ' EA'
+                // one record per affected order item -> links Order_Item__c on save
+                this.appliedSchemeRecords.push({
+                    productId: m.id,
+                    schemeId: scheme.id, slabId: slab.slabId, schemeType: 'Free Quantity',
+                    freeQty: free, sequence: slab.seq,
+                    description: 'Free Quantity: ' + free + ' EA free on ' + totalQty + ' EA'
+                });
             });
         });
     }
@@ -2079,11 +2081,13 @@ export default class ProductScreen4 extends LightningElement {
                 m._wkUnit = Math.max(0, m._wkUnit - off);
                 this._flagLine(m, scheme);
                 this._addPriceStep(m, 'QPS — ' + scheme.name);
-            });
-            this.appliedSchemeRecords.push({
-                schemeId: scheme.id, slabId: slab.slabId, schemeType: 'QPS',
-                benefitAmount: off, sequence: slab.seq,
-                description: 'QPS: ₹' + off + ' off per EA'
+                // one record per affected order item -> links Order_Item__c on save
+                this.appliedSchemeRecords.push({
+                    productId: m.id,
+                    schemeId: scheme.id, slabId: slab.slabId, schemeType: 'QPS',
+                    benefitAmount: off, sequence: slab.seq,
+                    description: 'QPS: ₹' + off + ' off per EA'
+                });
             });
         });
     }
@@ -2131,6 +2135,7 @@ export default class ProductScreen4 extends LightningElement {
                 });
             }
             this.appliedSchemeRecords.push({
+                productId: slab.focProductId, // links to the giveaway / merged order line
                 schemeId: scheme.id, slabId: slab.slabId, schemeType: 'FOC Giveaway',
                 freeQty: focQty, focProductId: slab.focProductId, sequence: slab.seq,
                 description: 'FOC Giveaway: ' + focQty + ' EA of ' + (slab.focProductName || 'product')

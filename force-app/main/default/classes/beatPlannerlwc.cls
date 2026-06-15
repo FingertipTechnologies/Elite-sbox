@@ -3171,6 +3171,8 @@ global with sharing class beatPlannerlwc {
         
         // Scheme engine: applied-scheme audit rows (Order_Scheme_Applied__c)
         List<Order_Scheme_Applied__c> allAppliedSchemes = new List<Order_Scheme_Applied__c>();
+        // product id per OSA row (same index) so Order_Item__c can be resolved after items insert
+        List<Id> osaProductIds = new List<Id>();
 
         // Step 7: Process the products for each plant order
         for (Integer i = 0; i < plantOrders.size(); i++) {
@@ -3215,6 +3217,9 @@ global with sharing class beatPlannerlwc {
                     if (focId != null && String.isNotBlank(String.valueOf(focId))) osa.FOC_Giveaway_Product__c = (Id) String.valueOf(focId);
                     osa.Descritption__c = (String) a.get('description');
                     allAppliedSchemes.add(osa);
+                    Object pId = a.get('productId');
+                    osaProductIds.add((pId != null && String.isNotBlank(String.valueOf(pId)))
+                        ? (Id) String.valueOf(pId) : null);
                 }
             }
             
@@ -3339,6 +3344,25 @@ global with sharing class beatPlannerlwc {
         
         // Step 9: Insert all Order_Items
         insert allOrderItems;
+
+        // Link each line-level audit row to the order item it affected (Free Quantity /
+        // QPS / FOC). Aggregate rows (Category/Order Value) carry no product -> stay blank.
+        if (!allAppliedSchemes.isEmpty()) {
+            Map<String, Id> itemByOrderProduct = new Map<String, Id>();
+            for (Order_Item__c it : allOrderItems) {
+                if (it.Product__c != null) {
+                    itemByOrderProduct.put(String.valueOf(it.Order__c) + '|' + String.valueOf(it.Product__c), it.Id);
+                }
+            }
+            for (Integer j = 0; j < allAppliedSchemes.size(); j++) {
+                Id pid = osaProductIds[j];
+                if (pid != null) {
+                    Id itemId = itemByOrderProduct.get(
+                        String.valueOf(allAppliedSchemes[j].Order_Request__c) + '|' + String.valueOf(pid));
+                    if (itemId != null) allAppliedSchemes[j].Order_Item__c = itemId;
+                }
+            }
+        }
 
         // Step 9b: Insert applied-scheme audit rows.
         // Drop stale lookups (a Scheme/Slab/Product deleted after coverage loaded — e.g.
