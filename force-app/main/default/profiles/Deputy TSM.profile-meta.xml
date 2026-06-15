@@ -49,6 +49,10 @@
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>AutoMapSecondaryCustomersQueueable</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>AutoPJPCreationScheduler</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -1110,6 +1114,14 @@
     </classAccesses>
     <classAccesses>
         <apexClass>SecondaryInvoiceSharingHandlerTest</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>SecondaryKpiDashboard_Controller</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>SecondaryKpiDashboard_ControllerTest</apexClass>
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
@@ -4727,6 +4739,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Employee__c.PBIS_Policy__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Employee__c.PJP_Approver_1__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -8137,13 +8154,23 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>PBIS_Target__c.Is_New__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>PBIS_Target__c.Max_Incentive_Value__c</field>
         <readable>false</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>PBIS_Target__c.PBIS_Policy_Name__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>PBIS_Target__c.PBIS_Policy__c</field>
-        <readable>false</readable>
+        <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
@@ -9984,6 +10011,11 @@
         <editable>true</editable>
         <field>S_D_Parameter__c.Sales_Channel__c</field>
         <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>S_D_Parameter__c.Source_Config__c</field>
+        <readable>false</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
@@ -12108,6 +12140,16 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>User.Monthly_Gross_Salary_INR__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>User.PBIS_Policy_Name__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>User.PBIS_Policy__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -14834,6 +14876,10 @@
     </tabVisibilities>
     <tabVisibilities>
         <tab>Secondary_Invoice__c</tab>
+        <visibility>DefaultOn</visibility>
+    </tabVisibilities>
+    <tabVisibilities>
+        <tab>Secondary_KPI_Dashboard</tab>
         <visibility>DefaultOn</visibility>
     </tabVisibilities>
     <tabVisibilities>

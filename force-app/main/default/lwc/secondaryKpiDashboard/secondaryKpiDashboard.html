@@ -1,0 +1,350 @@
+<template>
+    <lightning-card title="Secondary KPI Dashboard" icon-name="standard:dashboard">
+        <lightning-button slot="actions" label="Refresh" icon-name="utility:refresh"
+            onclick={handleRefresh}></lightning-button>
+
+        <div class="slds-p-horizontal_small slds-p-bottom_medium kpi-root">
+
+            <!-- Filters -->
+            <div class="slds-grid slds-gutters_x-small slds-wrap slds-m-bottom_small">
+                <template if:true={showPicker}>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_2-of-4">
+                        <lightning-combobox label="View"
+                            value={selectedUserId}
+                            options={userPickerOptions}
+                            onchange={handleUserChange}></lightning-combobox>
+                    </div>
+                </template>
+                <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                    <lightning-input type="number" label="Year" value={year}
+                        onchange={handleYear}></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                    <lightning-combobox label="Month" value={month}
+                        options={monthOptions} onchange={handleMonth}></lightning-combobox>
+                </div>
+            </div>
+
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+
+            <!-- Empty state: manager has no DSM/SSA subordinates -->
+            <template if:true={isEmpty}>
+                <div class="slds-p-around_large slds-text-align_center">
+                    <lightning-icon icon-name="utility:info" alternative-text="Info"
+                        size="medium" variant="warning"></lightning-icon>
+                    <p class="slds-text-heading_small slds-m-top_small">No DSM / SSA users in your reporting hierarchy</p>
+                    <p class="slds-text-body_regular slds-text-color_weak">
+                        Only DSM and SSA users carry secondary targets. Ask your administrator
+                        to assign DSM / SSA users to your branch of the role hierarchy.
+                    </p>
+                </div>
+            </template>
+
+            <template if:true={hasData}>
+                <template if:false={isEmpty}>
+                    <!-- Heading -->
+                    <div class="kpi-header slds-grid slds-grid_align-spread slds-grid_vertical-align-end slds-m-bottom_small slds-wrap">
+                        <div>
+                            <h2 class="slds-text-heading_medium">{heroHeading}</h2>
+                            <p class="slds-text-color_weak">{heroSubHeading}</p>
+                        </div>
+                        <template if:true={isPersonal}>
+                            <template if:true={viewerIsManager}>
+                                <lightning-button label="Back to team"
+                                    icon-name="utility:back"
+                                    onclick={handleBackToTeam}></lightning-button>
+                            </template>
+                        </template>
+                    </div>
+
+                    <!-- Hero KPI tiles -->
+                    <template if:true={hasHero}>
+                        <div class="slds-grid slds-gutters_x-small slds-wrap kpi-tiles slds-m-bottom_medium">
+                            <template if:true={isTeam}>
+                                <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-5">
+                                    <div class="kpi-tile">
+                                        <div class="kpi-label">Targeted Users</div>
+                                        <div class="kpi-value">{hero.targetedUsers}</div>
+                                        <div class="kpi-sub">DSM / SSA with active targets</div>
+                                    </div>
+                                </div>
+                            </template>
+                            <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-5">
+                                <div class="kpi-tile">
+                                    <div class="kpi-label">Active Targets</div>
+                                    <div class="kpi-value">{hero.activeTargets}</div>
+                                    <div class="kpi-sub">covering {data.periodLabel}</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-5">
+                                <div class="kpi-tile kpi-tile_target">
+                                    <div class="kpi-label">Total Target</div>
+                                    <div class="kpi-value">{heroTotalTarget}</div>
+                                    <div class="kpi-sub">sum across criteria</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-5">
+                                <div class="kpi-tile kpi-tile_ach">
+                                    <div class="kpi-label">Achievement</div>
+                                    <div class="kpi-value">{heroTotalAchievement}</div>
+                                    <div class="kpi-sub">
+                                        <span class={heroPctClass}>{heroAchievementPct}</span> of target
+                                    </div>
+                                    <div class="kpi-progress">
+                                        <div class="kpi-progress-fill" style={heroProgressStyle}></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-5">
+                                <div class="kpi-tile kpi-tile_incentive">
+                                    <div class="kpi-label">PBIS Incentive</div>
+                                    <div class="kpi-value">{heroTotalIncentive}</div>
+                                    <div class="kpi-sub">{hero.incentiveLines} credit lines</div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- TEAM analytics -->
+                    <template if:true={isTeam}>
+                        <div class="slds-grid slds-gutters_x-small slds-wrap">
+
+                            <!-- Left: team list + criterion breakdown -->
+                            <div class="slds-col slds-size_1-of-1 slds-large-size_2-of-3">
+                                <div class="kpi-panel">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">
+                                        My DSM / SSAs
+                                    </h3>
+                                    <template if:true={hasUsers}>
+                                        <template if:true={isMobile}>
+                                            <template for:each={users} for:item="u">
+                                                <div key={u.userId} class="kpi-card"
+                                                     data-id={u.userId}
+                                                     onclick={handleUserCardClick}>
+                                                    <div class="kpi-card-head">
+                                                        <div>
+                                                            <div class="kpi-card-title">{u.userName}</div>
+                                                            <div class="kpi-card-sub">
+                                                                <template if:true={u.role}>{u.role}</template>
+                                                                <template if:true={u.employeeCode}> · {u.employeeCode}</template>
+                                                                <template if:true={u.channel}> · {u.channel}</template>
+                                                            </div>
+                                                        </div>
+                                                        <span class={u.badgeClass}>{u.pctText}</span>
+                                                    </div>
+                                                    <div class="progress-track">
+                                                        <div class={u.barClass} style={u.barStyle}></div>
+                                                    </div>
+                                                    <div class="kpi-card-grid">
+                                                        <div>
+                                                            <div class="kpi-mini-label">Targets</div>
+                                                            <div class="kpi-mini-value">{u.activeTargets}</div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="kpi-mini-label">Achievement</div>
+                                                            <div class="kpi-mini-value">{u.achText}</div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="kpi-mini-label">Incentive</div>
+                                                            <div class="kpi-mini-value">{u.incentiveText}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="kpi-card-cta">Tap to view this user
+                                                        <lightning-icon icon-name="utility:chevronright"
+                                                            size="xx-small"></lightning-icon>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </template>
+                                        <template if:false={isMobile}>
+                                            <lightning-datatable key-field="userId"
+                                                data={users} columns={userColumns}
+                                                hide-checkbox-column
+                                                onrowaction={handleUserAction}></lightning-datatable>
+                                            <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                                                Pick the row action to drill into a specific DSM / SSA.
+                                            </p>
+                                        </template>
+                                    </template>
+                                    <template if:false={hasUsers}>
+                                        <p class="slds-text-body_regular slds-text-color_weak slds-p-around_medium">
+                                            None of your DSM / SSAs have secondary targets in {data.periodLabel}.
+                                        </p>
+                                    </template>
+                                </div>
+
+                                <div class="kpi-panel slds-m-top_medium">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">
+                                        Achievement by Criterion
+                                    </h3>
+                                    <template if:true={hasCriteria}>
+                                        <template for:each={criteriaRows} for:item="cr">
+                                            <div key={cr.criteriaId} class="kpi-bar-row">
+                                                <div class="kpi-bar-row-head">
+                                                    <span class="kpi-bar-label">{cr.label}</span>
+                                                    <span class="kpi-bar-pct" style="font-weight:600;">{cr.pctText}</span>
+                                                </div>
+                                                <div class="progress-track">
+                                                    <div class={cr.barClass} style={cr.barStyle}></div>
+                                                </div>
+                                                <div class="kpi-bar-row-meta slds-text-body_small slds-text-color_weak">
+                                                    {cr.achText} of {cr.targetText} · {cr.userCount} users
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template if:false={hasCriteria}>
+                                        <p class="slds-text-body_regular slds-text-color_weak">No criteria data for this period.</p>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Right: channels + top / needs attention -->
+                            <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-3">
+                                <div class="kpi-panel">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">By Sales Channel</h3>
+                                    <template if:true={hasChannels}>
+                                        <template for:each={channelRows} for:item="ch">
+                                            <div key={ch.channel} class="kpi-bar-row">
+                                                <div class="kpi-bar-row-head">
+                                                    <span class="kpi-bar-label">{ch.label}</span>
+                                                    <span class="kpi-bar-pct">{ch.pctText}</span>
+                                                </div>
+                                                <div class="progress-track">
+                                                    <div class={ch.barClass} style={ch.barStyle}></div>
+                                                </div>
+                                                <div class="kpi-bar-row-meta slds-text-body_small slds-text-color_weak">
+                                                    {ch.achText} of {ch.targetText} · {ch.userCount} users
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template if:false={hasChannels}>
+                                        <p class="slds-text-body_regular slds-text-color_weak">No channel data.</p>
+                                    </template>
+                                </div>
+
+                                <div class="kpi-panel slds-m-top_medium">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">Top Performers</h3>
+                                    <template if:true={hasTopPerformers}>
+                                        <template if:true={isMobile}>
+                                            <template for:each={topPerformers} for:item="p">
+                                                <div key={p.userId} class="kpi-perf-row">
+                                                    <div class="kpi-perf-main">
+                                                        <div class="kpi-perf-name">{p.userName}</div>
+                                                        <div class="kpi-perf-sub">
+                                                            <template if:true={p.role}>{p.role} · </template>{p.achText}
+                                                        </div>
+                                                    </div>
+                                                    <span class={p.badgeClass}>{p.pctText}</span>
+                                                </div>
+                                            </template>
+                                        </template>
+                                        <template if:false={isMobile}>
+                                            <lightning-datatable key-field="userId"
+                                                data={topPerformers} columns={performerColumns}
+                                                hide-checkbox-column></lightning-datatable>
+                                        </template>
+                                    </template>
+                                    <template if:false={hasTopPerformers}>
+                                        <p class="slds-text-body_regular slds-text-color_weak">No data.</p>
+                                    </template>
+                                </div>
+
+                                <div class="kpi-panel slds-m-top_medium">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">Needs Attention</h3>
+                                    <template if:true={hasBottomPerformers}>
+                                        <template if:true={isMobile}>
+                                            <template for:each={bottomPerformers} for:item="p">
+                                                <div key={p.userId} class="kpi-perf-row">
+                                                    <div class="kpi-perf-main">
+                                                        <div class="kpi-perf-name">{p.userName}</div>
+                                                        <div class="kpi-perf-sub">
+                                                            <template if:true={p.role}>{p.role} · </template>{p.achText}
+                                                        </div>
+                                                    </div>
+                                                    <span class={p.badgeClass}>{p.pctText}</span>
+                                                </div>
+                                            </template>
+                                        </template>
+                                        <template if:false={isMobile}>
+                                            <lightning-datatable key-field="userId"
+                                                data={bottomPerformers} columns={performerColumns}
+                                                hide-checkbox-column></lightning-datatable>
+                                        </template>
+                                    </template>
+                                    <template if:false={hasBottomPerformers}>
+                                        <p class="slds-text-body_regular slds-text-color_weak">No data.</p>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- PERSONAL: per-target list -->
+                    <template if:true={isPersonal}>
+                        <div class="kpi-panel">
+                            <h3 class="slds-text-heading_small slds-m-bottom_x-small">
+                                Active Secondary Targets
+                            </h3>
+                            <template if:true={hasTargets}>
+                                <template if:true={isMobile}>
+                                    <template for:each={targets} for:item="t">
+                                        <div key={t.targetId} class="kpi-card kpi-card_static">
+                                            <div class="kpi-card-head">
+                                                <div>
+                                                    <div class="kpi-card-title">{t.criterionName}</div>
+                                                    <div class="kpi-card-sub">
+                                                        <template if:true={t.focusPackName}>
+                                                            {t.focusPackName} ·
+                                                        </template>
+                                                        {t.targetName}
+                                                        <template if:true={t.channel}> · {t.channel}</template>
+                                                    </div>
+                                                </div>
+                                                <span class={t.badgeClass}>{t.pctText}</span>
+                                            </div>
+                                            <div class="progress-track">
+                                                <div class={t.barClass} style={t.barStyle}></div>
+                                            </div>
+                                            <div class="kpi-card-grid">
+                                                <div>
+                                                    <div class="kpi-mini-label">Target</div>
+                                                    <div class="kpi-mini-value">{t.targetText}</div>
+                                                </div>
+                                                <div>
+                                                    <div class="kpi-mini-label">Achievement</div>
+                                                    <div class="kpi-mini-value">{t.achText}</div>
+                                                </div>
+                                                <div>
+                                                    <div class="kpi-mini-label">Pending</div>
+                                                    <div class="kpi-mini-value">{t.pendingText}</div>
+                                                </div>
+                                                <div>
+                                                    <div class="kpi-mini-label">Incentive</div>
+                                                    <div class="kpi-mini-value">{t.incentiveText}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </template>
+                                <template if:false={isMobile}>
+                                    <lightning-datatable key-field="targetId"
+                                        data={targets} columns={targetColumns}
+                                        hide-checkbox-column></lightning-datatable>
+                                </template>
+                            </template>
+                            <template if:false={hasTargets}>
+                                <p class="slds-text-body_regular slds-text-color_weak slds-p-around_medium">
+                                    No active secondary targets for {data.selectedUserName} in {data.periodLabel}.
+                                </p>
+                            </template>
+                        </div>
+                    </template>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

@@ -69,10 +69,10 @@ public class SecondaryPBIS_ControllerTest {
         User u = [SELECT Id FROM User WHERE LastName = 'pbisc' LIMIT 1];
 
         Test.startTest();
-        Integer count = SecondaryPBIS_Controller.runMonth(2026, 5);
+        SecondaryPBIS_Service.PbisRunResult res = SecondaryPBIS_Controller.runMonth(2026, 5);
         Test.stopTest();
 
-        System.assertEquals(1, count, 'one match for the seeded data');
+        System.assertEquals(1, res.rowsWritten, 'one match for the seeded data');
 
         List<SecondaryPBIS_Controller.MonthlyTotal> totals =
             SecondaryPBIS_Controller.getUserMonthlyTotals(2026, 5);

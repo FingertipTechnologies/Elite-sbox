@@ -1,9 +1,13 @@
 <template>
     <lightning-card title="Secondary PBIS Console" icon-name="standard:reward">
+        <lightning-button slot="actions" label="Export" icon-name="utility:save"
+            onclick={handleExport} class="slds-m-right_x-small"></lightning-button>
         <lightning-button slot="actions" label="Refresh" icon-name="utility:refresh"
             onclick={handleRefresh} class="slds-m-right_x-small"></lightning-button>
         <lightning-button slot="actions" label="Run PBIS for this Month" icon-name="utility:play"
             variant="brand" onclick={handleRun}></lightning-button>
+
+        <a class="pbis-download-link" style="display:none;"></a>
 
         <div class="slds-p-horizontal_medium">
             <div class="slds-grid slds-gutters slds-grid_vertical-align-end slds-m-bottom_small slds-wrap">
@@ -37,6 +41,41 @@
                     <p class="slds-text-body_regular">
                         No incentive rows for {periodLabel} yet. Click "Run PBIS for this Month" to compute.
                     </p>
+                </div>
+            </template>
+
+            <template if:true={hasSkippedDuplicates}>
+                <div class="slds-m-top_medium slds-box slds-box_x-small slds-theme_warning">
+                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">
+                        Duplicates skipped ({skippedCount})
+                    </h3>
+                    <p class="slds-text-body_small slds-m-bottom_small">
+                        Multiple active Secondary Targets overlapped the same (user, criterion, focus pack).
+                        Each row below was ignored — its winner was kept instead. Deactivate the duplicates to
+                        clear this notice on the next run.
+                    </p>
+                    <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                        <thead>
+                            <tr class="slds-text-title_caps">
+                                <th>Skipped Target</th>
+                                <th>User</th>
+                                <th>Criterion</th>
+                                <th>Focus Pack</th>
+                                <th>Kept Target</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={skippedDuplicates} for:item="s">
+                                <tr key={s.id}>
+                                    <td>{s.targetName}</td>
+                                    <td>{s.userName}</td>
+                                    <td>{s.criterionName}</td>
+                                    <td>{s.focusPackName}</td>
+                                    <td>{s.keptTargetName}</td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
                 </div>
             </template>
 

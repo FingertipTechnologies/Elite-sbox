@@ -166,8 +166,8 @@
             </div>
 
             <div class="tcb-detail-content slds-grid slds-gutters slds-wrap">
-                <!-- Left: Details -->
-                <div class="slds-col slds-size_2-of-3">
+                <!-- Details (full width — the legacy Generated Query Preview column has been removed) -->
+                <div class="slds-col slds-size_1-of-1">
                     <section class="tcb-card general">
                         <div class="tcb-card-header">
                             <span>Criteria Information</span>
@@ -209,28 +209,6 @@
                                     <span class="tcb-detail-label">Filter Logic</span>
                                     <span class="tcb-detail-value">{selectedCriteria.Filter_Logic__c}</span>
                                 </div>
-                                <div class="tcb-detail-field">
-                                    <span class="tcb-detail-label">Incentive Weight</span>
-                                    <span class="tcb-detail-value">
-                                        <template if:true={selectedCriteria.Incentive_Weight__c}>
-                                            {selectedCriteria.Incentive_Weight__c}%
-                                        </template>
-                                        <template if:false={selectedCriteria.Incentive_Weight__c}>
-                                            <span class="slds-text-color_weak">No weighting</span>
-                                        </template>
-                                    </span>
-                                </div>
-                                <div class="tcb-detail-field">
-                                    <span class="tcb-detail-label">Prerequisite</span>
-                                    <span class="tcb-detail-value">
-                                        <template if:true={selectedCriteria.Prerequisite_Criteria__c}>
-                                            {selectedCriteria.Prerequisite_Criteria__r.Name} (min {selectedCriteria.Prerequisite_Min_Percent__c}%)
-                                        </template>
-                                        <template if:false={selectedCriteria.Prerequisite_Criteria__c}>
-                                            <span class="slds-text-color_weak">None</span>
-                                        </template>
-                                    </span>
-                                </div>
                             </div>
                         </div>
                     </section>
@@ -250,20 +228,6 @@
                             </div>
                         </section>
                     </template>
-                </div>
-
-                <!-- Right: Summary Card -->
-                <div class="slds-col slds-size_1-of-3">
-                    <div class="tcb-summary-sticky">
-                        <section class="tcb-card json">
-                            <div class="tcb-card-header">
-                                <span>Generated Query Preview</span>
-                            </div>
-                            <div class="tcb-card-body">
-                                <pre class="tcb-query-preview">{detailQueryPreview}</pre>
-                            </div>
-                        </section>
-                    </div>
                 </div>
             </div>
         </template>
@@ -304,6 +268,10 @@
                         <span>General Settings</span>
                     </div>
                     <div class="tcb-card-body">
+                        <p class="tcb-help-text slds-m-bottom_small">
+                            Name this criterion and pick the source object the achievement will be measured on
+                            (usually Order Item for secondary sales). You can group criteria by Category for filtering.
+                        </p>
                         <div class="two-col">
                             <lightning-input label="Criteria Name" data-field="Name" value={criteria.Name}
                                 onchange={handleInput} required></lightning-input>
@@ -344,55 +312,6 @@
                     </div>
                 </section>
 
-                <!-- Incentive Configuration (in Step 1) -->
-                <section class="tcb-card logic">
-                    <div class="tcb-card-header">
-                        <lightning-icon icon-name="utility:money" size="x-small"></lightning-icon>
-                        <span>Incentive Configuration</span>
-                    </div>
-                    <div class="tcb-card-body">
-                        <div class="two-col">
-                            <lightning-input type="number" label="Incentive Weight (%)"
-                                data-field="Incentive_Weight__c" value={criteria.Incentive_Weight__c}
-                                onchange={handleInput} step="0.01" min="0" max="100"
-                                field-level-help="Percentage weight this criteria contributes to total incentive (e.g., Revenue=60%, S&D=15%). Leave blank if no weighting needed."></lightning-input>
-                            <div></div>
-                            <!-- Searchable Prerequisite Criteria -->
-                            <div class="tcb-search-box">
-                                <lightning-input type="text" label="Prerequisite Criteria"
-                                    placeholder="Search criteria... (leave empty for None)"
-                                    value={searchPrerequisite} onchange={handleSearchPrerequisite}
-                                    onfocus={handleSearchPrerequisiteFocus}
-                                    field-level-help="Must achieve min % on this criteria to qualify for incentive. Example: S&D incentive requires 90% Revenue achievement."></lightning-input>
-                                <template if:true={showPrerequisiteDropdown}>
-                                    <div class="tcb-dropdown">
-                                        <div class="tcb-option tcb-option-none" data-value="" data-label=""
-                                            onclick={handleSelectPrerequisite}>
-                                            <lightning-icon icon-name="utility:clear" size="x-small"></lightning-icon>
-                                            <div class="tcb-option-text">
-                                                <div class="tcb-label">-- None (No Prerequisite) --</div>
-                                            </div>
-                                        </div>
-                                        <template for:each={filteredPrerequisiteSearch} for:item="opt">
-                                            <div key={opt.value} class="tcb-option" data-value={opt.value}
-                                                data-label={opt.label} onclick={handleSelectPrerequisite}>
-                                                <lightning-icon icon-name="standard:goals" size="x-small"></lightning-icon>
-                                                <div class="tcb-option-text">
-                                                    <div class="tcb-label">{opt.label}</div>
-                                                </div>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </template>
-                            </div>
-                            <lightning-input type="number" label="Prerequisite Min %"
-                                data-field="Prerequisite_Min_Percent__c"
-                                value={criteria.Prerequisite_Min_Percent__c}
-                                onchange={handleInput} step="0.01" min="0" max="200"
-                                field-level-help="Minimum achievement % required on the prerequisite criteria. Default is 90%."></lightning-input>
-                        </div>
-                    </div>
-                </section>
             </template>
 
             <!-- STEP 2: FIELD MAPPING -->
@@ -403,6 +322,11 @@
                         <span>Field Mapping</span>
                     </div>
                     <div class="tcb-card-body">
+                        <p class="tcb-help-text slds-m-bottom_small">
+                            Pick the Operator (the maths the engine runs) and map the fields it should read.
+                            Date and User fields tell the engine how to filter by period and per-user.
+                            Different operators require different extra inputs — they appear below as needed.
+                        </p>
                         <div class="two-col">
                             <lightning-combobox label="Operator" data-field="Operator__c"
                                 value={criteria.Operator__c} options={operatorOptions}
@@ -466,11 +390,67 @@
                             </template>
 
                             <template if:true={showSecondarySources}>
-                                <lightning-textarea label="Secondary Source Objects (JSON)"
-                                    data-field="Secondary_Source_Objects__c"
-                                    value={criteria.Secondary_Source_Objects__c}
-                                    onchange={handleInput}
-                                    placeholder="Optional JSON array of extra source objects to union for dedup (object, userField, dateField, distinctField)."></lightning-textarea>
+                                <div class="slds-form-element slds-m-top_small">
+                                    <label class="slds-form-element__label">
+                                        Secondary Source Objects (union for de-duplicated outlet count)
+                                    </label>
+                                    <p class="tcb-help-text slds-m-bottom_x-small">
+                                        Adds other objects whose outlet touches should also count toward this metric,
+                                        deduplicated per day with the primary source. Common example for TC: add the
+                                        Visit object (Object API <code>Visit__c</code>, User Field <code>OwnerId</code>,
+                                        Date Field <code>Date__c</code>, Outlet Field <code>Account1__c</code>).
+                                    </p>
+                                    <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                                        <thead>
+                                            <tr class="slds-text-title_caps">
+                                                <th>Object API</th>
+                                                <th>User Field</th>
+                                                <th>Date Field</th>
+                                                <th>Outlet (Distinct) Field</th>
+                                                <th style="width:4rem;"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template for:each={secondarySourceRows} for:item="row">
+                                                <tr key={row.id}>
+                                                    <td><lightning-input type="text" variant="label-hidden"
+                                                        data-id={row.id} data-field="object" value={row.object}
+                                                        onchange={handleSecondarySourceField}
+                                                        placeholder="Visit__c"></lightning-input></td>
+                                                    <td><lightning-input type="text" variant="label-hidden"
+                                                        data-id={row.id} data-field="userField" value={row.userField}
+                                                        onchange={handleSecondarySourceField}
+                                                        placeholder="OwnerId"></lightning-input></td>
+                                                    <td><lightning-input type="text" variant="label-hidden"
+                                                        data-id={row.id} data-field="dateField" value={row.dateField}
+                                                        onchange={handleSecondarySourceField}
+                                                        placeholder="Date__c"></lightning-input></td>
+                                                    <td><lightning-input type="text" variant="label-hidden"
+                                                        data-id={row.id} data-field="distinctField" value={row.distinctField}
+                                                        onchange={handleSecondarySourceField}
+                                                        placeholder="Account1__c"></lightning-input></td>
+                                                    <td class="slds-text-align_center">
+                                                        <lightning-button-icon icon-name="utility:delete"
+                                                            alternative-text="Remove" variant="bare"
+                                                            data-id={row.id}
+                                                            onclick={handleRemoveSecondarySource}></lightning-button-icon>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                            <template if:false={hasSecondarySourceRows}>
+                                                <tr>
+                                                    <td colspan="5" class="slds-text-color_weak slds-text-align_center slds-p-around_small">
+                                                        No extra sources. The primary source above is the only one used.
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                    <div class="slds-m-top_x-small">
+                                        <lightning-button label="Add Source" icon-name="utility:add"
+                                            onclick={handleAddSecondarySource}></lightning-button>
+                                    </div>
+                                </div>
                             </template>
                         </template>
 
@@ -549,7 +529,11 @@
                         <span>Filters &amp; Filter Logic</span>
                     </div>
                     <div class="tcb-card-body">
-                        <p class="tcb-help-text">Add filters to restrict which records are counted.</p>
+                        <p class="tcb-help-text slds-m-bottom_small">
+                            Add WHERE filters to scope the data this criterion reads — for example, restrict to
+                            secondary orders only (<code>Customer_Order_Type__c = Secondary Order</code>). The engine
+                            already filters by date range and user, so add only the extra business filters here.
+                        </p>
                         <c-tam-filter-builder fields-metadata={fieldsMetadata} value={filters}
                             onfilterchange={handleFilterChange}></c-tam-filter-builder>
                     </div>
@@ -578,6 +562,10 @@
                         <span>Summary</span>
                     </div>
                     <div class="tcb-card-body">
+                        <p class="tcb-help-text slds-m-bottom_small">
+                            Review everything before saving. Click Run Preview to test the criterion against the current
+                            month's data and confirm the achievement matches expectations.
+                        </p>
                         <div class="tcb-summary-grid">
                             <div class="tcb-summary-row">
                                 <span class="tcb-summary-label">Criteria Name</span>
@@ -663,18 +651,30 @@
                     <header class="slds-modal__header">
                         <lightning-button-icon icon-name="utility:close" variant="bare-inverse"
                             class="slds-modal__close" onclick={handleClosePreview}></lightning-button-icon>
-                        <h2 class="slds-modal__title">Query Preview</h2>
+                        <h2 class="slds-modal__title">Preview Results</h2>
+                        <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                            A live test against the current month — top 5 users.
+                        </p>
                     </header>
                     <div class="slds-modal__content slds-p-around_medium">
-                        <div class="slds-m-bottom_small">
-                            <span class="tcb-detail-label">Period: </span>
-                            <span class="tcb-detail-value">{previewPeriod}</span>
+                        <!-- header chips: operator + period -->
+                        <div class="slds-grid slds-gutters slds-wrap slds-m-bottom_medium">
+                            <div class="slds-col">
+                                <span class="tcb-detail-label">Operator</span>
+                                <div class="tcb-detail-value">
+                                    <span class="slds-badge slds-badge_lightest">{previewResult.operator}</span>
+                                </div>
+                            </div>
+                            <div class="slds-col">
+                                <span class="tcb-detail-label">Period</span>
+                                <div class="tcb-detail-value">{previewPeriod}</div>
+                            </div>
                         </div>
 
-                        <pre class="tcb-query-preview slds-m-bottom_medium">{previewQuery}</pre>
-
                         <template if:true={previewHasNote}>
-                            <div class="slds-box slds-box_x-small slds-m-bottom_small slds-theme_shade">
+                            <div class="slds-box slds-box_x-small slds-theme_shade slds-m-bottom_medium">
+                                <lightning-icon icon-name="utility:info" size="x-small"
+                                    class="slds-m-right_x-small"></lightning-icon>
                                 {previewNote}
                             </div>
                         </template>
@@ -682,40 +682,41 @@
                         <template if:true={previewIsSuccess}>
                             <template if:true={previewHasRows}>
                                 <h3 class="slds-text-heading_small slds-m-bottom_small">
-                                    Sample Results ({previewResult.rowCount} rows)
+                                    Sample Results — {previewResult.rowCount} user(s)
                                 </h3>
-                                <table class="tcb-table">
+                                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
                                     <thead>
-                                        <tr>
-                                            <th>User / Owner ID</th>
-                                            <th>Value</th>
+                                        <tr class="slds-text-title_caps">
+                                            <th>User / Owner Id</th>
+                                            <th class="slds-text-align_right">Achievement Value</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <template for:each={previewRows} for:item="row">
                                             <tr key={row.userId}>
                                                 <td>{row.userId}</td>
-                                                <td><strong>{row.value}</strong></td>
+                                                <td class="slds-text-align_right"><strong>{row.value}</strong></td>
                                             </tr>
                                         </template>
                                     </tbody>
                                 </table>
                             </template>
                             <template if:false={previewHasRows}>
-                                <div class="slds-text-color_weak slds-text-align_center slds-p-around_medium">
-                                    No results found for the current period. This is expected if no matching records exist yet.
+                                <div class="slds-illustration slds-text-align_center slds-p-around_large slds-text-color_weak">
+                                    No results for the current month. This usually means no source rows match the
+                                    criterion's filter / date range for any user yet.
                                 </div>
                             </template>
                         </template>
 
                         <template if:false={previewIsSuccess}>
-                            <div class="tcb-error slds-m-top_small">
-                                Query Error: {previewError}
+                            <div class="slds-box slds-box_x-small slds-theme_error slds-m-top_small">
+                                <strong>Query Error:</strong> {previewError}
                             </div>
                         </template>
                     </div>
                     <footer class="slds-modal__footer">
-                        <lightning-button label="Close" onclick={handleClosePreview}></lightning-button>
+                        <lightning-button variant="brand" label="Close" onclick={handleClosePreview}></lightning-button>
                     </footer>
                 </div>
             </section>

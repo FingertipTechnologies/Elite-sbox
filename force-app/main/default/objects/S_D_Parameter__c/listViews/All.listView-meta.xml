@@ -8,6 +8,7 @@
     <columns>Field__c</columns>
     <columns>Focused_Pack__c</columns>
     <columns>User_Field__c</columns>
+    <columns>SOQL_Query__c</columns>
     <columns>Is_Active__c</columns>
     <columns>CREATEDBY_USER</columns>
     <columns>CREATED_DATE</columns>

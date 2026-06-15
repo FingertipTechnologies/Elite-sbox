@@ -93,10 +93,10 @@ public class SecondaryPBIS_ServiceTest {
         User u = [SELECT Id FROM User WHERE LastName = 'pbis' LIMIT 1];
 
         Test.startTest();
-        Integer count = SecondaryPBIS_Service.computeForMonth(2026, 5);
+        SecondaryPBIS_Service.PbisRunResult res = SecondaryPBIS_Service.computeForMonth(2026, 5);
         Test.stopTest();
 
-        System.assertEquals(2, count, 'two slab matches expected');
+        System.assertEquals(2, res.rowsWritten, 'two slab matches expected');
 
         List<Incentive_Credit__c> rows = [
             SELECT Credit_Amount__c, Compare_On__c, Source__c, Target_Criteria__r.Name
