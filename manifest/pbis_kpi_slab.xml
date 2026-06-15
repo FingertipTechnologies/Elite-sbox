@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  KPI Dashboard + slab-snapshot fields. Deploy with:
+    sf project deploy start -x manifest/pbis_kpi_slab.xml -o <org>
+  Covers: the per-slot snapshot fields (Slab band + Incentive %), the PBISActuals_Service
+  that populates them, the Primary/KPI dashboard LWCs + controller, the KPI Dashboard tab,
+  and the PBIS_Target_Admin / KPI_Dashboard_Access permission sets.
+  Depends on the existing secondaryKpiDashboard LWC being present in the target org
+  (kpiDashboard references c-secondary-kpi-dashboard).
+-->
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>PBIS_Target__c.S_D_Parameter_1_Slab__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_1_Incentive_Percentage__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_2_Slab__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_2_Incentive_Percentage__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_3_Slab__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_3_Incentive_Percentage__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_4_Slab__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_4_Incentive_Percentage__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_5_Slab__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_5_Incentive_Percentage__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_6_Slab__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_6_Incentive_Percentage__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_7_Slab__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_7_Incentive_Percentage__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_8_Slab__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_8_Incentive_Percentage__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_9_Slab__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_9_Incentive_Percentage__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_10_Slab__c</members>
+        <members>PBIS_Target__c.S_D_Parameter_10_Incentive_Percentage__c</members>
+        <members>PBIS_Target__c.Profile__c</members>
+        <name>CustomField</name>
+    </types>
+    <types>
+        <members>PBISActuals_Service</members>
+        <members>PBISActuals_ServiceTest</members>
+        <members>PrimaryKpiDashboard_Controller</members>
+        <members>PrimaryKpiDashboard_ControllerTest</members>
+        <name>ApexClass</name>
+    </types>
+    <types>
+        <members>primaryKpiDashboard</members>
+        <members>kpiDashboard</members>
+        <name>LightningComponentBundle</name>
+    </types>
+    <types>
+        <members>KPI_Dashboard</members>
+        <name>CustomTab</name>
+    </types>
+    <types>
+        <members>PBIS_Target_Admin</members>
+        <members>KPI_Dashboard_Access</members>
+        <name>PermissionSet</name>
+    </types>
+    <version>59.0</version>
+</Package>

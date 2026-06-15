@@ -1,0 +1,54 @@
+name: Deploy KPI Dashboard + Slab Snapshot
+
+# On-demand deploy of manifest/pbis_kpi_slab.xml: the per-slot slab-snapshot fields
+# (S_D_Parameter_N_Slab__c + S_D_Parameter_N_Incentive_Percentage__c), PBISActuals_Service
+# that populates them, the Primary/KPI dashboard LWCs + PrimaryKpiDashboard_Controller, the
+# KPI Dashboard tab, and the PBIS_Target_Admin / KPI_Dashboard_Access permission sets.
+#
+# Requires the existing secondaryKpiDashboard LWC + Tasks 1-4 metadata in the target org.
+# Run from the GitHub UI: Actions -> "Deploy KPI Dashboard + Slab Snapshot" -> Run workflow.
+# (A workflow_dispatch workflow only appears once this file is on the default branch.)
+#
+# After a successful deploy, re-run the PBIS recalc (quick action / batch) so existing
+# targets populate the new snapshot fields.
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: 'Run the related tests during deploy'
+        type: boolean
+        default: true
+      check_only:
+        description: 'Validate only (dry run, no changes committed to the org)'
+        type: boolean
+        default: false
+
+jobs:
+  deploy-kpi-slab:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install --global @salesforce/cli
+          sf --version
+
+      - name: Authenticate to Salesforce
+        run: |
+          echo "${{ secrets.SALESFORCE_AUTH_URL }}" > authfile.txt
+          sf org login sfdx-url --sfdx-url-file authfile.txt --alias deployment-org --set-default
+
+      - name: Deploy manifest
+        run: |
+          ARGS="--manifest manifest/pbis_kpi_slab.xml --target-org deployment-org --wait 30"
+          if [ "${{ inputs.check_only }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          if [ "${{ inputs.run_tests }}" = "true" ]; then
+            ARGS="$ARGS --test-level RunSpecifiedTests --tests PBISActuals_ServiceTest --tests PrimaryKpiDashboard_ControllerTest"
+          fi
+          echo "sf project deploy start $ARGS"
+          sf project deploy start $ARGS
