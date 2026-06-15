@@ -224,6 +224,50 @@
                         <p class="slds-text-body_regular slds-text-color_weak">No team targets for this period.</p>
                     </template>
                 </div>
+
+                <!-- Sales Channel wise -->
+                <div class="kpi-panel slds-m-top_medium">
+                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">Sales Channel wise</h3>
+                    <template if:true={hasChannels}>
+                        <template for:each={channelRows} for:item="c">
+                            <div key={c.label} class="kpi-bar-row">
+                                <div class="kpi-bar-row-head">
+                                    <span class="kpi-bar-label">{c.label}</span>
+                                    <span class="kpi-bar-pct">{c.pctText}</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div class={c.barClass} style={c.barStyle}></div>
+                                </div>
+                                <div class="kpi-bar-row-meta">Incentive earned: {c.incentiveText}</div>
+                            </div>
+                        </template>
+                    </template>
+                    <template if:false={hasChannels}>
+                        <p class="slds-text-body_regular slds-text-color_weak">No channel data.</p>
+                    </template>
+                </div>
+
+                <!-- S&D Parameter wise -->
+                <div class="kpi-panel slds-m-top_medium">
+                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">S &amp; D Parameter wise</h3>
+                    <template if:true={hasParamBreakdown}>
+                        <template for:each={paramBreakdownRows} for:item="p">
+                            <div key={p.label} class="kpi-bar-row">
+                                <div class="kpi-bar-row-head">
+                                    <span class="kpi-bar-label">{p.label}</span>
+                                    <span class="kpi-bar-pct">{p.pctText}</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div class={p.barClass} style={p.barStyle}></div>
+                                </div>
+                                <div class="kpi-bar-row-meta">Incentive earned: {p.incentiveText}</div>
+                            </div>
+                        </template>
+                    </template>
+                    <template if:false={hasParamBreakdown}>
+                        <p class="slds-text-body_regular slds-text-color_weak">No parameter data.</p>
+                    </template>
+                </div>
             </template>
         </div>
     </lightning-card>

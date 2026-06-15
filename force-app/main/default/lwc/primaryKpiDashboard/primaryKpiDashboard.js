@@ -110,6 +110,24 @@ export default class PrimaryKpiDashboard extends LightningElement {
     get teamAchievementPctText() { return this.teamAchievementPctValue.toFixed(1) + '%'; }
     get teamPctClass() { return 'kpi-pct ' + this.bucket(this.teamAchievementPctValue); }
     get teamProgressStyle() { return `width:${Math.min(this.teamAchievementPctValue, 100)}%;`; }
+
+    // Team breakdowns (Sales Channel wise / S&D Parameter wise)
+    get channelRows() { return this.decorateBreakdown(this.data && this.data.channels); }
+    get hasChannels() { return this.channelRows.length > 0; }
+    get paramBreakdownRows() { return this.decorateBreakdown(this.data && this.data.paramBreakdown); }
+    get hasParamBreakdown() { return this.paramBreakdownRows.length > 0; }
+    decorateBreakdown(list) {
+        return (list || []).map(r => {
+            const pct = num(r.achievementPct);
+            return {
+                ...r,
+                pctText: pct.toFixed(1) + '%',
+                barClass: 'progress-fill ' + this.bucket(pct),
+                barStyle: `width:${Math.min(pct, 100)}%;`,
+                incentiveText: INR.format(num(r.incentive))
+            };
+        });
+    }
     get pickerOptions() {
         const opts = (this.data && this.data.userPickerOptions) || [];
         return [{ label: '— Me —', value: '' }, ...opts.map(o => ({ label: o.label, value: o.userId }))];

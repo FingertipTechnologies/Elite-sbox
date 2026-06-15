@@ -17,7 +17,14 @@ public with sharing class PrimaryKpiDashboard_Controller {
         @AuraEnabled public Hero hero;
         @AuraEnabled public List<ParamRow> parameters;
         @AuraEnabled public List<TeamRow> team;
+        @AuraEnabled public List<BreakdownRow> channels;       // team: Sales Channel wise
+        @AuraEnabled public List<BreakdownRow> paramBreakdown; // team: S&D Parameter wise
         @AuraEnabled public List<Option> userPickerOptions;
+    }
+    public class BreakdownRow {
+        @AuraEnabled public String label;
+        @AuraEnabled public Decimal achievementPct;
+        @AuraEnabled public Decimal incentive;
     }
     public class Hero {
         @AuraEnabled public Decimal totalIncentive;
@@ -107,6 +114,26 @@ public with sharing class PrimaryKpiDashboard_Controller {
                 tr.isEligible = t.Is_Eligible__c == true;
                 d.team.add(tr);
             }
+            // Team breakdowns: Sales Channel wise and S&D Parameter wise.
+            Map<String, Decimal[]> chAgg = new Map<String, Decimal[]>();   // [incSum, pctSum, count]
+            Map<String, Decimal[]> pmAgg = new Map<String, Decimal[]>();
+            for (Id uid : subordinateIds) {
+                PBIS_Target__c t = targetByUser.get(uid);
+                if (t == null) continue;
+                String ch = (String) t.get('Sales_Channel__c');
+                accumulate(chAgg, String.isBlank(ch) ? '— No channel —' : ch,
+                    nz(t.Total_Incentive_Value__c), weightedPct(t));
+                for (Integer n = 1; n <= SLOTS; n++) {
+                    if (t.get('S_D_Parameter_' + n + '__c') == null) continue;
+                    SObject p = t.getSObject('S_D_Parameter_' + n + '__r');
+                    String pname = p != null ? (String) p.get('Name') : ('Slot ' + n);
+                    accumulate(pmAgg, pname,
+                        nz((Decimal) t.get('S_D_Parameter_' + n + '_Incentive_Amount__c')),
+                        nz((Decimal) t.get('S_D_Parameter_' + n + '_Achievement_Percent__c')));
+                }
+            }
+            d.channels = toBreakdownRows(chAgg);
+            d.paramBreakdown = toBreakdownRows(pmAgg);
         } else {
             d.mode = 'PERSONAL';
         }
@@ -137,6 +164,28 @@ public with sharing class PrimaryKpiDashboard_Controller {
             ids.add(u.Id);
         }
         return ids;
+    }
+
+    // Accumulate [incentiveSum, achievementPctSum, count] under a label.
+    private static void accumulate(Map<String, Decimal[]> m, String key, Decimal incentive, Decimal pct) {
+        Decimal[] a = m.get(key);
+        if (a == null) { a = new Decimal[]{ 0, 0, 0 }; m.put(key, a); }
+        a[0] += nz(incentive);
+        a[1] += nz(pct);
+        a[2] += 1;
+    }
+
+    private static List<BreakdownRow> toBreakdownRows(Map<String, Decimal[]> m) {
+        List<BreakdownRow> rows = new List<BreakdownRow>();
+        for (String k : m.keySet()) {
+            Decimal[] a = m.get(k);
+            BreakdownRow r = new BreakdownRow();
+            r.label = k;
+            r.incentive = a[0];
+            r.achievementPct = a[2] > 0 ? (a[1] / a[2]).setScale(1) : 0;
+            rows.add(r);
+        }
+        return rows;
     }
 
     private static Hero buildHero(PBIS_Target__c t) {
@@ -188,7 +237,7 @@ public with sharing class PrimaryKpiDashboard_Controller {
         List<String> fields = new List<String>{
             'Id', 'User__c', 'Total_Incentive_Value__c', 'Max_Incentive_Value__c', 'Is_Eligible__c',
             'Total_Weightage__c', 'Incentive_Period__c', 'Start_Date__c', 'End_Date__c',
-            'Profile__c', 'PBIS_Policy_Name__c'
+            'Profile__c', 'PBIS_Policy_Name__c', 'Sales_Channel__c'
         };
         for (Integer n = 1; n <= SLOTS; n++) {
             fields.add('S_D_Parameter_' + n + '__c');

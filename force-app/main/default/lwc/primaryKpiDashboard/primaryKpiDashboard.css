@@ -155,3 +155,16 @@
     .kpi-panel { padding: 0.5rem 0.65rem; }
     .kpi-header h2 { font-size: 1.05rem; }
 }
+
+/* Breakdown bar rows (Sales Channel wise / S&D Parameter wise) */
+.kpi-bar-row { margin-bottom: 0.75rem; }
+.kpi-bar-row:last-child { margin-bottom: 0; }
+.kpi-bar-row-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    margin-bottom: 0.2rem;
+}
+.kpi-bar-label { color: #16325c; font-weight: 600; }
+.kpi-bar-pct { color: #444; font-weight: 600; }
+.kpi-bar-row-meta { font-size: 0.75rem; color: #706e6b; margin-top: 0.2rem; }
