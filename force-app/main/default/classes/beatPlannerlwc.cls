@@ -3340,9 +3340,31 @@ global with sharing class beatPlannerlwc {
         // Step 9: Insert all Order_Items
         insert allOrderItems;
 
-        // Step 9b: Insert applied-scheme audit rows
+        // Step 9b: Insert applied-scheme audit rows.
+        // Drop stale lookups (a Scheme/Slab/Product deleted after coverage loaded — e.g.
+        // the scheme wizard re-creates slabs on edit) and insert with partial success so
+        // these secondary audit rows can never block the order save.
         if (!allAppliedSchemes.isEmpty()) {
-            insert allAppliedSchemes;
+            Set<Id> schemeRefs = new Set<Id>();
+            Set<Id> slabRefs   = new Set<Id>();
+            Set<Id> prodRefs   = new Set<Id>();
+            for (Order_Scheme_Applied__c osa : allAppliedSchemes) {
+                if (osa.Scheme__c != null)               schemeRefs.add(osa.Scheme__c);
+                if (osa.Scheme_Slab__c != null)          slabRefs.add(osa.Scheme_Slab__c);
+                if (osa.FOC_Giveaway_Product__c != null) prodRefs.add(osa.FOC_Giveaway_Product__c);
+            }
+            Set<Id> liveSchemes = schemeRefs.isEmpty() ? new Set<Id>()
+                : new Map<Id, Scheme__c>([SELECT Id FROM Scheme__c WHERE Id IN :schemeRefs]).keySet();
+            Set<Id> liveSlabs = slabRefs.isEmpty() ? new Set<Id>()
+                : new Map<Id, Scheme_Slab__c>([SELECT Id FROM Scheme_Slab__c WHERE Id IN :slabRefs]).keySet();
+            Set<Id> liveProds = prodRefs.isEmpty() ? new Set<Id>()
+                : new Map<Id, Product__c>([SELECT Id FROM Product__c WHERE Id IN :prodRefs]).keySet();
+            for (Order_Scheme_Applied__c osa : allAppliedSchemes) {
+                if (osa.Scheme__c != null && !liveSchemes.contains(osa.Scheme__c))                         osa.Scheme__c = null;
+                if (osa.Scheme_Slab__c != null && !liveSlabs.contains(osa.Scheme_Slab__c))                 osa.Scheme_Slab__c = null;
+                if (osa.FOC_Giveaway_Product__c != null && !liveProds.contains(osa.FOC_Giveaway_Product__c)) osa.FOC_Giveaway_Product__c = null;
+            }
+            Database.insert(allAppliedSchemes, false);
         }
 
         // Prepare response
