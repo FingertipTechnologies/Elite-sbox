@@ -4,8 +4,7 @@ name: Deploy PBIS Actuals
 # manifest/pbis_task4.xml: the calculation service + batch + scheduler, the
 # quick-action and list-button entry points, the SDParameter_Controller change that
 # aliases the user field as `uid` (needed by the grouped queries), the
-# PBIS_Target.Profile__c formula, the PBIS_Target layout and the PBIS_Target_Admin
-# permission set.
+# PBIS_Target.Profile__c formula and the PBIS_Target layout.
 #
 # Requires Tasks 1-3 and the org-only User fields Monthly_Gross_Salary_INR__c and
 # PBIS_Policy__c to already exist in the target org.

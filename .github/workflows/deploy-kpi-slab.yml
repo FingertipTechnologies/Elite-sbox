@@ -3,7 +3,7 @@ name: Deploy KPI Dashboard + Slab Snapshot
 # On-demand deploy of manifest/pbis_kpi_slab.xml: the per-slot slab-snapshot fields
 # (S_D_Parameter_N_Slab__c + S_D_Parameter_N_Incentive_Percentage__c), PBISActuals_Service
 # that populates them, the Primary/KPI dashboard LWCs + PrimaryKpiDashboard_Controller, the
-# KPI Dashboard tab, and the PBIS_Target_Admin / KPI_Dashboard_Access permission sets.
+# KPI Dashboard tab and the KPI_Dashboard_Access permission set.
 #
 # Requires the existing secondaryKpiDashboard LWC + Tasks 1-4 metadata in the target org.
 # Run from the GitHub UI: Actions -> "Deploy KPI Dashboard + Slab Snapshot" -> Run workflow.

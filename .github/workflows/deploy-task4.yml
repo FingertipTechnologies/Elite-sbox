@@ -3,7 +3,7 @@ name: Deploy PBIS Task 4 (manifest)
 # Manual, on-demand deploy of ONLY the Task 4 (PBIS Actuals & Incentive
 # calculation) metadata listed in manifest/pbis_task4.xml: the calculation
 # service, batch, scheduler, quick-action + list-button entry points, the
-# PBIS_Target.Profile__c formula, the updated layout and PBIS_Target_Admin
+# PBIS_Target.Profile__c formula, and the updated layout
 # permission set. Policy is read from PBIS_Target.PBIS_Policy__c (set in Task 3).
 #
 # Requires Tasks 1-3 and the org-only User field Monthly_Gross_Salary_INR__c to
