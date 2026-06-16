@@ -321,6 +321,40 @@
                         </table>
                     </div>
                 </template>
+                <!-- Report 6: Scheme Issues - Reduced/Disqualified -->
+                <template lwc:if={isSchemeIssues}>
+                    <div class="report-card">
+                        <table class="claim-table">
+                            <thead>
+                                <tr>
+                                    <th class="th-left">S.No</th>
+                                    <th class="th-left">Product Name</th>
+                                    <th class="th-left">Invoice</th>
+                                    <th class="th-right">Qty</th>
+                                    <th class="th-left">Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={displayData} for:item="row">
+                                    <template lwc:if={row.isGroupHeader}>
+                                        <tr key={row.key} class="group-header-row">
+                                            <td colspan="5" class="group-header-cell">{row.label}</td>
+                                        </tr>
+                                    </template>
+                                    <template lwc:if={row.isData}>
+                                        <tr key={row.key} class="data-row">
+                                            <td class="td-left">{row.sno}</td>
+                                            <td class="td-left">{row.productName}</td>
+                                            <td class="td-left">{row.invoiceName}</td>
+                                            <td class="td-right">{row.quantity}</td>
+                                            <td class="td-left">{row.reason}</td>
+                                        </tr>
+                                    </template>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </template>
             </template>
 
             <!-- No Data -->

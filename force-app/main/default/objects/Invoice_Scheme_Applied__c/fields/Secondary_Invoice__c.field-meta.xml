@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Secondary_Invoice__c</fullName>
+    <externalId>false</externalId>
+    <label>Secondary Invoice</label>
+    <referenceTo>Secondary_Invoice__c</referenceTo>
+    <relationshipLabel>Invoice Scheme Applied</relationshipLabel>
+    <relationshipName>Invoice_Item_Schemes</relationshipName>
+    <relationshipOrder>0</relationshipOrder>
+    <reparentableMasterDetail>false</reparentableMasterDetail>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>MasterDetail</type>
+    <writeRequiresMasterRead>false</writeRequiresMasterRead>
+</CustomField>

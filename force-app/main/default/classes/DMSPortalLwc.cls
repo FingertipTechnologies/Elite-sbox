@@ -1709,7 +1709,225 @@ public without sharing class DMSPortalLwc {
         // Step 7: Return parent invoice ID
         return parentInvoiceId;
     }
-    
+
+    // ==================== Order -> Invoice (scheme re-evaluation) ====================
+    // Engine-ready payload for the secondaryOrders invoice wizard: the order's items
+    // (seeded at pending-to-invoice quantity), the account's running scheme coverage,
+    // and the set of products that carried a scheme on the source order (to detect
+    // "issues" when an invoiced quantity drops below a scheme threshold).
+    public class InvoiceBuilderData {
+        @AuraEnabled public List<Map<String, Object>> items;
+        @AuraEnabled public beatPlannerlwc.CoverageDto coverage;
+        @AuraEnabled public List<Id> orderSchemeProductIds;
+        @AuraEnabled public String beatName;
+        @AuraEnabled public String gstNumber;
+        @AuraEnabled public Id accountId;
+    }
+
+    @AuraEnabled
+    public static InvoiceBuilderData getOrderItemsForInvoice(String orderId) {
+        InvoiceBuilderData out = new InvoiceBuilderData();
+        out.items = new List<Map<String, Object>>();
+        out.orderSchemeProductIds = new List<Id>();
+
+        Id accountId;
+        User u = [SELECT ContactId FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
+        if (u.ContactId != null) {
+            accountId = [SELECT AccountId FROM Contact WHERE Id = :u.ContactId LIMIT 1].AccountId;
+        }
+        out.accountId = accountId;
+
+        String beatName = '';
+        String gstNumber = '';
+        Id customerAccountId;
+        List<Order__c> orderList = [
+            SELECT Beat_Name_New__c, Account__c, Account__r.GST_Number__c
+            FROM Order__c WHERE Id = :orderId LIMIT 1
+        ];
+        if (!orderList.isEmpty()) {
+            if (orderList[0].Beat_Name_New__c != null) beatName = orderList[0].Beat_Name_New__c;
+            if (orderList[0].Account__r.GST_Number__c != null) gstNumber = orderList[0].Account__r.GST_Number__c;
+            customerAccountId = orderList[0].Account__c;
+        }
+        out.beatName = beatName;
+        out.gstNumber = gstNumber;
+
+        List<Order_Item__c> ordList = [
+            SELECT Id, Name, Product__c, Product__r.Name, Product__r.Net_Weight__c,
+                   Product__r.Product_Sub_Group__c, Product__r.Product_Category1__c,
+                   Quantity__c, Unit_Price__c, Tax__c, Tax_Percent__c,
+                   Secondary_Invoice_Pending_Quantity__c,
+                   Before_Category_Slab_Unit_Price__c, After_Category_Slab_Unit_Price__c,
+                   Before_Scheme_Unit_Price__c, After_Scheme_Unit_Price__c
+            FROM Order_Item__c
+            WHERE Order__c = :orderId
+        ];
+
+        Set<String> productNames = new Set<String>();
+        for (Order_Item__c oi : ordList) {
+            if (oi.Product__r.Name != null) productNames.add(oi.Product__r.Name);
+        }
+        Map<String, Decimal> stockMap = new Map<String, Decimal>();
+        for (Distributor_Stock__c ds : [
+            SELECT Product_Name__c, Available_Saleable_Quantity__c
+            FROM Distributor_Stock__c
+            WHERE Distributor__c = :accountId AND Product_Name__c IN :productNames
+        ]) {
+            stockMap.put(ds.Product_Name__c, ds.Available_Saleable_Quantity__c);
+        }
+
+        for (Order_Item__c item : ordList) {
+            Decimal pendingQty = item.Secondary_Invoice_Pending_Quantity__c != null
+                ? item.Secondary_Invoice_Pending_Quantity__c : 0;
+            // Scheme-engine base price = the post-category-slab, pre-scheme unit price.
+            Decimal baseScheme = item.Before_Scheme_Unit_Price__c != null
+                ? item.Before_Scheme_Unit_Price__c
+                : (item.After_Category_Slab_Unit_Price__c != null
+                    ? item.After_Category_Slab_Unit_Price__c
+                    : (item.Unit_Price__c != null ? item.Unit_Price__c : 0));
+            Decimal taxPer = item.Tax__c != null ? item.Tax__c
+                : (item.Tax_Percent__c != null ? item.Tax_Percent__c : 0);
+
+            Map<String, Object> row = new Map<String, Object>();
+            row.put('orderItemId', item.Id);
+            row.put('id', item.Product__c);
+            row.put('name', item.Product__r.Name);
+            row.put('value', pendingQty);
+            row.put('orderedQty', item.Quantity__c);
+            row.put('UnitPricePriceBook', baseScheme);
+            row.put('taxPercent', taxPer);
+            row.put('subGroup', item.Product__r.Product_Sub_Group__c);
+            row.put('proCate', item.Product__r.Product_Category1__c);
+            row.put('netWeight', item.Product__r.Net_Weight__c);
+            // Quantity-independent category-slab unit prices carry through unchanged.
+            row.put('beforeCategorySlabUnitPrice', item.Before_Category_Slab_Unit_Price__c);
+            row.put('afterCategorySlabUnitPrice', item.After_Category_Slab_Unit_Price__c);
+            row.put('beforeSchemeUnitPrice', baseScheme);
+            row.put('availableQuantity',
+                stockMap.containsKey(item.Product__r.Name) ? stockMap.get(item.Product__r.Name) : 0);
+            out.items.add(row);
+        }
+
+        // Running scheme coverage for the account (same input productScreen4 uses).
+        if (customerAccountId != null) {
+            out.coverage = beatPlannerlwc.getSchemeCoverageForAccount(customerAccountId);
+        }
+
+        // Products that carried a scheme on the source order.
+        Set<Id> schemeProductIds = new Set<Id>();
+        for (Order_Scheme_Applied__c osa : [
+            SELECT Order_Item__r.Product__c
+            FROM Order_Scheme_Applied__c
+            WHERE Order_Request__c = :orderId AND Order_Item__c != null
+        ]) {
+            if (osa.Order_Item__r.Product__c != null) schemeProductIds.add(osa.Order_Item__r.Product__c);
+        }
+        out.orderSchemeProductIds.addAll(schemeProductIds);
+        return out;
+    }
+
+    @AuraEnabled
+    public static Id saveSecondaryInvoiceWithSchemes(
+        List<Secondary_Invoice__c> invoices,
+        List<Secondary_Invoice_Item__c> items,
+        String appliedSchemesJson
+    ) {
+        // Reuse the core save (header + stock + items). Items already carry the
+        // engine-recomputed Before/After scheme prices and Scheme_Issue__c flags.
+        Id parentInvoiceId = saveSecondaryInvoice(invoices, items);
+
+        if (String.isBlank(appliedSchemesJson)) return parentInvoiceId;
+
+        // Map productId -> inserted invoice item (one line per product on the invoice).
+        Map<String, Id> lineByProduct = new Map<String, Id>();
+        for (Secondary_Invoice_Item__c it : items) {
+            if (it.Product__c != null) lineByProduct.put(String.valueOf(it.Product__c), it.Id);
+        }
+
+        List<Object> applied;
+        try {
+            applied = (List<Object>) JSON.deserializeUntyped(appliedSchemesJson);
+        } catch (Exception e) {
+            return parentInvoiceId;
+        }
+
+        List<Invoice_Scheme_Applied__c> rows = new List<Invoice_Scheme_Applied__c>();
+        for (Object ao : applied) {
+            if (!(ao instanceof Map<String, Object>)) continue;
+            Map<String, Object> a = (Map<String, Object>) ao;
+            Invoice_Scheme_Applied__c isa = new Invoice_Scheme_Applied__c();
+            isa.Secondary_Invoice__c = parentInvoiceId;
+            isa.Scheme__c            = toId(a.get('schemeId'));
+            isa.Scheme_Slab__c       = toId(a.get('slabId'));
+            isa.Scheme_Type__c       = (String) a.get('schemeType');
+            isa.Free_Qty__c          = toDecimal(a.get('freeQty'));
+            isa.Benefit_Amount__c    = toDecimal(a.get('benefitAmount'));
+            isa.Discount_Percent__c  = toDecimal(a.get('discountPercent'));
+            isa.Sequence__c          = toDecimal(a.get('sequence'));
+            isa.FOC_Giveaway_Product__c = toId(a.get('focProductId'));
+            isa.Descritption__c      = (String) a.get('description');
+            Object pid = a.get('productId');
+            if (pid != null && lineByProduct.containsKey(String.valueOf(pid))) {
+                isa.Secondary_Invoice_Item__c = lineByProduct.get(String.valueOf(pid));
+            }
+            isa.Name = (a.get('schemeType') != null ? (String) a.get('schemeType') : 'Scheme');
+            rows.add(isa);
+        }
+        if (!rows.isEmpty()) Database.insert(rows, false);
+        return parentInvoiceId;
+    }
+
+    private static Id toId(Object v) {
+        if (v == null) return null;
+        String s = String.valueOf(v);
+        return String.isBlank(s) ? null : (Id) s;
+    }
+    private static Decimal toDecimal(Object v) {
+        if (v == null) return null;
+        try { return Decimal.valueOf(String.valueOf(v)); } catch (Exception e) { return null; }
+    }
+
+    // Scheme Issues report: invoice lines where a previously-applied scheme no longer
+    // qualifies at the invoiced quantity (flagged at save time).
+    @AuraEnabled
+    public static List<ClaimReportItem> getSchemeIssueReport(String fromDate, String toDate) {
+        Id accountId;
+        User u = [SELECT ContactId FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
+        if (u.ContactId != null) {
+            accountId = [SELECT AccountId FROM Contact WHERE Id = :u.ContactId LIMIT 1].AccountId;
+        }
+        Date frmDate = Date.valueOf(fromDate);
+        Date toDateVal = Date.valueOf(toDate);
+
+        List<ClaimReportItem> result = new List<ClaimReportItem>();
+        for (Secondary_Invoice_Item__c item : [
+            SELECT Product__r.Name, Quantity__c, Scheme_Issue_Reason__c,
+                   Before_Scheme_Unit_Price__c, After_Scheme_Unit_Price__c, Total_Amount__c,
+                   Secondary_Invoice__r.Name, Secondary_Invoice__r.Customer__r.Name,
+                   Secondary_Invoice__r.Secondary_Customer_Category__c
+            FROM Secondary_Invoice_Item__c
+            WHERE Secondary_Invoice__r.Store__c = :accountId
+            AND Secondary_Invoice__r.Invoice_Date__c >= :frmDate
+            AND Secondary_Invoice__r.Invoice_Date__c <= :toDateVal
+            AND Scheme_Issue__c = true
+            ORDER BY Secondary_Invoice__r.Customer__r.Name, Product__r.Name
+        ]) {
+            ClaimReportItem r = new ClaimReportItem();
+            r.category = item.Secondary_Invoice__r.Secondary_Customer_Category__c;
+            r.customerName = item.Secondary_Invoice__r.Customer__r.Name;
+            r.invoiceName = item.Secondary_Invoice__r.Name;
+            r.productName = item.Product__r.Name;
+            r.beforePrice = item.Before_Scheme_Unit_Price__c;
+            r.afterPrice = item.After_Scheme_Unit_Price__c;
+            r.quantity = item.Quantity__c;
+            r.claimAmount = 0;
+            r.totalAmount = item.Total_Amount__c;
+            r.reason = item.Scheme_Issue_Reason__c;
+            result.add(r);
+        }
+        return result;
+    }
+
     // Fetch active products (renamed to avoid conflict)
     @AuraEnabled(cacheable=true)
     public static List<ProductWrapper> getActiveProducts() {
@@ -3286,6 +3504,8 @@ public without sharing class DMSPortalLwc {
         @AuraEnabled public Decimal afterSchemePrice;
         @AuraEnabled public Decimal schemeClaimAmount;
         @AuraEnabled public Decimal totalClaimAmount;
+        @AuraEnabled public String reason;
+        @AuraEnabled public String invoiceName;
     }
 
     @AuraEnabled
