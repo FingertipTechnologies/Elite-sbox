@@ -46,8 +46,11 @@
                                 <td>{item.rowIndex}</td>
                                 <td>{item.name}</td>
                                 <td>
-                                    <template if:true={item.hasScheme}>
-                                        <span class="so-badge so-badge--scheme">{item.schemeBadge}</span>
+                                    <template for:each={item.appliedChips} for:item="ch">
+                                        <span key={ch.key} class="so-badge so-badge--scheme">🎁 {ch.name}</span>
+                                    </template>
+                                    <template for:each={item.eligibleChips} for:item="ch">
+                                        <span key={ch.key} class="so-badge so-badge--eligible">{ch.name}</span>
                                     </template>
                                 </td>
                                 <td>

@@ -100,19 +100,43 @@ export default class SecondaryOrders extends LightningElement {
 
     // Screen-1 cart rows (with display fields layered over engine items)
     get cartItems() {
+        const schemeNameById = {};
+        (this.coverageSchemes || []).forEach(s => { schemeNameById[String(s.id)] = s.name; });
         return this.productData.map((p, idx) => {
             const qty = Number(p.value) || 0;
             const unit = Number(p.discountedUnitPrice != null ? p.discountedUnitPrice : p.UnitPricePriceBook) || 0;
             const taxAmt = this._round2(unit * qty * (Number(p.taxPercent) || 0) / 100);
             const total = this._round2(unit * qty + taxAmt);
+
+            // Schemes APPLIED to this line (Free Quantity / QPS / FOC Giveaway carry a productId).
+            const appliedNames = new Set();
+            (this.appliedSchemeRecords || []).forEach(r => {
+                if (r.productId && String(r.productId) === String(p.id)) {
+                    appliedNames.add(schemeNameById[String(r.schemeId)] || r.schemeType);
+                }
+            });
+            const appliedChips = [...appliedNames].map((n, i) => ({ key: 'a-' + idx + '-' + i, name: n }));
+
+            // Schemes the product is ELIGIBLE for but not currently applied (group + Category Value).
+            const eligibleChips = [];
+            (this.coverageSchemes || []).forEach((s, i) => {
+                if (s.schemeType === 'Order Value') return; // whole-order, shown on Schemes tab
+                const inGroup = (s.groupProductIds || []).map(String).includes(String(p.id));
+                const inCat = s.productCategory && p.subGroup && s.productCategory === p.subGroup;
+                if ((inGroup || inCat) && !appliedNames.has(s.name)) {
+                    eligibleChips.push({ key: 'e-' + idx + '-' + i, name: s.name });
+                }
+            });
+
             return {
                 ...p,
                 rowIndex: idx + 1,
                 displayUnit: unit.toFixed(2),
                 displayTax: taxAmt.toFixed(2),
                 displayTotal: total.toFixed(2),
-                schemeBadge: p.appliedScheme ? '🎁 Scheme applied' : '',
-                hasScheme: !!p.appliedScheme
+                appliedChips: appliedChips,
+                eligibleChips: eligibleChips,
+                hasScheme: appliedChips.length > 0
             };
         });
     }
