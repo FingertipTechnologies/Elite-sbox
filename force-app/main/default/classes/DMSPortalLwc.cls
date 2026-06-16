@@ -1808,12 +1808,13 @@ public without sharing class DMSPortalLwc {
             out.items.add(row);
         }
 
-        // Running scheme coverage for the account (same input productScreen4 uses). Runs
-        // without sharing inside beatPlannerlwc; degrade to empty coverage on any failure so
-        // the invoice screen still loads.
+        // Running scheme coverage for the account (same shape productScreen4 uses). Computed
+        // locally WITHOUT sharing (this class is without sharing) so portal/distributor users
+        // who lack row visibility to the store Account / Product_Mapping can still load schemes.
+        // Degrade to empty coverage on any failure so the invoice screen still loads.
         if (customerAccountId != null) {
             try {
-                out.coverage = beatPlannerlwc.getSchemeCoverageForAccount(customerAccountId);
+                out.coverage = getSchemeCoverageWS(customerAccountId);
             } catch (Exception e) {
                 out.coverage = null;
             }
@@ -1891,6 +1892,293 @@ public without sharing class DMSPortalLwc {
     private static Decimal toDecimal(Object v) {
         if (v == null) return null;
         try { return Decimal.valueOf(String.valueOf(v)); } catch (Exception e) { return null; }
+    }
+
+    // ===== WITHOUT-SHARING scheme coverage =====
+    // Self-contained copy of beatPlannerlwc's scheme-coverage logic, kept here so beatPlannerlwc
+    // stays untouched. Because DMSPortalLwc is 'without sharing', these queries bypass sharing for
+    // portal/distributor users (who lack row visibility to the store Account / Product_Mapping).
+    // Pure helpers (anyMatch / buildSlabRows / formatDdMmYyyy) and the Coverage* DTOs are reused
+    // from beatPlannerlwc; only its private logic is duplicated below.
+    private class AccountGeoWS {
+        Set<String> regions      = new Set<String>();
+        Set<String> areas        = new Set<String>();
+        Set<String> territoryIds = new Set<String>();
+    }
+
+    private static beatPlannerlwc.CoverageDto getSchemeCoverageWS(Id accountId) {
+        beatPlannerlwc.CoverageDto out = new beatPlannerlwc.CoverageDto();
+        out.schemes = new List<beatPlannerlwc.CoverageScheme>();
+        out.productSchemeIds = new Map<Id, List<Id>>();
+        if (accountId == null) return out;
+
+        List<Account> accs = [
+            SELECT Id, Secondary_Customer_Category__c, Customer_Type__c
+            FROM Account WHERE Id = :accountId LIMIT 1
+        ];
+        if (accs.isEmpty()) return out;
+        Account acc = accs[0];
+        // These schemes apply ONLY to Secondary Customers
+        if (acc.Customer_Type__c != 'Secondary Customer') return out;
+
+        Id currentUserId = UserInfo.getUserId();
+        User us = [SELECT Id, Sales_Channel__c, Alternate_Sales_Channel__c
+                   FROM User WHERE Id = :currentUserId];
+        Set<String> salesChannelList = new Set<String>();
+        if (us.Alternate_Sales_Channel__c != null) {
+            salesChannelList.addAll(us.Alternate_Sales_Channel__c.split(';'));
+        } else if (us.Sales_Channel__c != null) {
+            salesChannelList.addAll(us.Sales_Channel__c.split(';'));
+        }
+
+        Set<String> channelSet = getSecondaryCustomerChannelsWS(accountId, currentUserId, salesChannelList);
+        if (channelSet.isEmpty()) channelSet = salesChannelList;
+
+        AccountGeoWS geo = getSecondaryCustomerGeoWS(accountId, currentUserId, salesChannelList);
+        if (geo == null) return out;   // no Product_Mapping at all -> no schemes
+
+        Date today = Date.today();
+        List<Scheme__c> candidates = [
+            SELECT Id, Name, Scheme_Type__c, Sales_Channel__c,
+            Scheme_Start_Date__c, Scheme_End_Date__c,
+            Scheme_Product_Group__c, Scheme_Product_Group__r.Name,
+            Scheme_Product_Category__c,
+            Apply_to_All_Regions__c, Apply_to_All_Areas__c,
+            Apply_to_All_Territories__c, Apply_to_All_Outlet_Categories__c
+            FROM Scheme__c
+            WHERE IsActive__c = true
+            AND Scheme_Start_Date__c <= :today
+            AND Scheme_End_Date__c >= :today
+            AND Sales_Channel__c IN :channelSet
+        ];
+        if (candidates.isEmpty()) return out;
+
+        Set<Id> schemeIds = new Set<Id>();
+        for (Scheme__c s : candidates) schemeIds.add(s.Id);
+
+        Map<Id, Map<String, Set<String>>> appByScheme = new Map<Id, Map<String, Set<String>>>();
+        for (Scheme_Applicability__c r : [
+            SELECT Scheme__c, Level__c, Value_Text__c, Value_Lookup__c
+            FROM Scheme_Applicability__c
+            WHERE Scheme__c IN :schemeIds
+        ]) {
+            if (!appByScheme.containsKey(r.Scheme__c)) {
+                appByScheme.put(r.Scheme__c, new Map<String, Set<String>>());
+            }
+            Map<String, Set<String>> lvls = appByScheme.get(r.Scheme__c);
+            if (!lvls.containsKey(r.Level__c)) lvls.put(r.Level__c, new Set<String>());
+            String v = (r.Value_Lookup__c != null) ? String.valueOf(r.Value_Lookup__c) : r.Value_Text__c;
+            if (v != null) lvls.get(r.Level__c).add(v);
+        }
+
+        List<Scheme__c> matched = new List<Scheme__c>();
+        Set<Id> matchedGroupIds = new Set<Id>();
+        for (Scheme__c s : candidates) {
+            if (s.Scheme_Product_Group__c == null && String.isBlank(s.Scheme_Product_Category__c) && s.Scheme_Type__c != 'Order Value') continue;
+            Map<String, Set<String>> lvls = appByScheme.containsKey(s.Id) ? appByScheme.get(s.Id) : new Map<String, Set<String>>();
+
+            Boolean regionOk = s.Apply_to_All_Regions__c == true
+                || (lvls.containsKey('Region')   && beatPlannerlwc.anyMatch(lvls.get('Region'),   geo.regions));
+
+            Boolean areaOk = s.Apply_to_All_Areas__c == true
+                || (lvls.containsKey('Area')     && beatPlannerlwc.anyMatch(lvls.get('Area'),     geo.areas));
+
+            Boolean territoryOk = s.Apply_to_All_Territories__c == true
+                || (lvls.containsKey('Territory') && beatPlannerlwc.anyMatch(lvls.get('Territory'), geo.territoryIds));
+
+            Boolean outletOk = s.Apply_to_All_Outlet_Categories__c == true
+                || acc.Secondary_Customer_Category__c == null
+                || (lvls.containsKey('Outlet Category') && lvls.get('Outlet Category').contains(acc.Secondary_Customer_Category__c));
+
+            if (regionOk && outletOk && areaOk && territoryOk) {
+                matched.add(s);
+                if (s.Scheme_Product_Group__c != null) matchedGroupIds.add(s.Scheme_Product_Group__c);
+            }
+        }
+        if (matched.isEmpty()) return out;
+
+        Map<Id, List<beatPlannerlwc.CoverageProductRef>> productsByGroup = new Map<Id, List<beatPlannerlwc.CoverageProductRef>>();
+        for (Scheme_Product_Group_Item__c it : [
+            SELECT Scheme_Product_Group__c, Product__c, Product__r.Name, Product__r.SKU_Code__c
+            FROM Scheme_Product_Group_Item__c
+            WHERE Scheme_Product_Group__c IN :matchedGroupIds
+            ORDER BY Product__r.Name
+        ]) {
+            if (it.Product__c == null) continue;
+            if (!productsByGroup.containsKey(it.Scheme_Product_Group__c)) {
+                productsByGroup.put(it.Scheme_Product_Group__c, new List<beatPlannerlwc.CoverageProductRef>());
+            }
+            beatPlannerlwc.CoverageProductRef p = new beatPlannerlwc.CoverageProductRef();
+            p.id   = it.Product__c;
+            p.name = it.Product__r.Name;
+            p.sku  = it.Product__r.SKU_Code__c;
+            productsByGroup.get(it.Scheme_Product_Group__c).add(p);
+        }
+
+        Set<Id> matchedSchemeIds = new Set<Id>();
+        for (Scheme__c m : matched) matchedSchemeIds.add(m.Id);
+        Map<Id, List<Scheme_Slab__c>> slabsByScheme = new Map<Id, List<Scheme_Slab__c>>();
+        Set<Id> focProductIds = new Set<Id>();
+        for (Scheme_Slab__c sl : [
+            SELECT Id, Scheme__c, Slab_Sequence__c, Slab_Type__c,
+            Qualifying_Qty_Min__c, Qualifying_Qty_Max__c,
+            Qualifying_Value_Min__c, Qualifying_Value_Max__c,
+            Free_Qty__c, Benefit_Amount_Per_EA__c, Benefit_Percent__c,
+            FOC_Product__c, FOC_Product__r.Name
+            FROM Scheme_Slab__c
+            WHERE Scheme__c IN :matchedSchemeIds
+            ORDER BY Slab_Sequence__c ASC NULLS LAST, CreatedDate ASC
+        ]) {
+            if (!slabsByScheme.containsKey(sl.Scheme__c)) slabsByScheme.put(sl.Scheme__c, new List<Scheme_Slab__c>());
+            slabsByScheme.get(sl.Scheme__c).add(sl);
+            if (sl.FOC_Product__c != null) focProductIds.add(sl.FOC_Product__c);
+        }
+
+        Map<Id, Product__c> focProducts = new Map<Id, Product__c>();
+        if (!focProductIds.isEmpty()) {
+            focProducts = new Map<Id, Product__c>([
+                SELECT Id, Tax_Percent__c, List_Price__c, Price__c, MRP__c
+                FROM Product__c WHERE Id IN :focProductIds
+            ]);
+        }
+
+        for (Scheme__c s : matched) {
+            beatPlannerlwc.CoverageScheme cs = new beatPlannerlwc.CoverageScheme();
+            cs.id               = s.Id;
+            cs.name             = s.Name;
+            cs.schemeType       = s.Scheme_Type__c;
+            cs.salesChannel     = s.Sales_Channel__c;
+            cs.startDate        = s.Scheme_Start_Date__c;
+            cs.endDate          = s.Scheme_End_Date__c;
+            cs.validLabel       = beatPlannerlwc.formatDdMmYyyy(s.Scheme_Start_Date__c) + ' to ' + beatPlannerlwc.formatDdMmYyyy(s.Scheme_End_Date__c);
+            cs.productGroupId   = s.Scheme_Product_Group__c;
+            cs.productGroupName = s.Scheme_Product_Group__r == null ? null : s.Scheme_Product_Group__r.Name;
+            cs.productCategory  = s.Scheme_Product_Category__c;
+            cs.products         = productsByGroup.containsKey(s.Scheme_Product_Group__c)
+                ? productsByGroup.get(s.Scheme_Product_Group__c)
+                : new List<beatPlannerlwc.CoverageProductRef>();
+            cs.slabRows         = beatPlannerlwc.buildSlabRows(s.Scheme_Type__c, slabsByScheme.get(s.Id));
+            cs.groupProductIds  = new List<Id>();
+            for (beatPlannerlwc.CoverageProductRef p : cs.products) cs.groupProductIds.add(p.id);
+            cs.slabsRaw         = buildSlabsRawWS(slabsByScheme.get(s.Id), focProducts);
+            out.schemes.add(cs);
+            for (beatPlannerlwc.CoverageProductRef p : cs.products) {
+                if (!out.productSchemeIds.containsKey(p.id)) out.productSchemeIds.put(p.id, new List<Id>());
+                out.productSchemeIds.get(p.id).add(s.Id);
+            }
+        }
+        return out;
+    }
+
+    // Primary->channel resolver (copy of beatPlannerlwc.getSecondaryCustomerChannels).
+    private static Set<String> getSecondaryCustomerChannelsWS(String accountId, Id currentUserId, Set<String> salesChannelList) {
+        Set<String> channelSet = new Set<String>();
+        List<Product_Mapping__c> secondaryMappings = [
+            SELECT Primary_Customer__c
+            FROM Product_Mapping__c
+            WHERE Customer__c = :accountId
+            AND Exectuive__c = :currentUserId
+        ];
+        if (secondaryMappings.isEmpty()) {
+            secondaryMappings = [
+                SELECT Primary_Customer__c
+                FROM Product_Mapping__c
+                WHERE Customer__c = :accountId
+                AND Exectuive__r.Sales_Channel__c IN :salesChannelList
+            ];
+        }
+        Set<String> primaryCustomerIds = new Set<String>();
+        for (Product_Mapping__c prodMap : secondaryMappings) {
+            if (prodMap.Primary_Customer__c != null) {
+                primaryCustomerIds.add(prodMap.Primary_Customer__c);
+            }
+        }
+        if (primaryCustomerIds.isEmpty()) {
+            return channelSet;
+        }
+        List<Product_Mapping__c> primaryChannelMappings = [
+            SELECT Chanel__c
+            FROM Product_Mapping__c
+            WHERE Customer__c IN :primaryCustomerIds
+            AND Chanel__c IN :salesChannelList
+            AND Exectuive__c = :currentUserId
+        ];
+        if (primaryChannelMappings.isEmpty()) {
+            primaryChannelMappings = [
+                SELECT Chanel__c
+                FROM Product_Mapping__c
+                WHERE Customer__c IN :primaryCustomerIds
+                AND Chanel__c IN :salesChannelList
+            ];
+        }
+        for (Product_Mapping__c prodMap : primaryChannelMappings) {
+            if (prodMap.Chanel__c != null) {
+                channelSet.add(prodMap.Chanel__c);
+            }
+        }
+        return channelSet;
+    }
+
+    // Region/Area/Territory resolver (copy of beatPlannerlwc.getSecondaryCustomerGeo).
+    private static AccountGeoWS getSecondaryCustomerGeoWS(Id accountId, Id currentUserId, Set<String> salesChannelList) {
+        List<Product_Mapping__c> mappings = [
+            SELECT Area__c, Area_Area_Name__c, Region_Name__c
+            FROM Product_Mapping__c
+            WHERE Customer__c = :accountId AND Exectuive__c = :currentUserId
+        ];
+        if (mappings.isEmpty()) {
+            mappings = [
+                SELECT Area__c, Area_Area_Name__c, Region_Name__c
+                FROM Product_Mapping__c
+                WHERE Customer__c = :accountId
+                AND Exectuive__r.Sales_Channel__c IN :salesChannelList
+            ];
+        }
+        if (mappings.isEmpty()) return null;
+        AccountGeoWS geo = new AccountGeoWS();
+        for (Product_Mapping__c pm : mappings) {
+            if (String.isNotBlank(pm.Region_Name__c))    geo.regions.add(pm.Region_Name__c);
+            if (String.isNotBlank(pm.Area_Area_Name__c)) geo.areas.add(pm.Area_Area_Name__c);
+            if (pm.Area__c != null)                      geo.territoryIds.add(String.valueOf(pm.Area__c));
+        }
+        return geo;
+    }
+
+    // FOC price fallback (copy of beatPlannerlwc.resolveFocPrice).
+    private static Decimal resolveFocPriceWS(Product__c p) {
+        if (p == null) return 0;
+        if (p.List_Price__c != null && p.List_Price__c > 0) return p.List_Price__c;
+        if (p.Price__c != null && p.Price__c > 0) return p.Price__c;
+        if (p.MRP__c != null) return p.MRP__c;
+        return 0;
+    }
+
+    // Raw slab data for the JS engine (copy of beatPlannerlwc.buildSlabsRaw).
+    private static List<beatPlannerlwc.CoverageSlabRaw> buildSlabsRawWS(List<Scheme_Slab__c> slabs, Map<Id, Product__c> focProducts) {
+        List<beatPlannerlwc.CoverageSlabRaw> rows = new List<beatPlannerlwc.CoverageSlabRaw>();
+        if (slabs == null || slabs.isEmpty()) return rows;
+        for (Scheme_Slab__c sl : slabs) {
+            beatPlannerlwc.CoverageSlabRaw r = new beatPlannerlwc.CoverageSlabRaw();
+            r.slabId          = sl.Id;
+            r.seq             = sl.Slab_Sequence__c;
+            r.slabType        = sl.Slab_Type__c;
+            r.qtyMin          = sl.Qualifying_Qty_Min__c;
+            r.qtyMax          = sl.Qualifying_Qty_Max__c;
+            r.valMin          = sl.Qualifying_Value_Min__c;
+            r.valMax          = sl.Qualifying_Value_Max__c;
+            r.freeQty         = sl.Free_Qty__c;
+            r.benefitAmtPerEA = sl.Benefit_Amount_Per_EA__c;
+            r.benefitPercent  = sl.Benefit_Percent__c;
+            r.focProductId    = sl.FOC_Product__c;
+            r.focProductName  = sl.FOC_Product__r == null ? null : sl.FOC_Product__r.Name;
+            if (sl.FOC_Product__c != null && focProducts != null && focProducts.containsKey(sl.FOC_Product__c)) {
+                Product__c fp  = focProducts.get(sl.FOC_Product__c);
+                r.focUnitPrice = resolveFocPriceWS(fp);
+                r.focTaxPercent = fp.Tax_Percent__c;
+            }
+            rows.add(r);
+        }
+        return rows;
     }
 
     // Scheme Issues report: invoice lines where a previously-applied scheme no longer

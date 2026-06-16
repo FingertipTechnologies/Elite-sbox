@@ -2244,26 +2244,15 @@ global with sharing class beatPlannerlwc {
     //Getting Schemes
     @AuraEnabled(cacheable=true)
     global static CoverageDto getSchemeCoverageForAccount(Id accountId) {
-        return new CoverageEngine().run(accountId);
-    }
-
-    // Runs scheme-coverage WITHOUT sharing so DMS portal/distributor users (who lack row
-    // visibility to the store Account / Product_Mapping) can load scheme coverage. The SOQL
-    // resolvers are duplicated inside this class so their queries also bypass sharing; pure
-    // (no-SOQL) helpers and DTOs are reused from the enclosing class.
-    public without sharing class CoverageEngine {
-        public CoverageDto run(Id accountId) {
         CoverageDto out = new CoverageDto();
         out.schemes = new List<CoverageScheme>();
         out.productSchemeIds = new Map<Id, List<Id>>();
         if (accountId == null) return out;
-
-        List<Account> accs = [
+        
+        Account acc = [
             SELECT Id, Secondary_Customer_Category__c, Customer_Type__c
             FROM Account WHERE Id = :accountId LIMIT 1
         ];
-        if (accs.isEmpty()) return out;
-        Account acc = accs[0];
         // These schemes apply ONLY to Secondary Customers
         if (acc.Customer_Type__c != 'Secondary Customer') return out;
 
@@ -2419,84 +2408,8 @@ global with sharing class beatPlannerlwc {
             }
         }
         return out;
-        }
-
-        // WITHOUT-SHARING copy of getSecondaryCustomerChannels (the outer static stays for the
-        // order-data path; this copy lets the queries run without sharing for portal users).
-        private Set<String> getSecondaryCustomerChannels(String accountId, Id currentUserId, Set<String> salesChannelList) {
-            Set<String> channelSet = new Set<String>();
-            List<Product_Mapping__c> secondaryMappings = [
-                SELECT Primary_Customer__c
-                FROM Product_Mapping__c
-                WHERE Customer__c = :accountId
-                AND Exectuive__c = :currentUserId
-            ];
-            if (secondaryMappings.isEmpty()) {
-                secondaryMappings = [
-                    SELECT Primary_Customer__c
-                    FROM Product_Mapping__c
-                    WHERE Customer__c = :accountId
-                    AND Exectuive__r.Sales_Channel__c IN :salesChannelList
-                ];
-            }
-            Set<String> primaryCustomerIds = new Set<String>();
-            for (Product_Mapping__c prodMap : secondaryMappings) {
-                if (prodMap.Primary_Customer__c != null) {
-                    primaryCustomerIds.add(prodMap.Primary_Customer__c);
-                }
-            }
-            if (primaryCustomerIds.isEmpty()) {
-                return channelSet;
-            }
-            List<Product_Mapping__c> primaryChannelMappings = [
-                SELECT Chanel__c
-                FROM Product_Mapping__c
-                WHERE Customer__c IN :primaryCustomerIds
-                AND Chanel__c IN :salesChannelList
-                AND Exectuive__c = :currentUserId
-            ];
-            if (primaryChannelMappings.isEmpty()) {
-                primaryChannelMappings = [
-                    SELECT Chanel__c
-                    FROM Product_Mapping__c
-                    WHERE Customer__c IN :primaryCustomerIds
-                    AND Chanel__c IN :salesChannelList
-                ];
-            }
-            for (Product_Mapping__c prodMap : primaryChannelMappings) {
-                if (prodMap.Chanel__c != null) {
-                    channelSet.add(prodMap.Chanel__c);
-                }
-            }
-            return channelSet;
-        }
-
-        // WITHOUT-SHARING copy of getSecondaryCustomerGeo. Returns the enclosing class's AccountGeo.
-        private AccountGeo getSecondaryCustomerGeo(Id accountId, Id currentUserId, Set<String> salesChannelList) {
-            List<Product_Mapping__c> mappings = [
-                SELECT Area__c, Area_Area_Name__c, Region_Name__c
-                FROM Product_Mapping__c
-                WHERE Customer__c = :accountId AND Exectuive__c = :currentUserId
-            ];
-            if (mappings.isEmpty()) {
-                mappings = [
-                    SELECT Area__c, Area_Area_Name__c, Region_Name__c
-                    FROM Product_Mapping__c
-                    WHERE Customer__c = :accountId
-                    AND Exectuive__r.Sales_Channel__c IN :salesChannelList
-                ];
-            }
-            if (mappings.isEmpty()) return null;
-            AccountGeo geo = new AccountGeo();
-            for (Product_Mapping__c pm : mappings) {
-                if (String.isNotBlank(pm.Region_Name__c))    geo.regions.add(pm.Region_Name__c);
-                if (String.isNotBlank(pm.Area_Area_Name__c)) geo.areas.add(pm.Area_Area_Name__c);
-                if (pm.Area__c != null)                      geo.territoryIds.add(String.valueOf(pm.Area__c));
-            }
-            return geo;
-        }
     }
-
+    
     private class AccountGeo {
         Set<String> regions      = new Set<String>();
         Set<String> areas        = new Set<String>();
