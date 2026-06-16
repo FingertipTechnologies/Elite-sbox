@@ -8,26 +8,17 @@
     onClickAction:function(component, event, helper) {
         var msg = event.getParam("message");
         if(msg == 'close' || msg == 'Done'){
-            // Navigate to the Order Today list view. Use force:navigateToList (loads
-            // the list fresh) when we have the ListView Id; otherwise fall back to the
-            // URL. Do NOT fire force:refreshView here — racing the navigation leaves
-            // the list view stuck loading until a manual browser refresh.
-            var listViewId = event.getParam("id");
-            if(listViewId){
-                var navList = $A.get("e.force:navigateToList");
-                navList.setParams({
-                    listViewId: listViewId,
-                    listViewName: null,
-                    scope: "Order__c"
-                });
-                navList.fire();
-            } else {
-                var urlEvent = $A.get("e.force:navigateToURL");
-                urlEvent.setParams({
-                    "url": "/lightning/o/Order__c/list?filterName=TODAY"
-                });
-                urlEvent.fire();
-            }
+            // Navigate to the Order Today list view via force:navigateToList (loads the
+            // list fresh). A null Id falls back to the default list rather than hanging.
+            // Do NOT fire force:refreshView — racing the navigation leaves the list view
+            // stuck loading until a manual browser refresh.
+            var navList = $A.get("e.force:navigateToList");
+            navList.setParams({
+                listViewId: event.getParam("id") || null,
+                listViewName: null,
+                scope: "Order__c"
+            });
+            navList.fire();
         }
     },
     onPageReferenceChange: function(component, event, helper) {

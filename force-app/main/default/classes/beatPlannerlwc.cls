@@ -1484,7 +1484,7 @@ global with sharing class beatPlannerlwc {
         data dt = new data();
 
         // Fetch the ListView record as before
-        List<ListView> listViewRecords = [SELECT Id FROM ListView WHERE SObjectType = 'Order__c' AND Name = 'TODAY' LIMIT 1];
+        List<ListView> listViewRecords = [SELECT Id FROM ListView WHERE SObjectType = 'Order__c' AND DeveloperName = 'Today' LIMIT 1];
         dt.ListViewDetails = (!listViewRecords.isEmpty()) ? listViewRecords[0] : null;
 
         // SSA/DSM users only see Secondary Customers. Resolve the flag here (initial
@@ -1586,7 +1586,7 @@ global with sharing class beatPlannerlwc {
     public static Data getSchemeWiseOrderData(String visitId, String AccountId, String orderRecordId) {
         Data responseData = new Data();
         Id currentUserId = UserInfo.getUserId();
-        List<ListView> listViewRecords = [SELECT Id FROM ListView WHERE SObjectType = 'Order__c' AND Name = 'TODAY' LIMIT 1];
+        List<ListView> listViewRecords = [SELECT Id FROM ListView WHERE SObjectType = 'Order__c' AND DeveloperName = 'Today' LIMIT 1];
         responseData.ListViewDetails = (!listViewRecords.isEmpty()) ? listViewRecords[0]: null;
         User us = [Select Id,Name,Minimum_Order_value__c,Profile.Name,Category__c From User where Id=:currentUserId];
         // Step 1: Determine Account
