@@ -2070,7 +2070,7 @@ export default class ProductScreen4 extends LightningElement {
                 this.appliedSchemeRecords.push({
                     productId: m.id,
                     schemeId: scheme.id, slabId: slab.slabId, schemeType: 'Free Quantity',
-                    freeQty: free, benefitAmount: this._round2((before - m._wkUnit) * (parseFloat(m.value) || 0)),
+                    freeQty: free, benefitAmount: this._round2((this._round2(before) - this._round2(m._wkUnit)) * (parseFloat(m.value) || 0)),
                     sequence: slab.seq,
                     description: 'Free Quantity: ' + free + ' EA free on ' + totalQty + ' EA'
                 });
@@ -2096,7 +2096,7 @@ export default class ProductScreen4 extends LightningElement {
                 this.appliedSchemeRecords.push({
                     productId: m.id,
                     schemeId: scheme.id, slabId: slab.slabId, schemeType: 'QPS',
-                    benefitAmount: this._round2((before - m._wkUnit) * (parseFloat(m.value) || 0)),
+                    benefitAmount: this._round2((this._round2(before) - this._round2(m._wkUnit)) * (parseFloat(m.value) || 0)),
                     sequence: slab.seq,
                     description: 'QPS: ₹' + off + ' off per EA'
                 });
@@ -2149,7 +2149,7 @@ export default class ProductScreen4 extends LightningElement {
             this.appliedSchemeRecords.push({
                 productId: slab.focProductId, // links to the giveaway / merged order line
                 schemeId: scheme.id, slabId: slab.slabId, schemeType: 'FOC Giveaway',
-                freeQty: focQty, benefitAmount: this._round2(focPrice * focQty),
+                freeQty: focQty, benefitAmount: this._round2(this._round2(focPrice) * focQty),
                 focProductId: slab.focProductId, sequence: slab.seq,
                 description: 'FOC Giveaway: ' + focQty + ' EA of ' + (slab.focProductName || 'product')
             });
@@ -2248,11 +2248,12 @@ export default class ProductScreen4 extends LightningElement {
         // Write back per-line results
         items.forEach(p => {
             const finalUnit = this._round2(p._wkUnit);
+            const base2 = this._round2(p._baseUnit);
             const qty = parseFloat(p.value) || 0;
             p.discountedUnitPrice = finalUnit.toFixed(2);
             p.discountedPrice = finalUnit * qty;
-            p._lineDiscount = this._round2((p._baseUnit - finalUnit) * qty + (p._focMergeDiscount || 0));
-            if (finalUnit !== p._baseUnit || (p._focMergeQty || 0) > 0) p.appliedScheme = true;
+            p._lineDiscount = this._round2((base2 - finalUnit) * qty + (p._focMergeDiscount || 0));
+            if (finalUnit !== base2 || (p._focMergeQty || 0) > 0) p.appliedScheme = true;
         });
         this.categoryValueDiscount = this._round2(this.categoryValueDiscount);
         this.orderValueDiscount = this._round2(this.orderValueDiscount);
