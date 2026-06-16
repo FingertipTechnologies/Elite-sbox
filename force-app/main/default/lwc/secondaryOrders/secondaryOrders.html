@@ -3,9 +3,9 @@
 
         <c-custom-toast></c-custom-toast>
 
-        <!-- Loading -->
+        <!-- Loading overlay (covers the wizard during load/save) -->
         <template if:true={isSubPartLoad}>
-            <div style="margin:10px">
+            <div class="so-loading-overlay">
                 <c-loading-screen></c-loading-screen>
             </div>
         </template>
@@ -72,7 +72,8 @@
                     </tbody>
                 </table>
                 <div class="so-actions">
-                    <button class="so-btn so-btn--primary" onclick={showSchemes}>Next: Schemes ›</button>
+                    <button class="so-btn so-btn--ghost" onclick={handleCancel}>Cancel</button>
+                    <button class="so-btn so-btn--primary" onclick={handleNextFromProducts}>Next: Schemes ›</button>
                 </div>
             </div>
         </template>
@@ -82,35 +83,41 @@
             <div class="so-panel">
                 <h2 class="so-section-title">Running Schemes</h2>
                 <template if:true={coverageSchemes.length}>
-                    <template for:each={coverageSchemes} for:item="cs">
+                    <template for:each={displayCoverageSchemes} for:item="cs">
                         <div key={cs.id} class="so-scheme-card">
-                            <div class="so-scheme-card__head">
+                            <div class="so-scheme-card__head" data-scheme-id={cs.id} onclick={toggleScheme}>
                                 <strong>{cs.name}</strong>
-                                <span class="so-scheme-card__type">{cs.schemeType}</span>
+                                <span class="so-scheme-card__head-right">
+                                    <span class="so-scheme-card__type">{cs.schemeType}</span>
+                                    <lightning-button-icon icon-name={cs.expandIcon} variant="bare"
+                                        alternative-text="Toggle"></lightning-button-icon>
+                                </span>
                             </div>
-                            <div class="so-scheme-card__body">
-                                <template for:each={cs.slabRows} for:item="r">
-                                    <div key={r.label} class="so-kv so-kv--offer">
-                                        <span class="so-kv__label">{r.label}</span>
-                                        <span class="so-kv__value">{r.value}</span>
-                                    </div>
-                                </template>
-                                <div class="so-kv">
-                                    <span class="so-kv__label">Valid</span>
-                                    <span class="so-kv__value">{cs.validLabel}</span>
-                                </div>
-                                <template if:true={cs.productGroupName}>
-                                    <div class="so-scheme-card__group">Group: {cs.productGroupName}</div>
-                                    <template for:each={cs.products} for:item="p">
-                                        <div key={p.id} class="so-scheme-product">
-                                            <span>{p.name}</span><span class="so-sku">{p.sku}</span>
+                            <template if:true={cs.isExpanded}>
+                                <div class="so-scheme-card__body">
+                                    <template for:each={cs.slabRows} for:item="r">
+                                        <div key={r.label} class="so-kv so-kv--offer">
+                                            <span class="so-kv__label">{r.label}</span>
+                                            <span class="so-kv__value">{r.value}</span>
                                         </div>
                                     </template>
-                                </template>
-                                <template if:true={cs.productCategory}>
-                                    <div class="so-scheme-card__group">Category: {cs.productCategory}</div>
-                                </template>
-                            </div>
+                                    <div class="so-kv">
+                                        <span class="so-kv__label">Valid</span>
+                                        <span class="so-kv__value">{cs.validLabel}</span>
+                                    </div>
+                                    <template if:true={cs.productGroupName}>
+                                        <div class="so-scheme-card__group">Group: {cs.productGroupName}</div>
+                                        <template for:each={cs.products} for:item="p">
+                                            <div key={p.id} class="so-scheme-product">
+                                                <span>{p.name}</span><span class="so-sku">{p.sku}</span>
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template if:true={cs.productCategory}>
+                                        <div class="so-scheme-card__group">Category: {cs.productCategory}</div>
+                                    </template>
+                                </div>
+                            </template>
                         </div>
                     </template>
                 </template>
@@ -119,6 +126,7 @@
                 </template>
                 <div class="so-actions">
                     <button class="so-btn" onclick={showProducts}>‹ Back</button>
+                    <button class="so-btn so-btn--ghost" onclick={handleCancel}>Cancel</button>
                     <button class="so-btn so-btn--primary" onclick={showSummary}>Next: Summary ›</button>
                 </div>
             </div>

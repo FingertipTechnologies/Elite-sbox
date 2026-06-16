@@ -38,6 +38,7 @@ export default class SecondaryOrders extends LightningElement {
     invoiceDate = new Date().toISOString().split('T')[0];
     _recalcTimer;
     _lastInvalidSig = '';
+    @track _expandedSchemes = new Set();
 
     connectedCallback() {
         this.loadData();
@@ -89,6 +90,46 @@ export default class SecondaryOrders extends LightningElement {
     showProducts() { this.screen = 'products'; }
     showSchemes()  { this.screen = 'schemes'; }
     showSummary()  { this.computeIssues(); this.screen = 'summary'; }
+
+    // "Next: Schemes" from the Products screen — validate qty vs available stock before advancing.
+    handleNextFromProducts() {
+        const offenders = this.productData
+            .filter(p => (Number(p.value) || 0) > (Number(p.availableQuantity) || 0))
+            .map(p => p.name);
+        if (offenders.length) {
+            this.showToast('Validation Error',
+                'Invoice Qty cannot exceed Available Qty for: ' + offenders.join(', '), 'error');
+            return;
+        }
+        const anyQty = this.productData.some(p => (Number(p.value) || 0) > 0);
+        if (!anyQty) {
+            this.showToast('Validation Error', 'Add at least one item to invoice.', 'error');
+            return;
+        }
+        this.screen = 'schemes';
+    }
+
+    // Schemes screen — per-card expand/collapse (default collapsed).
+    toggleScheme(event) {
+        const id = String(event.currentTarget.dataset.schemeId);
+        if (this._expandedSchemes.has(id)) {
+            this._expandedSchemes.delete(id);
+        } else {
+            this._expandedSchemes.add(id);
+        }
+        this._expandedSchemes = new Set(this._expandedSchemes); // reactivity
+    }
+
+    get displayCoverageSchemes() {
+        return (this.coverageSchemes || []).map(cs => {
+            const isExpanded = this._expandedSchemes.has(String(cs.id));
+            return {
+                ...cs,
+                isExpanded,
+                expandIcon: isExpanded ? 'utility:chevrondown' : 'utility:chevronright'
+            };
+        });
+    }
 
     get hasIssues() { return this.issues && this.issues.length > 0; }
     get hasFocLines() { return this.focLines && this.focLines.length > 0; }

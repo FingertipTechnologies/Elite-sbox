@@ -70,13 +70,22 @@
 .so-badge--free { background: #16a34a; color: #fff; }
 .so-badge { margin-bottom: 3px; }
 
+/* Loading overlay */
+.so-loading-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255, 255, 255, 0.75);
+}
+
 /* Scheme cards */
 .so-scheme-card { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
 .so-scheme-card__head {
     display: flex; align-items: center; justify-content: space-between;
     padding: 10px 12px; background: #fff; border-bottom: 1px solid #e5e7eb;
+    cursor: pointer;
 }
 .so-scheme-card__head strong { color: #0070d2; }
+.so-scheme-card__head-right { display: flex; align-items: center; gap: 10px; }
 .so-scheme-card__type { font-size: 0.75rem; color: #6b7280; }
 .so-scheme-card__body { padding: 10px 14px; }
 .so-kv { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f3f4f6; }
