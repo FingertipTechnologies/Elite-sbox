@@ -3348,18 +3348,21 @@ global with sharing class beatPlannerlwc {
         // Link each line-level audit row to the order item it affected (Free Quantity /
         // QPS / FOC). Aggregate rows (Category/Order Value) carry no product -> stay blank.
         if (!allAppliedSchemes.isEmpty()) {
-            Map<String, Id> itemByOrderProduct = new Map<String, Id>();
+            Map<String, Order_Item__c> itemByOrderProduct = new Map<String, Order_Item__c>();
             for (Order_Item__c it : allOrderItems) {
                 if (it.Product__c != null) {
-                    itemByOrderProduct.put(String.valueOf(it.Order__c) + '|' + String.valueOf(it.Product__c), it.Id);
+                    itemByOrderProduct.put(String.valueOf(it.Order__c) + '|' + String.valueOf(it.Product__c), it);
                 }
             }
             for (Integer j = 0; j < allAppliedSchemes.size(); j++) {
                 Id pid = osaProductIds[j];
                 if (pid != null) {
-                    Id itemId = itemByOrderProduct.get(
+                    Order_Item__c oi = itemByOrderProduct.get(
                         String.valueOf(allAppliedSchemes[j].Order_Request__c) + '|' + String.valueOf(pid));
-                    if (itemId != null) allAppliedSchemes[j].Order_Item__c = itemId;
+                    if (oi != null) {
+                        allAppliedSchemes[j].Order_Item__c = oi.Id;
+                        allAppliedSchemes[j].Benefit_Amount__c = oi.Discount__c; // per-item scheme benefit
+                    }
                 }
             }
         }
