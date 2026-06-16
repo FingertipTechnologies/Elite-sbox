@@ -155,7 +155,7 @@ export default class RunningSchemes extends LightningElement {
     }
 
     // ─── Download Excel (CSV) ─────────────────────────────────────
-    // One row per (scheme × product); offer sentences are concatenated.
+    // One row per scheme; slab offer sentences are concatenated.
     handleDownload() {
         if (!this.schemes || this.schemes.length === 0) {
             this.error = 'No data available to download.';
@@ -165,7 +165,7 @@ export default class RunningSchemes extends LightningElement {
         try {
             const headers = [
                 'Scheme Name', 'Scheme Type', 'Valid',
-                'Product Group', 'Product Category', 'Offers', 'Product', 'SKU'
+                'Product Group', 'Product Category', 'Offers'
             ];
 
             const rows = [];
@@ -173,32 +173,14 @@ export default class RunningSchemes extends LightningElement {
                 const offers = (scheme.slabRows || [])
                     .map(r => `${r.label}: ${r.value}`)
                     .join(' | ');
-                const products = scheme.products || [];
-                if (products.length === 0) {
-                    rows.push([
-                        scheme.name || '',
-                        scheme.schemeType || '',
-                        scheme.validLabel || '',
-                        scheme.productGroupName || '',
-                        scheme.productCategory || '',
-                        offers,
-                        '',
-                        ''
-                    ]);
-                } else {
-                    products.forEach(p => {
-                        rows.push([
-                            scheme.name || '',
-                            scheme.schemeType || '',
-                            scheme.validLabel || '',
-                            scheme.productGroupName || '',
-                            scheme.productCategory || '',
-                            offers,
-                            p.name || '',
-                            p.sku || ''
-                        ]);
-                    });
-                }
+                rows.push([
+                    scheme.name || '',
+                    scheme.schemeType || '',
+                    scheme.validLabel || '',
+                    scheme.productGroupName || '',
+                    scheme.productCategory || '',
+                    offers
+                ]);
             });
 
             const csvContent = [headers, ...rows]
