@@ -75,55 +75,50 @@
         <template if:true={hasSchemes}>
             <div class="rs-scheme-list">
                 <template for:each={schemes} for:item="scheme">
-                    <div key={scheme.schemeId} class="rs-scheme-card">
+                    <div key={scheme.id} class="rs-scheme-card">
 
                         <!-- Scheme Header -->
-                        <div class="rs-scheme-header" onclick={toggleScheme} data-id={scheme.schemeId}>
+                        <div class="rs-scheme-header" onclick={toggleScheme} data-id={scheme.id}>
                             <div class="rs-scheme-header-left">
                                 <div class="rs-scheme-badge">{scheme.productCount} Products</div>
                                 <div>
-                                    <h2 class="rs-scheme-name">{scheme.schemeName}</h2>
-                                    <template if:true={scheme.description}>
-                                        <p class="rs-scheme-desc">{scheme.description}</p>
-                                    </template>
+                                    <h2 class="rs-scheme-name">{scheme.name}</h2>
+                                    <p class="rs-scheme-desc">{scheme.validLabel}</p>
                                 </div>
                             </div>
                             <div class="rs-scheme-header-right">
-                                <div class="rs-scheme-dates">
-                                    <span class="rs-date-chip rs-start">▶ {scheme.startDateFormatted}</span>
-                                    <span class="rs-date-chip rs-end">◀ {scheme.endDateFormatted}</span>
-                                </div>
-                                <span class={scheme.chevronClass}>›</span>
+                                <lightning-icon icon-name={scheme.expandIcon} size="x-small"></lightning-icon>
                             </div>
                         </div>
 
-                        <!-- Scheme Body -->
+                        <!-- Scheme Body (same shape as the order Schemes tab) -->
                         <template if:true={scheme.isExpanded}>
-                            <div class="rs-scheme-body">
-                                <template for:each={scheme.typeGroups} for:item="group">
-                                    <div key={group.schemeType} class="rs-type-group">
-                                        <div class={group.typeHeaderClass}>
-                                            <span class={group.typeIconClass}>{group.typeIcon}</span>
-                                            <span class="rs-type-label">{group.schemeType}</span>
-                                            <span class="rs-type-count">{group.count}</span>
-                                        </div>
-                                        <div class="rs-product-grid">
-                                            <template for:each={group.products} for:item="bp">
-                                                <div key={bp.buyProductId} class="rs-product-card">
-                                                    <div class="rs-product-top">
-                                                        <div class="rs-product-name">{bp.productName}</div>
-                                                        <template if:true={bp.secondaryCustomerCategory}>
-                                                            <div class="rs-category-chip">{bp.secondaryCustomerCategory}</div>
-                                                        </template>
-                                                    </div>
-                                                    <div class={bp.schemeTextClass}>
-                                                        <span class="rs-scheme-text-icon">{bp.schemeIcon}</span>
-                                                        <span>{bp.schemeText}</span>
-                                                    </div>
-                                                </div>
-                                            </template>
-                                        </div>
+                            <div class="coverage-scheme-card__body">
+                                <div class="kv-row">
+                                    <span class="kv-row__label">Scheme Type</span>
+                                    <span class="kv-row__value">{scheme.schemeType}</span>
+                                </div>
+                                <template for:each={scheme.slabRows} for:item="r">
+                                    <div key={r.label} class="kv-row kv-row--offer">
+                                        <span class="kv-row__label">{r.label}</span>
+                                        <span class="kv-row__value">{r.value}</span>
                                     </div>
+                                </template>
+                                <div class="kv-row">
+                                    <span class="kv-row__label">Valid</span>
+                                    <span class="kv-row__value">{scheme.validLabel}</span>
+                                </div>
+                                <template if:true={scheme.productCategory}>
+                                    <div class="coverage-scheme-card__group">Category: {scheme.productCategory}</div>
+                                </template>
+                                <template if:true={scheme.productGroupName}>
+                                    <div class="coverage-scheme-card__group">Group: {scheme.productGroupName}</div>
+                                    <template for:each={scheme.products} for:item="p">
+                                        <div key={p.id} class="coverage-scheme-product">
+                                            <span class="coverage-scheme-product__name">{p.name}</span>
+                                            <span class="coverage-scheme-product__sku">{p.sku}</span>
+                                        </div>
+                                    </template>
                                 </template>
                             </div>
                         </template>

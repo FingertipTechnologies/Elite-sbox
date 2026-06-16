@@ -6,34 +6,13 @@ const MONTH_NAMES = [
     'July','August','September','October','November','December'
 ];
 
-const TYPE_CONFIG = {
-    'Free Quantity': {
-        icon: '🎁',
-        headerClass: 'rs-type-header rs-type-green',
-        iconClass: 'rs-type-icon rs-icon-green',
-        textClass: 'rs-scheme-text rs-text-green',
-    },
-    'Sale Value Discount': {
-        icon: '💰',
-        headerClass: 'rs-type-header rs-type-blue',
-        iconClass: 'rs-type-icon rs-icon-blue',
-        textClass: 'rs-scheme-text rs-text-blue',
-    },
-    'Per Quantity Off': {
-        icon: '✂️',
-        headerClass: 'rs-type-header rs-type-orange',
-        iconClass: 'rs-type-icon rs-icon-orange',
-        textClass: 'rs-scheme-text rs-text-orange',
-    }
-};
-
 export default class RunningSchemes extends LightningElement {
 
     @track schemes = [];
     @track isLoading = false;
     @track error = null;
     @track selectedFilter = 'current';
-    @track expandedSchemes = new Set();
+    expandedSchemes = new Set();
 
     // Custom date range
     @track customFromDate = '';
@@ -142,45 +121,19 @@ export default class RunningSchemes extends LightningElement {
     }
 
     // ─── Transform ────────────────────────────────────────────────
+    // Each CoverageScheme is rendered exactly like the order-screen Schemes tab.
     transformSchemes(raw) {
-        return raw.map(scheme => {
-            const isExpanded = this.expandedSchemes.has(scheme.schemeId);
-            const typeMap = {};
-            (scheme.products || []).forEach(bp => {
-                const t = bp.schemeType;
-                if (!typeMap[t]) typeMap[t] = [];
-                typeMap[t].push({
-                    ...bp,
-                    schemeIcon:      TYPE_CONFIG[t]?.icon || '📌',
-                    schemeTextClass: TYPE_CONFIG[t]?.textClass || 'rs-scheme-text',
-                });
-            });
-
-            const typeGroups = Object.keys(typeMap).map(type => ({
-                schemeType:      type,
-                typeIcon:        TYPE_CONFIG[type]?.icon || '📌',
-                typeHeaderClass: TYPE_CONFIG[type]?.headerClass || 'rs-type-header',
-                typeIconClass:   TYPE_CONFIG[type]?.iconClass || 'rs-type-icon',
-                count:           typeMap[type].length,
-                products:        typeMap[type],
-            }));
-
+        return (raw || []).map(scheme => {
+            const isExpanded = this.expandedSchemes.has(scheme.id);
             return {
                 ...scheme,
                 isExpanded,
-                productCount:       (scheme.products || []).length,
-                startDateFormatted: this.formatDate(scheme.startDate),
-                endDateFormatted:   this.formatDate(scheme.endDate),
-                chevronClass:       isExpanded ? 'rs-chevron rs-chevron-open' : 'rs-chevron',
-                typeGroups,
+                productCount: (scheme.products || []).length,
+                slabRows:     scheme.slabRows || [],
+                products:     scheme.products || [],
+                expandIcon:   isExpanded ? 'utility:chevrondown' : 'utility:chevronright'
             };
         });
-    }
-
-    formatDate(dateStr) {
-        if (!dateStr) return '';
-        const d = new Date(dateStr);
-        return `${MONTH_NAMES[d.getUTCMonth()].substring(0,3)} ${String(d.getUTCDate()).padStart(2,'0')}, ${d.getUTCFullYear()}`;
     }
 
     toggleScheme(evt) {
@@ -191,13 +144,18 @@ export default class RunningSchemes extends LightningElement {
             this.expandedSchemes.add(id);
         }
         this.schemes = this.schemes.map(s => {
-            if (s.schemeId !== id) return s;
+            if (s.id !== id) return s;
             const isExpanded = this.expandedSchemes.has(id);
-            return { ...s, isExpanded, chevronClass: isExpanded ? 'rs-chevron rs-chevron-open' : 'rs-chevron' };
+            return {
+                ...s,
+                isExpanded,
+                expandIcon: isExpanded ? 'utility:chevrondown' : 'utility:chevronright'
+            };
         });
     }
 
     // ─── Download Excel (CSV) ─────────────────────────────────────
+    // One row per (scheme × product); offer sentences are concatenated.
     handleDownload() {
         if (!this.schemes || this.schemes.length === 0) {
             this.error = 'No data available to download.';
@@ -206,24 +164,41 @@ export default class RunningSchemes extends LightningElement {
 
         try {
             const headers = [
-                'Scheme Name', 'Description', 'Start Date', 'End Date',
-                'Scheme Type', 'Product Name', 'Customer Category', 'Scheme Details'
+                'Scheme Name', 'Scheme Type', 'Valid',
+                'Product Group', 'Product Category', 'Offers', 'Product', 'SKU'
             ];
 
             const rows = [];
             this.schemes.forEach(scheme => {
-                (scheme.products || []).forEach(bp => {
+                const offers = (scheme.slabRows || [])
+                    .map(r => `${r.label}: ${r.value}`)
+                    .join(' | ');
+                const products = scheme.products || [];
+                if (products.length === 0) {
                     rows.push([
-                        scheme.schemeName || '',
-                        scheme.description || '',
-                        scheme.startDateFormatted || '',
-                        scheme.endDateFormatted || '',
-                        bp.schemeType || '',
-                        bp.productName || '',
-                        bp.secondaryCustomerCategory || '',
-                        bp.schemeText || ''
+                        scheme.name || '',
+                        scheme.schemeType || '',
+                        scheme.validLabel || '',
+                        scheme.productGroupName || '',
+                        scheme.productCategory || '',
+                        offers,
+                        '',
+                        ''
                     ]);
-                });
+                } else {
+                    products.forEach(p => {
+                        rows.push([
+                            scheme.name || '',
+                            scheme.schemeType || '',
+                            scheme.validLabel || '',
+                            scheme.productGroupName || '',
+                            scheme.productCategory || '',
+                            offers,
+                            p.name || '',
+                            p.sku || ''
+                        ]);
+                    });
+                }
             });
 
             const csvContent = [headers, ...rows]
@@ -232,14 +207,12 @@ export default class RunningSchemes extends LightningElement {
                 )
                 .join('\n');
 
-            // ✅ FIX: Use supported MIME type
-            const blob = new Blob(['\uFEFF' + csvContent], {
+            const blob = new Blob(['﻿' + csvContent], {
                 type: 'application/octet-stream'
             });
 
             const url = URL.createObjectURL(blob);
 
-            // ✅ FIX: Create anchor dynamically (don't use template querySelector)
             const link = document.createElement('a');
             link.href = url;
             link.download = `Schemes_${new Date().toISOString().slice(0,10)}.csv`;

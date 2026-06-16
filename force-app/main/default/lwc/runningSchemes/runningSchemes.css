@@ -505,3 +505,52 @@
 .rs-text-green  { background: var(--green-soft);  color: #15803d; border: 1px solid var(--green-border); }
 .rs-text-blue   { background: var(--blue-soft);   color: #0369a1; border: 1px solid var(--blue-border);  }
 .rs-text-orange { background: var(--orange-soft); color: #c2410c; border: 1px solid var(--orange-border);}
+
+/* ── Order-tab scheme card body (mirrors productScreen4 Schemes tab) ── */
+.coverage-scheme-card__body {
+    background: #fff;
+    color: #1f2937;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+}
+.coverage-scheme-card__body .kv-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 5px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+.coverage-scheme-card__body .kv-row:last-child { border-bottom: none; }
+.coverage-scheme-card__body .kv-row__label {
+    color: #6b7280;
+    font-size: 0.85rem;
+}
+.coverage-scheme-card__body .kv-row__value {
+    color: #111827;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-align: right;
+}
+.coverage-scheme-card__body .kv-row--offer .kv-row__value {
+    font-size: 0.95rem;
+    color: #4f46e5;
+}
+.coverage-scheme-card__group {
+    font-size: 0.78rem;
+    color: #4b5563;
+    margin: 10px 0 6px;
+    border-top: 1px dashed #d1d5db;
+    padding-top: 8px;
+    font-weight: 600;
+}
+.coverage-scheme-product {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 0.85rem;
+    color: #1f2937;
+}
+.coverage-scheme-product__sku {
+    color: #6b7280;
+    font-size: 0.75rem;
+}

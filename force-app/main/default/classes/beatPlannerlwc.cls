@@ -2444,7 +2444,7 @@ global with sharing class beatPlannerlwc {
         return geo;
     }
 
-    private static Boolean anyMatch(Set<String> allowed, Set<String> have) {
+    public static Boolean anyMatch(Set<String> allowed, Set<String> have) {
         if (allowed == null || have == null) return false;
         for (String v : have) { if (allowed.contains(v)) return true; }
         return false;
@@ -2486,7 +2486,7 @@ global with sharing class beatPlannerlwc {
         return rows;
     }
 
-    private static List<CoverageSlabRow> buildSlabRows(String schemeType, List<Scheme_Slab__c> slabs) {
+    public static List<CoverageSlabRow> buildSlabRows(String schemeType, List<Scheme_Slab__c> slabs) {
         List<CoverageSlabRow> rows = new List<CoverageSlabRow>();
         if (slabs == null || slabs.isEmpty()) return rows;
         Boolean multi = slabs.size() > 1;
@@ -2500,7 +2500,7 @@ global with sharing class beatPlannerlwc {
         return rows;
     }
     
-    private static String slabSentence(String schemeType, Scheme_Slab__c sl) {
+    public static String slabSentence(String schemeType, Scheme_Slab__c sl) {
         if (schemeType == 'Free Quantity') {
             String buy = buyThresholdClause(sl.Qualifying_Qty_Min__c, sl.Qualifying_Qty_Max__c);
             if (buy == null || sl.Free_Qty__c == null) return null;
@@ -2522,30 +2522,30 @@ global with sharing class beatPlannerlwc {
         return null;
     }
     
-    private static String buyThresholdClause(Decimal mn, Decimal mx) {
+    public static String buyThresholdClause(Decimal mn, Decimal mx) {
         if (mn == null) return null;
         if (mx == null || mn == mx) return 'Buy ' + decToStr(mn) + ' EA';
         return 'Buy ' + decToStr(mn) + ' to ' + decToStr(mx) + ' EA';
     }
     
-    private static String buyQtyClause(Decimal mn, Decimal mx) {
+    public static String buyQtyClause(Decimal mn, Decimal mx) {
         if (mn == null) return null;
         if (mx == null) return 'Buy ' + decToStr(mn) + ' EA';
         if (mn == mx)   return 'Buy ' + decToStr(mn) + ' EA';
         return 'Buy ' + decToStr(mn) + ' to ' + decToStr(mx) + ' EA';
     }
     
-    private static String orderValueClause(Decimal mn, Decimal mx) {
+    public static String orderValueClause(Decimal mn, Decimal mx) {
         if (mn == null) return null;
         if (mx == null) return 'Order ₹' + decToStr(mn) + ' or more';
         return 'Order ₹' + decToStr(mn) + ' to ₹' + decToStr(mx);
     }
-    private static String decToStr(Decimal d) {
+    public static String decToStr(Decimal d) {
         if (d == null) return '';
         if (d == d.setScale(0)) return String.valueOf(d.setScale(0));
         return String.valueOf(d);
     }
-    private static String formatDdMmYyyy(Date d) {
+    public static String formatDdMmYyyy(Date d) {
         if (d == null) return '';
         String dd = String.valueOf(d.day()).leftPad(2, '0');
         String mm = String.valueOf(d.month()).leftPad(2, '0');
