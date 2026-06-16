@@ -15,6 +15,7 @@ public with sharing class PBIS_TargetTriggerHandler {
         List<PBIS_Target__c> withUser = new List<PBIS_Target__c>();
         for (PBIS_Target__c t : rows) {
             if (t.User__c != null) {
+                t.OwnerId = t.User__c;
                 withUser.add(t);
             }
         }
@@ -32,6 +33,7 @@ public with sharing class PBIS_TargetTriggerHandler {
             if (t.User__c == null) {
                 t.Gross_Salary__c = null; // User cleared
             } else {
+                t.OwnerId = t.User__c;
                 changedWithUser.add(t);
             }
         }
