@@ -46,6 +46,7 @@ export default class ProductScreen4 extends LightningElement {
     @track deliveryTo = '';
     @track expectedDeliveryDate = '';
     @track OrderOwnerId = '';
+    @track OrderOwnerName = '';
     @track poNum = '';
     @track poDate = '';
     @track minumumOrderValue = '';
@@ -299,6 +300,8 @@ export default class ProductScreen4 extends LightningElement {
                 this.isModerTrade = result.isModerTrade;
                 this.productCatDropdown = result.productCatDropdown;
                 this.isShowOwner = result.isShowOwner;
+                this.OrderOwnerId = result.orderOwnerId || '';
+                this.OrderOwnerName = result.orderOwnerName || '';
 
                 this.loadCoverage();
 

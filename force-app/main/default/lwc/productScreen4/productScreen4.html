@@ -489,7 +489,8 @@
                                     <div class="slds-col slds-size_1-of-1 slds-m-right_xx-small">
                                         <c-lookup label="Owner" placeholder="Search User" object-api-name="User"
                                             icon-name="standard:user" filter-value={acccountId}
-                                            filter-field="Order_Owner__c" onlookupselect={handleLookupChange} required>
+                                            filter-field="Order_Owner__c" preselected-label={OrderOwnerName}
+                                            onlookupselect={handleLookupChange} required>
                                         </c-lookup>
                                     </div>
                                 </template>
