@@ -6,6 +6,7 @@ import getCategorySlabClaimCategoryCustomerDetail from '@salesforce/apex/DMSPort
 import getSchemeClaimCustomerSummary from '@salesforce/apex/DMSPortalLwc.getSchemeClaimCustomerSummary';
 import getCombinedClaimCategoryCustomerSummary from '@salesforce/apex/DMSPortalLwc.getCombinedClaimCategoryCustomerSummary';
 import getTotalClaimCategoryCustomerSummary from '@salesforce/apex/DMSPortalLwc.getTotalClaimCategoryCustomerSummary';
+import getSchemeIssueReport from '@salesforce/apex/DMSPortalLwc.getSchemeIssueReport';
 
 export default class ClaimReports extends LightningElement {
     @track selectedReport = null;
@@ -46,6 +47,11 @@ export default class ClaimReports extends LightningElement {
             id: 'totalClaim',
             label: 'Total Claim Amount — Customer Category and Customer Wise',
             description: 'View all claim amounts (category slab or scheme), grouped by category and customer'
+        },
+        {
+            id: 'schemeIssues',
+            label: 'Scheme Issues — Reduced/Disqualified',
+            description: 'Invoice lines where a scheme on the order no longer qualifies at the invoiced quantity'
         }
     ];
 
@@ -83,6 +89,10 @@ export default class ClaimReports extends LightningElement {
 
     get isCombinedOrTotalClaim() {
         return this.selectedReport === 'combinedClaim' || this.selectedReport === 'totalClaim';
+    }
+
+    get isSchemeIssues() {
+        return this.selectedReport === 'schemeIssues';
     }
 
     get reportTitle() {
@@ -166,6 +176,8 @@ export default class ClaimReports extends LightningElement {
             apexMethod = getCombinedClaimCategoryCustomerSummary;
         } else if (this.selectedReport === 'totalClaim') {
             apexMethod = getTotalClaimCategoryCustomerSummary;
+        } else if (this.selectedReport === 'schemeIssues') {
+            apexMethod = getSchemeIssueReport;
         }
 
         apexMethod({ fromDate: this.fromDate, toDate: this.toDate })
@@ -207,6 +219,8 @@ export default class ClaimReports extends LightningElement {
             this.groupedData = this.groupByCustomer(data);
         } else if (this.selectedReport === 'combinedClaim' || this.selectedReport === 'totalClaim') {
             this.groupedData = this.groupByCategoryAndCustomerCombined(data);
+        } else if (this.selectedReport === 'schemeIssues') {
+            this.groupedData = this.groupBySchemeIssues(data);
         }
 
         this.hasData = this.groupedData.length > 0;
@@ -591,6 +605,30 @@ export default class ClaimReports extends LightningElement {
         return this.formatCombinedTotalRows(rows);
     }
 
+    groupBySchemeIssues(data) {
+        const rows = [];
+        let currentCustomer = null;
+        let sno = 0;
+        data.forEach((item, index) => {
+            const cust = item.customerName || 'Unknown';
+            if (currentCustomer !== cust) {
+                rows.push({ key: 'grp-' + cust, rowType: 'groupHeader', label: cust });
+                currentCustomer = cust;
+            }
+            sno++;
+            rows.push({
+                key: 'row-' + index,
+                rowType: 'data',
+                sno: sno,
+                productName: item.productName,
+                invoiceName: item.invoiceName,
+                quantity: item.quantity || 0,
+                reason: item.reason
+            });
+        });
+        return this.formatTotalRows(rows);
+    }
+
     formatTotalRows(rows) {
         return rows.map(row => {
             if (row.rowType === 'subtotal' || row.rowType === 'grandtotal') {
@@ -659,6 +697,9 @@ export default class ClaimReports extends LightningElement {
     }
 
     get exportHeaders() {
+        if (this.isSchemeIssues) {
+            return ['S.No', 'Product Name', 'Invoice', 'Qty', 'Reason'];
+        }
         if (this.isCombinedOrTotalClaim) {
             return ['S.No', 'Product Name', 'Before Cat. Slab Price', 'After Cat. Slab Price', 'Cat. Slab Claim Amt', 'Before Scheme Price', 'After Scheme Price', 'Scheme Claim Amt', 'Qty', 'Total Claim Amt'];
         }
@@ -677,7 +718,9 @@ export default class ClaimReports extends LightningElement {
             } else if (row.isSubGroupHeader) {
                 rows.push(['  ' + row.label]);
             } else if (row.isData) {
-                if (this.isCombinedOrTotalClaim) {
+                if (this.isSchemeIssues) {
+                    rows.push([row.sno, row.productName, row.invoiceName, row.quantity, row.reason]);
+                } else if (this.isCombinedOrTotalClaim) {
                     rows.push([row.sno, row.productName, row.beforeCategorySlabPrice, row.afterCategorySlabPrice, row.categorySlabClaimAmount, row.beforeSchemePrice, row.afterSchemePrice, row.schemeClaimAmount, row.quantity, row.totalClaimAmt]);
                 } else {
                     rows.push([row.sno, row.productName, row.beforePrice, row.afterPrice, row.quantity, row.claimAmount, row.totalAmount]);

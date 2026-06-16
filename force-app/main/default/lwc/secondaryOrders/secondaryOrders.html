@@ -1,128 +1,203 @@
 <template>
-    <template lwc:if={isSubPartLoad}>
-        <div style="margin:40px">
-            <c-loading-screen></c-loading-screen>
+    <div class="so-root">
+
+        <c-custom-toast></c-custom-toast>
+
+        <!-- Loading -->
+        <template if:true={isSubPartLoad}>
+            <div style="margin:10px">
+                <c-loading-screen></c-loading-screen>
+            </div>
+        </template>
+
+        <!-- Header / tabs -->
+        <div class="so-header">
+            <div class="so-header-left">
+                <h1 class="so-title">Convert Order to Invoice</h1>
+                <p class="so-subtitle">{selectedCustomerName}</p>
+            </div>
+            <div class="so-tabs">
+                <button class={productsTabClass} onclick={showProducts}>1. Products</button>
+                <button class={schemesTabClass} onclick={showSchemes}>2. Schemes</button>
+                <button class={summaryTabClass} onclick={showSummary}>3. Summary</button>
+            </div>
         </div>
-    </template>
-    <template lwc:else>
-        <div class="orders layouts" id="InvoiceLayout">
-            <h3 class="order-title">Generate Invoices</h3>
 
-            <div class="order-head">
-                <!-- Customer Info Grid -->
-                <div class="slds-m-around_medium customer-info-grid">
-                    <div class="slds-grid slds-wrap slds-gutters">
-                        <div class="slds-col slds-size_1-of-2">
-                            <lightning-input label="Customer Name" value={selectedCustomerName} disabled
-                                variant="label-stacked">
-                            </lightning-input>
-                        </div>
-                        <div class="slds-col slds-size_1-of-2">
-                            <lightning-input label="Invoice Date" value={invoiceDate} type="date" disabled
-                                variant="label-stacked">
-                            </lightning-input>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="order-filters">
-                    <button class="actionButton" onclick={handleSave}>Save</button>
-                    <button class="actionButton1" onclick={handleCancel}>Cancel</button>
-                </div>
-            </div>
-
-            <!-- Remarks & Additional Details Card -->
-            <div class="invoice-grid-container" style="margin-top: 20px; margin-bottom: 20px; padding: 20px;">
-                <div class="slds-grid slds-wrap slds-gutters">
-                    <div class="slds-col slds-size_1-of-4 slds-p-around_small">
-                        <lightning-textarea label="Packing Remarks" value={remarks} placeholder="Enter Packing remarks"
-                            onchange={onUpdateRemakrs} variant="label-stacked">
-                        </lightning-textarea>
-                    </div>
-                    <div class="slds-col slds-size_1-of-4 slds-p-around_small">
-                        <lightning-textarea label="Delivery Remarks" value={delivaryRemakrs} placeholder="Enter Delivery remarks"
-                            onchange={onUpdateDelivaryRemakrs} variant="label-stacked">
-                        </lightning-textarea>
-                    </div>
-                    <div class="slds-col slds-size_1-of-4 slds-p-around_small">
-                        <lightning-input label="GST Number" value={gstNumber}
-                            placeholder="Enter GST Number" onchange={onUpdateGstNumber}
-                            variant="label-stacked">
-                        </lightning-input>
-                    </div>
-                    <div class="slds-col slds-size_1-of-4 slds-p-around_small">
-                        <lightning-input label="IRN Number" value={irnNumber}
-                            placeholder="Enter IRN Number" onchange={onUpdateIrnNumber}
-                            variant="label-stacked">
-                        </lightning-input>
-                    </div>
+        <!-- ============ Screen 1: Products ============ -->
+        <template if:true={isProductsView}>
+            <div class="so-panel">
+                <table class="so-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Product</th>
+                            <th>Scheme</th>
+                            <th>Invoice Qty</th>
+                            <th>Available</th>
+                            <th>Unit Price</th>
+                            <th>Tax</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={cartItems} for:item="item">
+                            <tr key={item.orderItemId}>
+                                <td>{item.rowIndex}</td>
+                                <td>{item.name}</td>
+                                <td>
+                                    <template if:true={item.hasScheme}>
+                                        <span class="so-badge so-badge--scheme">{item.schemeBadge}</span>
+                                    </template>
+                                </td>
+                                <td>
+                                    <lightning-input type="number" value={item.value} data-id={item.orderItemId}
+                                        onchange={handleQuantityChange} variant="label-hidden" min="0">
+                                    </lightning-input>
+                                </td>
+                                <td>{item.availableQuantity}</td>
+                                <td>{item.displayUnit}</td>
+                                <td>{item.displayTax}</td>
+                                <td>{item.displayTotal}</td>
+                                <td>
+                                    <lightning-button-icon icon-name="utility:delete" variant="bare"
+                                        alternative-text="Remove" data-id={item.orderItemId}
+                                        onclick={removeItem}></lightning-button-icon>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+                <div class="so-actions">
+                    <button class="so-btn so-btn--primary" onclick={showSchemes}>Next: Schemes ›</button>
                 </div>
             </div>
+        </template>
 
-            <!-- Invoice Items Grid -->
-            <div class="invoice-grid-container">
-                <template if:true={invoiceItems}>
-                    <div class="invoice-grid">
-                        <!-- Grid Header -->
-                        <div class="grid-header">
-                            <div class="grid-cell">S.No.</div>
-                            <div class="grid-cell">SKU Name</div>
-                            <div class="grid-cell">Available Qty (EA)</div>
-                            <div class="grid-cell">Invoice Qty (EA)</div>
-                            <div class="grid-cell">Unit Price</div>
-                            <div class="grid-cell">Tax %</div>
-                            <div class="grid-cell">Tax Amount (₹)</div>
-                            <div class="grid-cell">Total Amount (₹)</div>
+        <!-- ============ Screen 2: Schemes ============ -->
+        <template if:true={isSchemeView}>
+            <div class="so-panel">
+                <h2 class="so-section-title">Running Schemes</h2>
+                <template if:true={coverageSchemes.length}>
+                    <template for:each={coverageSchemes} for:item="cs">
+                        <div key={cs.id} class="so-scheme-card">
+                            <div class="so-scheme-card__head">
+                                <strong>{cs.name}</strong>
+                                <span class="so-scheme-card__type">{cs.schemeType}</span>
+                            </div>
+                            <div class="so-scheme-card__body">
+                                <template for:each={cs.slabRows} for:item="r">
+                                    <div key={r.label} class="so-kv so-kv--offer">
+                                        <span class="so-kv__label">{r.label}</span>
+                                        <span class="so-kv__value">{r.value}</span>
+                                    </div>
+                                </template>
+                                <div class="so-kv">
+                                    <span class="so-kv__label">Valid</span>
+                                    <span class="so-kv__value">{cs.validLabel}</span>
+                                </div>
+                                <template if:true={cs.productGroupName}>
+                                    <div class="so-scheme-card__group">Group: {cs.productGroupName}</div>
+                                    <template for:each={cs.products} for:item="p">
+                                        <div key={p.id} class="so-scheme-product">
+                                            <span>{p.name}</span><span class="so-sku">{p.sku}</span>
+                                        </div>
+                                    </template>
+                                </template>
+                                <template if:true={cs.productCategory}>
+                                    <div class="so-scheme-card__group">Category: {cs.productCategory}</div>
+                                </template>
+                            </div>
                         </div>
+                    </template>
+                </template>
+                <template if:false={coverageSchemes.length}>
+                    <p class="so-empty">No running schemes for this customer.</p>
+                </template>
+                <div class="so-actions">
+                    <button class="so-btn" onclick={showProducts}>‹ Back</button>
+                    <button class="so-btn so-btn--primary" onclick={showSummary}>Next: Summary ›</button>
+                </div>
+            </div>
+        </template>
 
-                        <!-- Grid Rows -->
-                        <template for:each={invoiceItems} for:item="item">
-                            <div key={item.OrderItemId} class="grid-row">
-                                <div class="grid-cell">
-                                    {item.rowIndex}
-                                </div>
-                                <div class="grid-cell">
-                                    <lightning-input value={item.ProductName} disabled variant="label-hidden">
-                                    </lightning-input>
-                                </div>
-                                <div class="grid-cell">
-                                    <lightning-input type="number" value={item.availableQuantity}
-                                        data-id={item.OrderItemId} variant="label-hidden" disabled>
-                                    </lightning-input>
-                                </div>
-                                <div class="grid-cell">
-                                    <lightning-input type="number" value={item.Quantity} data-id={item.OrderItemId}
-                                        onchange={handleQuantityChange} variant="label-hidden">
-                                    </lightning-input>
-                                </div>
-                                <div class="grid-cell">
-                                    <lightning-input value={item.UnitPrice} disabled variant="label-hidden">
-                                    </lightning-input>
-                                </div>
-                                <div class="grid-cell">
-                                    <lightning-input value={item.TaxPercent} disabled variant="label-hidden">
-                                    </lightning-input>
-                                </div>
-                                <div class="grid-cell">
-                                    <lightning-input value={item.TaxAmount} disabled variant="label-hidden">
-                                    </lightning-input>
-                                </div>
-                                <div class="grid-cell">
-                                    <lightning-input value={item.TotalAmount} disabled variant="label-hidden">
-                                    </lightning-input>
-                                </div>
+        <!-- ============ Screen 3: Summary ============ -->
+        <template if:true={isSummaryView}>
+            <div class="so-panel">
+                <h2 class="so-section-title">Summary</h2>
+
+                <!-- Issues -->
+                <template if:true={hasIssues}>
+                    <div class="so-issues">
+                        <p class="so-issues__title">⚠️ Scheme Issues ({issues.length})</p>
+                        <template for:each={issues} for:item="iss">
+                            <div key={iss.key} class="so-issues__row">
+                                <strong>{iss.productName}</strong> — {iss.reason}
                             </div>
                         </template>
                     </div>
                 </template>
 
-                <template if:false={invoiceItems}>
-                    <div class="slds-align_absolute-center slds-text-color_error slds-m-top_medium">
-                        No items available to invoice.
-                    </div>
-                </template>
+                <table class="so-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Unit Price</th>
+                            <th>Tax</th>
+                            <th>Net Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={summaryItems} for:item="row">
+                            <tr key={row.key}>
+                                <td>
+                                    {row.name}
+                                    <template if:true={row.isFOC}>
+                                        <span class="so-badge so-badge--free">FREE</span>
+                                    </template>
+                                    <template if:true={row.focFreeQty}>
+                                        <span class="so-badge so-badge--free">+{row.focFreeQty} free</span>
+                                    </template>
+                                </td>
+                                <td>{row.qty}</td>
+                                <td>{row.unitPrice}</td>
+                                <td>{row.taxAmt}</td>
+                                <td>{row.netValue}</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+
+                <div class="so-totals">
+                    <div class="so-totals__row"><span>Total Quantity</span><span>{totalQnt}</span></div>
+                    <div class="so-totals__row"><span>Sub Total</span><span>₹{subTotalAmt}</span></div>
+                    <div class="so-totals__row"><span>Total Tax</span><span>₹{totalTaxAmt}</span></div>
+                    <div class="so-totals__row"><span>Grand Total</span><span>₹{grandTotalAmt}</span></div>
+                    <template if:true={hasHeaderDiscounts}>
+                        <div class="so-totals__row"><span>Category Value Discount</span><span>-₹{categoryDiscountLabel}</span></div>
+                        <div class="so-totals__row"><span>Order Value Discount</span><span>-₹{orderDiscountLabel}</span></div>
+                        <div class="so-totals__row so-totals__row--net"><span>Net Payable</span><span>₹{netPayable}</span></div>
+                    </template>
+                    <div class="so-totals__row"><span>Total Net Weight (Kg)</span><span>{totalNetWeight}</span></div>
+                </div>
+
+                <!-- Invoice header fields -->
+                <div class="so-fields">
+                    <lightning-input type="date" label="Invoice Date" value={invoiceDate} disabled></lightning-input>
+                    <lightning-input label="GST Number" value={gstNumber} onchange={onUpdateGstNumber}></lightning-input>
+                    <lightning-input label="IRN Number" value={irnNumber} onchange={onUpdateIrnNumber}></lightning-input>
+                    <lightning-input label="Remarks" value={remarks} onchange={onUpdateRemakrs}></lightning-input>
+                    <lightning-input label="Delivery Remarks" value={delivaryRemakrs} onchange={onUpdateDelivaryRemakrs}></lightning-input>
+                </div>
+
+                <div class="so-actions">
+                    <button class="so-btn" onclick={showSchemes}>‹ Back</button>
+                    <button class="so-btn so-btn--ghost" onclick={handleCancel}>Cancel</button>
+                    <button class="so-btn so-btn--primary" onclick={handleSave}>Save Invoice</button>
+                </div>
             </div>
-        </div>
-    </template>
-    <c-custom-toast auto-close-time="8000"></c-custom-toast>
+        </template>
+
+    </div>
 </template>
