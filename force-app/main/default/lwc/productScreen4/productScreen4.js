@@ -1613,12 +1613,7 @@ export default class ProductScreen4 extends LightningElement {
 
         product.total = netValue.toFixed(2);  // Rounded net value
 
-        this.schemePro = [...this.schemePro];
-        if (this.isSecondaryAccount) {
-            this.applySchemeEngine();
-        } else {
-            this.recalculateTotals();
-        }
+        this._scheduleRecalc();
     }
     handleEachQtyChange(event) {
         const index1 = parseInt(event.target.dataset.id);
@@ -1639,17 +1634,25 @@ export default class ProductScreen4 extends LightningElement {
 
         product.total = netValue.toFixed(2);  // Rounded net value
 
-        //alert(product.total);
-        //alert(JSON.stringify(product));
-        // Ensure reactivity
-        this.schemePro = [...this.schemePro];
-        if (this.isSecondaryAccount) {
-            // New Scheme__c engine owns secondary-account pricing.
-            this.applySchemeEngine();
-        } else {
-            this.recalculateTotals();
-        }
+        // Debounce the heavy re-render + scheme recompute so per-keystroke typing
+        // stays responsive on mobile (the native number input shows digits instantly).
+        this._scheduleRecalc();
+    }
 
+    // Coalesce quantity-entry recomputes: run the scheme engine / totals + list
+    // re-render once shortly after the user stops typing instead of every keystroke.
+    _scheduleRecalc() {
+        clearTimeout(this._recalcTimer);
+        this._recalcTimer = setTimeout(() => {
+            if (this.isSecondaryAccount) {
+                // New Scheme__c engine owns secondary-account pricing (reassigns
+                // schemePro and recalculates totals internally).
+                this.applySchemeEngine();
+            } else {
+                if (this.schemePro) this.schemePro = [...this.schemePro];
+                this.recalculateTotals();
+            }
+        }, 300);
     }
 
     syncQuantityToSchemeOffer(productId, newQty, totalValue) {
