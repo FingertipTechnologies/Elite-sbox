@@ -1921,21 +1921,31 @@ public without sharing class DMSPortalLwc {
         // These schemes apply ONLY to Secondary Customers
         if (acc.Customer_Type__c != 'Secondary Customer') return out;
 
-        Id currentUserId = UserInfo.getUserId();
-        User us = [SELECT Id, Sales_Channel__c, Alternate_Sales_Channel__c
-                   FROM User WHERE Id = :currentUserId];
-        Set<String> salesChannelList = new Set<String>();
-        if (us.Alternate_Sales_Channel__c != null) {
-            salesChannelList.addAll(us.Alternate_Sales_Channel__c.split(';'));
-        } else if (us.Sales_Channel__c != null) {
-            salesChannelList.addAll(us.Sales_Channel__c.split(';'));
+        // Channel + geo come from the PORTAL DISTRIBUTOR account (the running user's account),
+        // not the running user's Sales_Channel__c (portal users have none) or the executive
+        // filter. The secondary customer (accountId) still drives the outlet-category match below.
+        Id portalAccountId;
+        User u = [SELECT ContactId FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
+        if (u.ContactId != null) {
+            portalAccountId = [SELECT AccountId FROM Contact WHERE Id = :u.ContactId LIMIT 1].AccountId;
         }
+        if (portalAccountId == null) return out;
 
-        Set<String> channelSet = getSecondaryCustomerChannelsWS(accountId, currentUserId, salesChannelList);
-        if (channelSet.isEmpty()) channelSet = salesChannelList;
-
-        AccountGeoWS geo = getSecondaryCustomerGeoWS(accountId, currentUserId, salesChannelList);
-        if (geo == null) return out;   // no Product_Mapping at all -> no schemes
+        // Distributor's Product_Mapping rows carry Chanel__c + geo directly (same pattern as
+        // getAllProducts / newStockAdjustment) — no executive filter.
+        List<Product_Mapping__c> distMappings = [
+            SELECT Chanel__c, Area__c, Area_Area_Name__c, Region_Name__c
+            FROM Product_Mapping__c WHERE Customer__c = :portalAccountId
+        ];
+        Set<String> channelSet = new Set<String>();
+        AccountGeoWS geo = new AccountGeoWS();
+        for (Product_Mapping__c pm : distMappings) {
+            if (pm.Chanel__c != null) channelSet.add(pm.Chanel__c);
+            if (String.isNotBlank(pm.Region_Name__c))    geo.regions.add(pm.Region_Name__c);
+            if (String.isNotBlank(pm.Area_Area_Name__c)) geo.areas.add(pm.Area_Area_Name__c);
+            if (pm.Area__c != null)                      geo.territoryIds.add(String.valueOf(pm.Area__c));
+        }
+        if (channelSet.isEmpty()) return out;   // distributor has no channel mapping -> no schemes
 
         Date today = Date.today();
         List<Scheme__c> candidates = [
@@ -2068,80 +2078,6 @@ public without sharing class DMSPortalLwc {
             }
         }
         return out;
-    }
-
-    // Primary->channel resolver (copy of beatPlannerlwc.getSecondaryCustomerChannels).
-    private static Set<String> getSecondaryCustomerChannelsWS(String accountId, Id currentUserId, Set<String> salesChannelList) {
-        Set<String> channelSet = new Set<String>();
-        List<Product_Mapping__c> secondaryMappings = [
-            SELECT Primary_Customer__c
-            FROM Product_Mapping__c
-            WHERE Customer__c = :accountId
-            AND Exectuive__c = :currentUserId
-        ];
-        if (secondaryMappings.isEmpty()) {
-            secondaryMappings = [
-                SELECT Primary_Customer__c
-                FROM Product_Mapping__c
-                WHERE Customer__c = :accountId
-                AND Exectuive__r.Sales_Channel__c IN :salesChannelList
-            ];
-        }
-        Set<String> primaryCustomerIds = new Set<String>();
-        for (Product_Mapping__c prodMap : secondaryMappings) {
-            if (prodMap.Primary_Customer__c != null) {
-                primaryCustomerIds.add(prodMap.Primary_Customer__c);
-            }
-        }
-        if (primaryCustomerIds.isEmpty()) {
-            return channelSet;
-        }
-        List<Product_Mapping__c> primaryChannelMappings = [
-            SELECT Chanel__c
-            FROM Product_Mapping__c
-            WHERE Customer__c IN :primaryCustomerIds
-            AND Chanel__c IN :salesChannelList
-            AND Exectuive__c = :currentUserId
-        ];
-        if (primaryChannelMappings.isEmpty()) {
-            primaryChannelMappings = [
-                SELECT Chanel__c
-                FROM Product_Mapping__c
-                WHERE Customer__c IN :primaryCustomerIds
-                AND Chanel__c IN :salesChannelList
-            ];
-        }
-        for (Product_Mapping__c prodMap : primaryChannelMappings) {
-            if (prodMap.Chanel__c != null) {
-                channelSet.add(prodMap.Chanel__c);
-            }
-        }
-        return channelSet;
-    }
-
-    // Region/Area/Territory resolver (copy of beatPlannerlwc.getSecondaryCustomerGeo).
-    private static AccountGeoWS getSecondaryCustomerGeoWS(Id accountId, Id currentUserId, Set<String> salesChannelList) {
-        List<Product_Mapping__c> mappings = [
-            SELECT Area__c, Area_Area_Name__c, Region_Name__c
-            FROM Product_Mapping__c
-            WHERE Customer__c = :accountId AND Exectuive__c = :currentUserId
-        ];
-        if (mappings.isEmpty()) {
-            mappings = [
-                SELECT Area__c, Area_Area_Name__c, Region_Name__c
-                FROM Product_Mapping__c
-                WHERE Customer__c = :accountId
-                AND Exectuive__r.Sales_Channel__c IN :salesChannelList
-            ];
-        }
-        if (mappings.isEmpty()) return null;
-        AccountGeoWS geo = new AccountGeoWS();
-        for (Product_Mapping__c pm : mappings) {
-            if (String.isNotBlank(pm.Region_Name__c))    geo.regions.add(pm.Region_Name__c);
-            if (String.isNotBlank(pm.Area_Area_Name__c)) geo.areas.add(pm.Area_Area_Name__c);
-            if (pm.Area__c != null)                      geo.territoryIds.add(String.valueOf(pm.Area__c));
-        }
-        return geo;
     }
 
     // FOC price fallback (copy of beatPlannerlwc.resolveFocPrice).
