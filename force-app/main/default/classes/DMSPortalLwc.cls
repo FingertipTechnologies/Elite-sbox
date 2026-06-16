@@ -1808,9 +1808,15 @@ public without sharing class DMSPortalLwc {
             out.items.add(row);
         }
 
-        // Running scheme coverage for the account (same input productScreen4 uses).
+        // Running scheme coverage for the account (same input productScreen4 uses). Runs
+        // without sharing inside beatPlannerlwc; degrade to empty coverage on any failure so
+        // the invoice screen still loads.
         if (customerAccountId != null) {
-            out.coverage = beatPlannerlwc.getSchemeCoverageForAccount(customerAccountId);
+            try {
+                out.coverage = beatPlannerlwc.getSchemeCoverageForAccount(customerAccountId);
+            } catch (Exception e) {
+                out.coverage = null;
+            }
         }
 
         // Products that carried a scheme on the source order.
