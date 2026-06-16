@@ -341,34 +341,32 @@ export default class ProductScreen4 extends LightningElement {
                 if (this.orderRecordId && result.existingOrderProductQuantities) {
                     const existingQty = result.existingOrderProductQuantities;
 
+                    // Restore the ORDERED qty from the split fields. Quantity__c includes
+                    // merged FOC giveaway free units, so using it would inflate the order
+                    // (and the engine would re-add the free on top).
+                    const applyOrdered = (product) => {
+                        const oi = existingQty[product.id];
+                        if (!oi) return;
+                        const crate = parseInt(oi.Case_Qyt__c) || 0;
+                        const each  = parseInt(oi.Each_Qyt__c) || 0;
+                        const uomConv = parseFloat(product.uomConversion) || 1;
+                        product.crateQty = crate;
+                        product.eachQty  = each;
+                        product.value = (crate * uomConv) + each;
+                    };
+
                     if (this.schemePro) {
                         this.schemePro.forEach((schemeGroup) => {
-                            schemeGroup.products.forEach((product) => {
-                                if (existingQty[product.id]) {
-                                    product.value = existingQty[product.id].Quantity__c;
-                                    product.crateQty = existingQty[product.id].Case_Qyt__c;
-                                    product.eachQty = existingQty[product.id].Each_Qyt__c;
-                                }
-                            });
+                            (schemeGroup.products || []).forEach(applyOrdered);
                         });
                     }
 
                     if (this.productData) {
-                        this.productData.forEach((product) => {
-                            if (existingQty[product.id]) {
-                                product.value = existingQty[product.id];
-                                product.crateQty = existingQty[product.id].Case_Qyt__c;
-                                product.eachQty = existingQty[product.id].Each_Qyt__c;
-                            }
-                        });
+                        this.productData.forEach(applyOrdered);
                     }
 
                     if (this.allProDtas) {
-                        this.allProDtas.forEach((product) => {
-                            if (existingQty[product.id]) {
-                                product.value = existingQty[product.id];
-                            }
-                        });
+                        this.allProDtas.forEach(applyOrdered);
                     }
                 }
 
