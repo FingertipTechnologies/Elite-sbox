@@ -10,6 +10,16 @@ export default class CLookup extends LightningElement {
     @api field;
     @api index;
     @api iconName = 'standard:default'; // Use 'standard:user', 'standard:account', etc.
+
+    // Optional preselected display text (e.g. restore a saved value on edit)
+    _preselectedLabel;
+    @api
+    get preselectedLabel() { return this._preselectedLabel; }
+    set preselectedLabel(value) {
+        this._preselectedLabel = value;
+        if (value) this.searchKey = value;
+    }
+
     @track searchKey = '';
     @track results = [];
     @track showDropdown = false;

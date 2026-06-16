@@ -1601,7 +1601,7 @@ global with sharing class beatPlannerlwc {
         } 
         else if (orderRecordId != null) {
             List<Order_Item__c> items = [
-                SELECT Order__r.Account__c,Product__c,Order__r.PO_DATE__c,Order__r.PO_NUM__c,Order__r.Account__r.Customer_Type__c,Order__r.Delivery_To__c,Order__r.Expected_Delivery_Date__c,Quantity__c, Order__r.Account__r.Name,Case_Qyt__c,Each_Qyt__c FROM Order_Item__c WHERE Order__c = :orderRecordId
+                SELECT Order__r.Account__c,Product__c,Order__r.PO_DATE__c,Order__r.PO_NUM__c,Order__r.Account__r.Customer_Type__c,Order__r.Delivery_To__c,Order__r.Expected_Delivery_Date__c,Order__r.OwnerId,Order__r.Owner.Name,Quantity__c, Order__r.Account__r.Name,Case_Qyt__c,Each_Qyt__c FROM Order_Item__c WHERE Order__c = :orderRecordId
             ];
             if (!items.isEmpty()) {
                 accId = items[0].Order__r.Account__c;
@@ -1611,7 +1611,8 @@ global with sharing class beatPlannerlwc {
                 responseData.estimatedDeliveryDate = items[0].Order__r.Expected_Delivery_Date__c;
                 responseData.PoNum = items[0].Order__r.PO_NUM__c;
                 responseData.PoDate = items[0].Order__r.PO_DATE__c;
-                
+                responseData.orderOwnerId = items[0].Order__r.OwnerId;
+                responseData.orderOwnerName = items[0].Order__r.Owner.Name;
             }
             Map<Id, Order_Item__c> productIdToQty = new Map<Id, Order_Item__c>();
             for(Order_Item__c item : items){
@@ -3052,6 +3053,7 @@ global with sharing class beatPlannerlwc {
             ord.Delivery_To__c = (String)plantOrder.get('deliveryTo');
             ord.Expected_Delivery_Date__c = Date.valueOf((String)plantOrder.get('expectedDate'));
             if (plantOrder.get('orderOwnerId') != null && plantOrder.get('orderOwnerId') != '') {
+                ord.OwnerId = (Id) String.valueOf(plantOrder.get('orderOwnerId'));
                 ord.Executive__c = (String)plantOrder.get('orderOwnerId');
             }
             
@@ -4275,6 +4277,8 @@ global with sharing class beatPlannerlwc {
         @AuraEnabled public Boolean isModerTrade{get;set;}
         @AuraEnabled public Boolean isShowOwner{get;set;}
         @AuraEnabled public Boolean isDSM_SSA{get;set;}
+        @AuraEnabled public Id orderOwnerId{get;set;}
+        @AuraEnabled public String orderOwnerName{get;set;}
         @AuraEnabled public Account currentAccountRec{get;set;}
         @AuraEnabled public List<SchemeStrategy> scheme { get; set; }
         @AuraEnabled public List<schemeData> schemessss{get;set;}
