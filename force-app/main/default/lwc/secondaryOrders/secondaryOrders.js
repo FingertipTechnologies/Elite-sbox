@@ -161,7 +161,12 @@ export default class SecondaryOrders extends LightningElement {
         const psm = this.coverageProductSchemeIds || {};
         const breakupOpen = this._breakupOpen || new Set();
         const applicableOpen = this._applicableOpen || new Set();
-        return this.productData.map((p, idx) => {
+        // A purely-free FOC giveaway seeds at value 0 and is shown as a separate ₹0 FREE card
+        // (focCards); hide its empty paid card so it isn't a duplicate of the free card.
+        const focIds = new Set((this.focLines || []).map(f => String(f.id)));
+        return this.productData
+            .filter(p => !((Number(p.value) || 0) === 0 && focIds.has(String(p.id))))
+            .map((p, idx) => {
             const qty = Number(p.value) || 0;
             const base = Number(p.UnitPricePriceBook) || 0;
             const unit = Number(p.discountedUnitPrice != null ? p.discountedUnitPrice : p.UnitPricePriceBook) || 0;

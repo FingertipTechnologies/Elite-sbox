@@ -1776,9 +1776,26 @@ public without sharing class DMSPortalLwc {
             stockMap.put(ds.Product_Name__c, ds.Available_Saleable_Quantity__c);
         }
 
+        // FOC giveaway free qty recorded on the source order, so we seed only the PAID portion of a
+        // giveaway product (the engine regenerates the free units as a separate zero-cost line).
+        Map<Id, Decimal> focFree = new Map<Id, Decimal>();
+        for (Order_Scheme_Applied__c osa : [
+            SELECT FOC_Giveaway_Product__c, Free_Qty__c
+            FROM Order_Scheme_Applied__c
+            WHERE Order_Request__c = :orderId
+            AND Scheme_Type__c = 'FOC Giveaway' AND FOC_Giveaway_Product__c != null
+        ]) {
+            Decimal q = (osa.Free_Qty__c != null) ? osa.Free_Qty__c : 0;
+            Decimal cur = focFree.containsKey(osa.FOC_Giveaway_Product__c) ? focFree.get(osa.FOC_Giveaway_Product__c) : 0;
+            focFree.put(osa.FOC_Giveaway_Product__c, cur + q);
+        }
+
         for (Order_Item__c item : ordList) {
             Decimal pendingQty = item.Secondary_Invoice_Pending_Quantity__c != null
                 ? item.Secondary_Invoice_Pending_Quantity__c : 0;
+            // Seed only the paid portion for FOC giveaway products (free units re-added by the engine).
+            Decimal seedQty = pendingQty - (focFree.containsKey(item.Product__c) ? focFree.get(item.Product__c) : 0);
+            if (seedQty < 0) seedQty = 0;
             // Scheme-engine base price = the post-category-slab, pre-scheme unit price.
             Decimal baseScheme = item.Before_Scheme_Unit_Price__c != null
                 ? item.Before_Scheme_Unit_Price__c
@@ -1792,7 +1809,7 @@ public without sharing class DMSPortalLwc {
             row.put('orderItemId', item.Id);
             row.put('id', item.Product__c);
             row.put('name', item.Product__r.Name);
-            row.put('value', pendingQty);
+            row.put('value', seedQty);
             row.put('orderedQty', item.Quantity__c);
             row.put('UnitPricePriceBook', baseScheme);
             row.put('taxPercent', taxPer);
