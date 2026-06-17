@@ -2,6 +2,10 @@ import { LightningElement, track, api } from 'lwc';
 import getOrderItemsForInvoice from '@salesforce/apex/DMSPortalLwc.getOrderItemsForInvoice';
 import saveSecondaryInvoiceWithSchemes from '@salesforce/apex/DMSPortalLwc.saveSecondaryInvoiceWithSchemes';
 
+// Fixed display order for schemes by type (applicable scheme list per product + Schemes tab).
+const SCHEME_TYPE_RANK = { 'Free Quantity': 1, 'QPS': 2, 'FOC Giveaway': 3, 'Category Value': 4, 'Order Value': 5 };
+const schemeTypeRank = (t) => SCHEME_TYPE_RANK[t] || 99;
+
 export default class SecondaryOrders extends LightningElement {
     @api selectedOrderIds;
     @api selectedOrderId;
@@ -39,6 +43,9 @@ export default class SecondaryOrders extends LightningElement {
     _recalcTimer;
     _lastInvalidSig = '';
     @track _expandedSchemes = new Set();
+    @track _breakupOpen = new Set();      // product ids whose applied price breakup is open
+    @track _applicableOpen = new Set();   // product ids whose applicable scheme list is open
+    coverageProductSchemeIds = {};
 
     connectedCallback() {
         this.loadData();
@@ -52,6 +59,7 @@ export default class SecondaryOrders extends LightningElement {
                 this.gstNumber = data.gstNumber || '';
                 this.orderSchemeProductIds = new Set((data.orderSchemeProductIds || []).map(String));
                 this.coverageSchemes = (data.coverage && data.coverage.schemes) ? data.coverage.schemes : [];
+                this.coverageProductSchemeIds = (data.coverage && data.coverage.productSchemeIds) ? data.coverage.productSchemeIds : {};
                 this.productData = (data.items || []).map(it => ({
                     orderItemId: it.orderItemId,
                     id: it.id,
@@ -121,14 +129,17 @@ export default class SecondaryOrders extends LightningElement {
     }
 
     get displayCoverageSchemes() {
-        return (this.coverageSchemes || []).map(cs => {
-            const isExpanded = this._expandedSchemes.has(String(cs.id));
-            return {
-                ...cs,
-                isExpanded,
-                expandIcon: isExpanded ? 'utility:chevrondown' : 'utility:chevronright'
-            };
-        });
+        return (this.coverageSchemes || [])
+            .slice()
+            .sort((a, b) => schemeTypeRank(a.schemeType) - schemeTypeRank(b.schemeType))
+            .map(cs => {
+                const isExpanded = this._expandedSchemes.has(String(cs.id));
+                return {
+                    ...cs,
+                    isExpanded,
+                    expandIcon: isExpanded ? 'utility:chevrondown' : 'utility:chevronright'
+                };
+            });
     }
 
     get hasIssues() { return this.issues && this.issues.length > 0; }
@@ -142,44 +153,72 @@ export default class SecondaryOrders extends LightningElement {
     // Screen-1 cart rows (with display fields layered over engine items)
     get cartItems() {
         const schemeNameById = {};
-        (this.coverageSchemes || []).forEach(s => { schemeNameById[String(s.id)] = s.name; });
+        const schemeById = {};
+        (this.coverageSchemes || []).forEach(s => {
+            schemeNameById[String(s.id)] = s.name;
+            schemeById[String(s.id)] = s;
+        });
+        const psm = this.coverageProductSchemeIds || {};
+        const breakupOpen = this._breakupOpen || new Set();
+        const applicableOpen = this._applicableOpen || new Set();
         return this.productData.map((p, idx) => {
             const qty = Number(p.value) || 0;
+            const base = Number(p.UnitPricePriceBook) || 0;
             const unit = Number(p.discountedUnitPrice != null ? p.discountedUnitPrice : p.UnitPricePriceBook) || 0;
             const taxAmt = this._round2(unit * qty * (Number(p.taxPercent) || 0) / 100);
             const total = this._round2(unit * qty + taxAmt);
+            const pid = String(p.id);
 
             // Schemes APPLIED to this line (Free Quantity / QPS / FOC Giveaway carry a productId).
             const appliedNames = new Set();
             (this.appliedSchemeRecords || []).forEach(r => {
-                if (r.productId && String(r.productId) === String(p.id)) {
+                if (r.productId && String(r.productId) === pid) {
                     appliedNames.add(schemeNameById[String(r.schemeId)] || r.schemeType);
                 }
             });
             const appliedChips = [...appliedNames].map((n, i) => ({ key: 'a-' + idx + '-' + i, name: n }));
 
-            // Schemes the product is ELIGIBLE for but not currently applied (group + Category Value).
-            const eligibleChips = [];
-            (this.coverageSchemes || []).forEach((s, i) => {
-                if (s.schemeType === 'Order Value') return; // whole-order, shown on Schemes tab
-                const inGroup = (s.groupProductIds || []).map(String).includes(String(p.id));
-                const inCat = s.productCategory && p.subGroup && s.productCategory === p.subGroup;
-                if ((inGroup || inCat) && !appliedNames.has(s.name)) {
-                    eligibleChips.push({ key: 'e-' + idx + '-' + i, name: s.name });
-                }
-            });
+            // Schemes this product is covered by (group schemes) — expandable applicable list.
+            const coveringSchemes = (psm[p.id] || [])
+                .map(id => schemeById[String(id)])
+                .filter(Boolean)
+                .sort((a, b) => schemeTypeRank(a.schemeType) - schemeTypeRank(b.schemeType));
+
+            const isBreakupExpanded = breakupOpen.has(pid);
+            const isApplicableExpanded = applicableOpen.has(pid);
 
             return {
                 ...p,
                 rowIndex: idx + 1,
+                baseUnitPrice: base.toFixed(2),
+                showActual: this._round2(unit) < this._round2(base),
                 displayUnit: unit.toFixed(2),
                 displayTax: taxAmt.toFixed(2),
                 displayTotal: total.toFixed(2),
                 appliedChips: appliedChips,
-                eligibleChips: eligibleChips,
-                hasScheme: appliedChips.length > 0
+                hasScheme: appliedChips.length > 0,
+                priceSteps: Array.isArray(p._priceSteps) ? p._priceSteps : [],
+                isBreakupExpanded: isBreakupExpanded,
+                breakupIcon: isBreakupExpanded ? 'utility:chevrondown' : 'utility:chevronright',
+                coveringSchemes: coveringSchemes,
+                coveringCount: coveringSchemes.length,
+                hasCoveringSchemes: coveringSchemes.length > 0,
+                isApplicableExpanded: isApplicableExpanded,
+                applicableIcon: isApplicableExpanded ? 'utility:chevrondown' : 'utility:chevronright'
             };
         });
+    }
+
+    toggleBreakup(event) {
+        const pid = String(event.currentTarget.dataset.productId);
+        if (this._breakupOpen.has(pid)) this._breakupOpen.delete(pid); else this._breakupOpen.add(pid);
+        this._breakupOpen = new Set(this._breakupOpen);
+    }
+
+    toggleApplicable(event) {
+        const pid = String(event.currentTarget.dataset.productId);
+        if (this._applicableOpen.has(pid)) this._applicableOpen.delete(pid); else this._applicableOpen.add(pid);
+        this._applicableOpen = new Set(this._applicableOpen);
     }
 
     // Screen-3 summary rows

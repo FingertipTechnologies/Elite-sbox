@@ -70,6 +70,69 @@
 .so-badge--free { background: #16a34a; color: #fff; }
 .so-badge { margin-bottom: 3px; }
 
+/* ===== Per-product scheme UX (ported from productScreen4) ===== */
+.so-scheme-cell { min-width: 230px; }
+
+/* Applied scheme price band + breakup */
+.scheme-price-band {
+    margin: 0.25rem 0 0.4rem;
+    border: 1px solid #c9e7d4;
+    border-left: 4px solid #2e844a;
+    border-radius: 0.3rem;
+    background: linear-gradient(180deg, #f6fbf7 0%, #eef7f1 100%);
+    overflow: hidden;
+}
+.scheme-price-band__main {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem;
+    padding: 0.35rem 0.55rem;
+}
+.scheme-price-band__final { font-size: 0.95rem; font-weight: 700; color: #1b5e34; }
+.scheme-price-band__actual { font-size: 0.78rem; color: #8a8f94; text-decoration: line-through; }
+.scheme-price-band__tag {
+    font-size: 0.68rem; font-weight: 600; color: #2e844a;
+    background: #e3f3e9; border: 1px solid #bfe3cc; border-radius: 1rem;
+    padding: 0.05rem 0.5rem; white-space: nowrap;
+}
+.scheme-price-band__toggle { margin-left: auto; --slds-c-icon-color-foreground-default: #2e844a; }
+.scheme-breakup { border-top: 1px dashed #c9e7d4; background: #fff; padding: 0.25rem 0.6rem 0.4rem; }
+.scheme-breakup__row {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 0.22rem 0; font-size: 0.78rem; border-bottom: 1px dotted #ececec;
+}
+.scheme-breakup__row:last-child { border-bottom: none; }
+.scheme-breakup__label { color: #54698d; }
+.scheme-breakup__price { font-weight: 600; color: #16325c; white-space: nowrap; }
+
+/* Applicable schemes toggle + inline coverage cards */
+.scheme-applicable { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+.scheme-applicable__label { font-size: 0.78rem; font-weight: 600; color: #4b5563; }
+.scheme-star { font-size: 0.9rem; line-height: 1; }
+.scheme-expand-btn { --slds-c-icon-color-foreground-default: #6b7280; }
+.scheme-inline-list { margin-top: 6px; }
+.coverage-scheme-card {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+    margin-bottom: 8px; overflow: hidden;
+}
+.coverage-scheme-card--inline { box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.coverage-scheme-card__head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-bottom: 1px solid #e5e7eb;
+}
+.coverage-scheme-card__name { color: #0070d2; font-size: 0.88rem; }
+.coverage-scheme-card__body { padding: 8px 12px; }
+.coverage-scheme-card__body .kv-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 4px 0; border-bottom: 1px solid #f3f4f6;
+}
+.coverage-scheme-card__body .kv-row:last-child { border-bottom: none; }
+.coverage-scheme-card__body .kv-row__label { color: #6b7280; font-size: 0.8rem; }
+.coverage-scheme-card__body .kv-row__value { color: #111827; font-weight: 600; font-size: 0.85rem; text-align: right; }
+.coverage-scheme-card__body .kv-row--offer .kv-row__value { color: #4f46e5; }
+.coverage-scheme-card__group {
+    font-size: 0.76rem; color: #4b5563; margin: 8px 0 4px;
+    border-top: 1px dashed #d1d5db; padding-top: 6px; font-weight: 600;
+}
+
 /* Loading overlay */
 .so-loading-overlay {
     position: fixed; inset: 0; z-index: 9999;
