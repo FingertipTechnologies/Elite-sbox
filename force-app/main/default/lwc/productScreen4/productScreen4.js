@@ -12,6 +12,10 @@ import GOOGLE_ICONS from '@salesforce/resourceUrl/googleIcons';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { getLocationService } from 'lightning/mobileCapabilities';
 
+// Fixed display order for schemes by type (Schemes tab + per-product applicable list).
+const SCHEME_TYPE_RANK = { 'Free Quantity': 1, 'QPS': 2, 'FOC Giveaway': 3, 'Category Value': 4, 'Order Value': 5 };
+const schemeTypeRank = (t) => SCHEME_TYPE_RANK[t] || 99; // unknown types sort last
+
 export default class ProductScreen4 extends LightningElement {
 
     ice = PLANNER_ICON + "/planner/screen-4-ice.png";
@@ -1440,6 +1444,7 @@ export default class ProductScreen4 extends LightningElement {
                     (p.name || '').toLowerCase().includes(term)
                     || (p.sku || '').toLowerCase().includes(term));
             })
+            .sort((a, b) => schemeTypeRank(a.schemeType) - schemeTypeRank(b.schemeType))
             .map(s => {
                 const isExpanded = !collapsed.has(s.id);
                 return {
@@ -1472,7 +1477,8 @@ export default class ProductScreen4 extends LightningElement {
                     hasSchemeGroupMatch: sids.length > 0,
                     isSchemeExpanded: isExpanded,
                     schemeExpandIcon: isExpanded ? 'utility:chevrondown' : 'utility:chevronright',
-                    coveringSchemes: sids.map(id => schemesById[id]).filter(Boolean),
+                    coveringSchemes: sids.map(id => schemesById[id]).filter(Boolean)
+                        .sort((a, b) => schemeTypeRank(a.schemeType) - schemeTypeRank(b.schemeType)),
                     priceSteps: Array.isArray(p._priceSteps) ? p._priceSteps : [],
                     showBreakup: showBreakup,
                     breakupIcon: showBreakup ? 'utility:chevrondown' : 'utility:chevronright'
