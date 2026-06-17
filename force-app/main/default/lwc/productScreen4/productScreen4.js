@@ -2230,6 +2230,29 @@ export default class ProductScreen4 extends LightningElement {
         });
     }
 
+    // Outlet Category (Price_Change__c): the per-line unit-price reduction applied BEFORE schemes
+    // (originalUnitPrice -> UnitPricePriceBook). Not a Scheme__c, so it carries no scheme/slab id —
+    // but we record its customer benefit as a per-line Order_Scheme_Applied__c row so the OSA
+    // benefit total includes it. Benefit mirrors Order_Item__c.Category_Slab_Claim_Amount__c
+    // ((Before_Category_Slab - After_Category_Slab) * Quantity), using the same rounding and the
+    // saved quantity (value + FOC-merged free units).
+    _passOutletCategory() {
+        this._allEngineItems().forEach(p => {
+            const before = this._round2(parseFloat(p.originalUnitPrice || p.UnitPricePriceBook) || 0);
+            const after  = this._round2(parseFloat(p.UnitPricePriceBook) || 0);
+            const perUnit = this._round2(before - after);
+            const qty = (parseFloat(p.value) || 0) + (parseFloat(p._focMergeQty) || 0);
+            if (perUnit <= 0 || qty <= 0) return;
+            this.appliedSchemeRecords.push({
+                productId: p.id,
+                schemeType: 'Outlet Category Scheme',
+                benefitAmount: this._round2(perUnit * qty),
+                sequence: 0,
+                description: 'Outlet Category: ₹' + perUnit.toFixed(2) + ' off per EA'
+            });
+        });
+    }
+
     applySchemeEngine() {
         if (!this.isSecondaryAccount) return;
         try {
@@ -2271,6 +2294,7 @@ export default class ProductScreen4 extends LightningElement {
         this._pass3FOCGiveaway(ctx.byType);
         this._pass4CategoryValue(ctx.byType);
         this._pass5OrderValue(ctx.byType);
+        this._passOutletCategory();
 
         // Write back per-line results
         items.forEach(p => {
