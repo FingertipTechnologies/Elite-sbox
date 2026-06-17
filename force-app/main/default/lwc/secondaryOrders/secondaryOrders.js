@@ -222,6 +222,18 @@ export default class SecondaryOrders extends LightningElement {
         this._applicableOpen = new Set(this._applicableOpen);
     }
 
+    // FOC giveaway products — shown as compact ₹0 "FREE" cards on the Products screen.
+    get focCards() {
+        return (this.focLines || []).map((f, i) => ({
+            key: 'foc-' + i + '-' + f.id,
+            name: f.name,
+            qty: Number(f.value) || 0,
+            unitPrice: (Number(f.UnitPricePriceBook) || 0).toFixed(2),
+            schemeLabel: f.schemeLabel
+        }));
+    }
+    get hasFocCards() { return (this.focLines || []).length > 0; }
+
     // Screen-3 summary rows
     get summaryItems() {
         const rows = [];
@@ -405,29 +417,21 @@ export default class SecondaryOrders extends LightningElement {
             if (focQty <= 0) return;
             const focPrice = parseFloat(slab.focUnitPrice) || 0;
             const focTax = parseFloat(slab.focTaxPercent) || 0;
-            const existing = this._allEngineItems().find(p => String(p.id) === String(slab.focProductId) && (parseFloat(p.value) || 0) > 0);
-            if (existing) {
-                existing._focMergeQty = (existing._focMergeQty || 0) + focQty;
-                existing._focMergeDiscount = (existing._focMergeDiscount || 0) + (focPrice * focQty);
-                existing.appliedScheme = true;
-                existing.schemeLabel = scheme.name;
-                if (!existing._appliedSchemeId) existing._appliedSchemeId = scheme.id;
-            } else {
-                this.focLines.push({
-                    id: slab.focProductId,
-                    name: slab.focProductName,
-                    isFOC: true,
-                    value: focQty,
-                    eachQty: focQty,
-                    UnitPricePriceBook: focPrice,
-                    discountedUnitPrice: focPrice.toFixed(2),
-                    taxPercent: focTax,
-                    netWeight: 0,
-                    _appliedSchemeId: scheme.id,
-                    appliedScheme: true,
-                    schemeLabel: scheme.name
-                });
-            }
+            // Always show the FOC giveaway as its own ₹0 line (never merged into the paid line).
+            this.focLines.push({
+                id: slab.focProductId,
+                name: slab.focProductName,
+                isFOC: true,
+                value: focQty,
+                eachQty: focQty,
+                UnitPricePriceBook: focPrice,
+                discountedUnitPrice: focPrice.toFixed(2),
+                taxPercent: focTax,
+                netWeight: 0,
+                _appliedSchemeId: scheme.id,
+                appliedScheme: true,
+                schemeLabel: scheme.name
+            });
             this.appliedSchemeRecords.push({
                 productId: slab.focProductId,
                 schemeId: scheme.id, slabId: slab.slabId, schemeType: 'FOC Giveaway',
