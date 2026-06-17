@@ -143,38 +143,6 @@
                         </div>
                     </template>
 
-                    <!-- FOC giveaway products — compact ₹0 FREE cards -->
-                    <template for:each={focCards} for:item="foc">
-                        <div key={foc.key} class="so-card so-card--foc">
-                            <div class="so-card__head">
-                                <span class="so-card__name">{foc.name}</span>
-                                <span class="so-badge so-badge--free">FREE</span>
-                                <template if:true={foc.schemeLabel}>
-                                    <span class="scheme-price-band__tag">{foc.schemeLabel}</span>
-                                </template>
-                            </div>
-                            <div class="so-card__body">
-                                <div class="so-card__metrics">
-                                    <div class="so-card__metric">
-                                        <span class="so-card__metric-label">Qty</span>
-                                        <strong>{foc.qty}</strong>
-                                    </div>
-                                    <div class="so-card__metric">
-                                        <span class="so-card__metric-label">Unit Price</span>
-                                        <strong>₹{foc.unitPrice}</strong>
-                                    </div>
-                                    <div class="so-card__metric">
-                                        <span class="so-card__metric-label">Tax</span>
-                                        <strong>₹0.00</strong>
-                                    </div>
-                                    <div class="so-card__metric">
-                                        <span class="so-card__metric-label">Total</span>
-                                        <strong>₹0.00</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
                 </div>
                 <div class="so-actions">
                     <button class="so-btn so-btn--ghost" onclick={handleCancel}>Cancel</button>

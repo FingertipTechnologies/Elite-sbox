@@ -91,9 +91,6 @@
 
 .so-card__schemes { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e5e7eb; }
 
-/* FOC giveaway (free) card */
-.so-card--foc { border-left: 3px solid #16a34a; background: #f6fbf7; padding: 8px 12px; }
-
 /* Badges */
 .so-badge {
     display: inline-block;

@@ -161,8 +161,8 @@ export default class SecondaryOrders extends LightningElement {
         const psm = this.coverageProductSchemeIds || {};
         const breakupOpen = this._breakupOpen || new Set();
         const applicableOpen = this._applicableOpen || new Set();
-        // A purely-free FOC giveaway seeds at value 0 and is shown as a separate ₹0 FREE card
-        // (focCards); hide its empty paid card so it isn't a duplicate of the free card.
+        // A purely-free FOC giveaway seeds at value 0 and is surfaced only in the Summary (as a ₹0
+        // FREE line); hide its empty paid card so it doesn't appear on the Products screen at all.
         const focIds = new Set((this.focLines || []).map(f => String(f.id)));
         return this.productData
             .filter(p => !((Number(p.value) || 0) === 0 && focIds.has(String(p.id))))
@@ -226,18 +226,6 @@ export default class SecondaryOrders extends LightningElement {
         if (this._applicableOpen.has(pid)) this._applicableOpen.delete(pid); else this._applicableOpen.add(pid);
         this._applicableOpen = new Set(this._applicableOpen);
     }
-
-    // FOC giveaway products — shown as compact ₹0 "FREE" cards on the Products screen.
-    get focCards() {
-        return (this.focLines || []).map((f, i) => ({
-            key: 'foc-' + i + '-' + f.id,
-            name: f.name,
-            qty: Number(f.value) || 0,
-            unitPrice: (Number(f.UnitPricePriceBook) || 0).toFixed(2),
-            schemeLabel: f.schemeLabel
-        }));
-    }
-    get hasFocCards() { return (this.focLines || []).length > 0; }
 
     // Screen-3 summary rows
     get summaryItems() {
@@ -422,21 +410,38 @@ export default class SecondaryOrders extends LightningElement {
             if (focQty <= 0) return;
             const focPrice = parseFloat(slab.focUnitPrice) || 0;
             const focTax = parseFloat(slab.focTaxPercent) || 0;
-            // Always show the FOC giveaway as its own ₹0 line (never merged into the paid line).
-            this.focLines.push({
-                id: slab.focProductId,
-                name: slab.focProductName,
-                isFOC: true,
-                value: focQty,
-                eachQty: focQty,
-                UnitPricePriceBook: focPrice,
-                discountedUnitPrice: focPrice.toFixed(2),
-                taxPercent: focTax,
-                netWeight: 0,
-                _appliedSchemeId: scheme.id,
-                appliedScheme: true,
-                schemeLabel: scheme.name
-            });
+            // If the giveaway product is ALSO ordered (paid qty > 0), merge the free units into that
+            // paid line (shown as one "+N free" line in the summary). Otherwise it's a purely-free
+            // giveaway → its own ₹0 line (summary-only). Mirrors productScreen4._pass3FOCGiveaway.
+            const existing = this._allEngineItems().find(p =>
+                String(p.id) === String(slab.focProductId) && (parseFloat(p.value) || 0) > 0);
+            if (existing) {
+                existing._focMergeQty = (existing._focMergeQty || 0) + focQty;
+                existing._focMergeDiscount = (existing._focMergeDiscount || 0) + (focPrice * focQty);
+                existing.appliedScheme = true;
+                existing.schemeLabel = scheme.name;
+                if (!existing._appliedSchemeId) existing._appliedSchemeId = scheme.id;
+                if (Array.isArray(existing._priceSteps)) {
+                    existing._priceSteps.push({ key: 'step-' + existing._priceSteps.length,
+                        label: 'FOC Giveaway — ' + focQty + ' EA free',
+                        price: this._round2(existing._wkUnit).toFixed(2) });
+                }
+            } else {
+                this.focLines.push({
+                    id: slab.focProductId,
+                    name: slab.focProductName,
+                    isFOC: true,
+                    value: focQty,
+                    eachQty: focQty,
+                    UnitPricePriceBook: focPrice,
+                    discountedUnitPrice: focPrice.toFixed(2),
+                    taxPercent: focTax,
+                    netWeight: 0,
+                    _appliedSchemeId: scheme.id,
+                    appliedScheme: true,
+                    schemeLabel: scheme.name
+                });
+            }
             this.appliedSchemeRecords.push({
                 productId: slab.focProductId,
                 schemeId: scheme.id, slabId: slab.slabId, schemeType: 'FOC Giveaway',
