@@ -56,6 +56,41 @@
 }
 .so-table td { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
 
+/* Product cards (Screen 1) */
+.so-cards { display: flex; flex-direction: column; gap: 12px; }
+.so-card {
+    background: #fff;
+    border: 1px solid #dde3ea;
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+}
+.so-card__head { display: flex; align-items: center; gap: 10px; }
+.so-card__idx {
+    flex: 0 0 auto;
+    width: 24px; height: 24px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: #eef2f6; color: #6b7280;
+    font-size: 0.75rem; font-weight: 700;
+}
+.so-card__name { flex: 1 1 auto; font-weight: 700; font-size: 0.95rem; color: #1a2332; }
+.so-card__remove { --slds-c-icon-color-foreground-default: #b91c1c; }
+
+.so-card__body {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    flex-wrap: wrap; gap: 16px; margin-top: 12px;
+}
+.so-card__qty { display: flex; flex-direction: column; gap: 2px; min-width: 160px; }
+.so-card__qty-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: #6b7280; }
+.so-card__avail { font-size: 0.72rem; color: #6b7280; margin-top: 2px; }
+.so-card__metrics { display: flex; gap: 22px; flex-wrap: wrap; }
+.so-card__metric { display: flex; flex-direction: column; align-items: flex-end; }
+.so-card__metric strong { font-size: 0.95rem; color: #02323e; }
+.so-card__metric-label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; color: #9aa5b1; }
+
+.so-card__schemes { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #e5e7eb; }
+
 /* Badges */
 .so-badge {
     display: inline-block;
