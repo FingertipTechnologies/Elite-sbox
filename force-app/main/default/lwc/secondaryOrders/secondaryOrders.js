@@ -494,6 +494,28 @@ export default class SecondaryOrders extends LightningElement {
         });
     }
 
+    // Outlet Category (Price_Change__c): the per-line price reduction applied before schemes, carried
+    // from the order line as before/after category-slab prices. Not a Scheme__c, so it has no scheme/slab
+    // id — but record its customer benefit as a per-line Invoice_Scheme_Applied__c row so the ISA benefit
+    // total includes it. Benefit mirrors Secondary_Invoice_Item__c.Category_Slab_Claim_Amount__c
+    // ((Before_Category_Slab - After_Category_Slab) * Quantity), using the saved quantity (value + free).
+    _passOutletCategory() {
+        this._allEngineItems().forEach(p => {
+            const before = this._round2(parseFloat(p.beforeCategorySlabUnitPrice) || 0);
+            const after  = this._round2(parseFloat(p.afterCategorySlabUnitPrice) || 0);
+            const perUnit = this._round2(before - after);
+            const qty = (parseFloat(p.value) || 0) + (parseFloat(p._focMergeQty) || 0);
+            if (perUnit <= 0 || qty <= 0) return;
+            this.appliedSchemeRecords.push({
+                productId: p.id,
+                schemeType: 'Outlet Category Scheme',
+                benefitAmount: this._round2(perUnit * qty),
+                sequence: 0,
+                description: 'Outlet Category: ₹' + perUnit.toFixed(2) + ' off per EA'
+            });
+        });
+    }
+
     applySchemeEngine() {
         try {
             this._runSchemeEngine();
@@ -530,6 +552,7 @@ export default class SecondaryOrders extends LightningElement {
         this._pass3FOCGiveaway(ctx.byType);
         this._pass4CategoryValue(ctx.byType);
         this._pass5OrderValue(ctx.byType);
+        this._passOutletCategory();
 
         items.forEach(p => {
             const finalUnit = this._round2(p._wkUnit);

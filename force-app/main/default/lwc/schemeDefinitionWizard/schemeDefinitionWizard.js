@@ -192,7 +192,9 @@ export default class SchemeDefinitionWizard extends LightningElement {
         const list = this.schemeTypeOptionsRaw && this.schemeTypeOptionsRaw.length
             ? this.schemeTypeOptionsRaw
             : FALLBACK_SCHEME_TYPES;
-        return list;
+        // 'Outlet Category Scheme' is a system marker recorded on OSA/ISA by the pricing engine,
+        // not a scheme users define — never offer it as a selectable scheme type here.
+        return list.filter(o => o.value !== 'Outlet Category Scheme');
     }
 
     get hasMasterMinimums() {
