@@ -26,26 +26,43 @@
         <!-- ============ Screen 1: Products ============ -->
         <template if:true={isProductsView}>
             <div class="so-panel">
-                <table class="so-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Product</th>
-                            <th>Scheme</th>
-                            <th>Invoice Qty</th>
-                            <th>Available</th>
-                            <th>Unit Price</th>
-                            <th>Tax</th>
-                            <th>Total</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <template for:each={cartItems} for:item="item">
-                            <tr key={item.orderItemId}>
-                                <td>{item.rowIndex}</td>
-                                <td>{item.name}</td>
-                                <td class="so-scheme-cell">
+                <div class="so-cards">
+                    <template for:each={cartItems} for:item="item">
+                        <div key={item.orderItemId} class="so-card">
+                            <div class="so-card__head">
+                                <span class="so-card__idx">{item.rowIndex}</span>
+                                <span class="so-card__name">{item.name}</span>
+                                <lightning-button-icon icon-name="utility:delete" variant="bare"
+                                    alternative-text="Remove" data-id={item.orderItemId}
+                                    onclick={removeItem} class="so-card__remove"></lightning-button-icon>
+                            </div>
+
+                            <div class="so-card__body">
+                                <div class="so-card__qty">
+                                    <label class="so-card__qty-label">Invoice Qty</label>
+                                    <lightning-input type="number" value={item.value} data-id={item.orderItemId}
+                                        onchange={handleQuantityChange} variant="label-hidden" min="0">
+                                    </lightning-input>
+                                    <span class="so-card__avail">Available: {item.availableQuantity}</span>
+                                </div>
+                                <div class="so-card__metrics">
+                                    <div class="so-card__metric">
+                                        <span class="so-card__metric-label">Unit Price</span>
+                                        <strong>₹{item.displayUnit}</strong>
+                                    </div>
+                                    <div class="so-card__metric">
+                                        <span class="so-card__metric-label">Tax</span>
+                                        <strong>₹{item.displayTax}</strong>
+                                    </div>
+                                    <div class="so-card__metric">
+                                        <span class="so-card__metric-label">Total</span>
+                                        <strong>₹{item.displayTotal}</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <template if:true={item.hasSchemeSection}>
+                                <div class="so-card__schemes">
                                     <!-- Applied scheme: price band + expandable breakup -->
                                     <template if:true={item.appliedScheme}>
                                         <div class="scheme-price-band">
@@ -121,25 +138,11 @@
                                             </div>
                                         </template>
                                     </template>
-                                </td>
-                                <td>
-                                    <lightning-input type="number" value={item.value} data-id={item.orderItemId}
-                                        onchange={handleQuantityChange} variant="label-hidden" min="0">
-                                    </lightning-input>
-                                </td>
-                                <td>{item.availableQuantity}</td>
-                                <td>{item.displayUnit}</td>
-                                <td>{item.displayTax}</td>
-                                <td>{item.displayTotal}</td>
-                                <td>
-                                    <lightning-button-icon icon-name="utility:delete" variant="bare"
-                                        alternative-text="Remove" data-id={item.orderItemId}
-                                        onclick={removeItem}></lightning-button-icon>
-                                </td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
                 <div class="so-actions">
                     <button class="so-btn so-btn--ghost" onclick={handleCancel}>Cancel</button>
                     <button class="so-btn so-btn--primary" onclick={handleNextFromProducts}>Next: Schemes ›</button>

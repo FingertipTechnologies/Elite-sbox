@@ -203,6 +203,7 @@ export default class SecondaryOrders extends LightningElement {
                 coveringSchemes: coveringSchemes,
                 coveringCount: coveringSchemes.length,
                 hasCoveringSchemes: coveringSchemes.length > 0,
+                hasSchemeSection: !!p.appliedScheme || coveringSchemes.length > 0,
                 isApplicableExpanded: isApplicableExpanded,
                 applicableIcon: isApplicableExpanded ? 'utility:chevrondown' : 'utility:chevronright'
             };
