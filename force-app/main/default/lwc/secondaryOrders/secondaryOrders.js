@@ -638,6 +638,35 @@ export default class SecondaryOrders extends LightningElement {
             });
         }
 
+        // Resolve productId -> Order_Item__c from the seeded order lines (the value-0 giveaway row
+        // keeps its orderItemId even though it's hidden from the Products screen).
+        const orderItemByProduct = {};
+        this.productData.forEach(p => { if (p.orderItemId) orderItemByProduct[String(p.id)] = p.orderItemId; });
+
+        // Purely-free FOC giveaways live in focLines (qty>0, ₹0). Persist each as its own ₹0 invoice
+        // line so the free product is created as an invoice item (linked to its required Order_Item__c).
+        (this.focLines || []).forEach(f => {
+            const fq = Number(f.value) || 0;
+            const oid = orderItemByProduct[String(f.id)];
+            if (fq <= 0 || !oid) return; // required Order_Item__c (master-detail) must be present
+            totalQuantity += fq;
+            items.push({
+                sobjectType: 'Secondary_Invoice_Item__c',
+                Product__c: f.id,
+                Product_Name__c: f.name,
+                Quantity__c: fq,
+                Unit_Price__c: 0,
+                Tax_Amount__c: 0,
+                Tax_Percent__c: Number(f.taxPercent) || 0,
+                Order_Item__c: oid,
+                Total_Amount__c: 0,
+                Before_Scheme_Unit_Price__c: 0,
+                After_Scheme_Unit_Price__c: 0,
+                Scheme_Issue__c: false,
+                Scheme_Issue_Reason__c: null
+            });
+        });
+
         if (items.length === 0) {
             this.showToast('Validation Error', 'No items to invoice.', 'error');
             return;
