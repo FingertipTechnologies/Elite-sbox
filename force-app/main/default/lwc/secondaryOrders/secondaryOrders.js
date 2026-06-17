@@ -462,10 +462,13 @@ export default class SecondaryOrders extends LightningElement {
             const orderVal = this._round2(members.reduce((s, m) =>
                 s + (this._round2(m._wkUnit) * (parseFloat(m.value) || 0) * this._gstMult(m)), 0));
             if (orderVal <= 0) return;
-            const slab = this._pickSlabByValue(scheme.slabsRaw, orderVal);
+            // Order Value applies on the order value AFTER the Category Value discount.
+            const netOrderVal = this._round2(orderVal - (this.categoryValueDiscount || 0));
+            if (netOrderVal <= 0) return;
+            const slab = this._pickSlabByValue(scheme.slabsRaw, netOrderVal);
             if (!slab || slab.benefitPercent == null) return;
             const pct = parseFloat(slab.benefitPercent);
-            const disc = orderVal * pct / 100;
+            const disc = netOrderVal * pct / 100;
             this.orderValueDiscount += disc;
             this.appliedSchemeRecords.push({
                 schemeId: scheme.id, slabId: slab.slabId, schemeType: 'Order Value',

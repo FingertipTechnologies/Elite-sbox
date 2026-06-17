@@ -3,6 +3,7 @@
     <aura:attribute name="recordId" type="Id"/>
     <lightning:navigation aura:id="navService"/>
     <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <aura:handler name="change" value="{!v.pageReference}" action="{!c.onNavigate}"/>
     <aura:if isTrue="{!v.openPopup}">
         <c:schemeProductGroupBuilder recordId="{!v.recordId}" onsaved="{!c.onSaved}" oncancel="{!c.onCancel}"/>
     </aura:if>
