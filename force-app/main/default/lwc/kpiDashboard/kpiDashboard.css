@@ -59,6 +59,12 @@
 .kd-pane { width: 100%; }
 .kd-hidden { display: none; }
 
+/* Spinner shown until the payroll check resolves */
+.kd-loading {
+    position: relative;
+    min-height: 160px;
+}
+
 /* Each embedded dashboard (lightning-card) gets a 10px margin all round + rounded corners.
    Keep overflow visible so the searchable-combobox dropdown isn't clipped by the card. */
 .kd-card {

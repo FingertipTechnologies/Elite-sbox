@@ -1,32 +1,48 @@
 <template>
     <div class="kd">
-        <div class="kd-header">
-            <h1 class="kd-title">KPI Dashboard</h1>
-            <div class="kd-tabs" role="tablist">
-                <button type="button" class={primaryTabClass} onclick={selectPrimary} role="tab">
-                    <lightning-icon icon-name="utility:moneybag" size="x-small" class="kd-tab-icon"></lightning-icon>
-                    <span>Primary KPI</span>
-                </button>
-                <button type="button" class={secondaryTabClass} onclick={selectSecondary} role="tab">
-                    <lightning-icon icon-name="utility:cart" size="x-small" class="kd-tab-icon"></lightning-icon>
-                    <span>Secondary KPI</span>
-                </button>
+        <template if:false={resolved}>
+            <div class="kd-loading">
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
             </div>
-        </div>
+        </template>
 
-        <div class={primaryPaneClass}>
-            <div class="kd-card">
-                <template if:true={primaryLoaded}>
-                    <c-primary-kpi-dashboard></c-primary-kpi-dashboard>
+        <template if:true={resolved}>
+            <div class="kd-header">
+                <h1 class="kd-title">KPI Dashboard</h1>
+                <!-- Tab switcher only when the user can see both dashboards -->
+                <template if:true={showPrimary}>
+                    <div class="kd-tabs" role="tablist">
+                        <button type="button" class={primaryTabClass} onclick={selectPrimary} role="tab">
+                            <lightning-icon icon-name="utility:moneybag" size="x-small" class="kd-tab-icon"></lightning-icon>
+                            <span>Primary KPI</span>
+                        </button>
+                        <button type="button" class={secondaryTabClass} onclick={selectSecondary} role="tab">
+                            <lightning-icon icon-name="utility:cart" size="x-small" class="kd-tab-icon"></lightning-icon>
+                            <span>Secondary KPI</span>
+                        </button>
+                    </div>
                 </template>
             </div>
-        </div>
-        <div class={secondaryPaneClass}>
-            <div class="kd-card kd-secondary">
-                <template if:true={secondaryLoaded}>
-                    <c-secondary-kpi-dashboard></c-secondary-kpi-dashboard>
-                </template>
+
+            <!-- Primary pane only for payroll users -->
+            <template if:true={showPrimary}>
+                <div class={primaryPaneClass}>
+                    <div class="kd-card">
+                        <template if:true={primaryLoaded}>
+                            <c-primary-kpi-dashboard></c-primary-kpi-dashboard>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Secondary pane always available -->
+            <div class={secondaryPaneClass}>
+                <div class="kd-card kd-secondary">
+                    <template if:true={secondaryLoaded}>
+                        <c-secondary-kpi-dashboard></c-secondary-kpi-dashboard>
+                    </template>
+                </div>
             </div>
-        </div>
+        </template>
     </div>
 </template>

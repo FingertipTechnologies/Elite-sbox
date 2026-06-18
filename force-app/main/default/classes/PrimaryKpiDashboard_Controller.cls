@@ -59,6 +59,17 @@ public with sharing class PrimaryKpiDashboard_Controller {
         @AuraEnabled public String userId;
     }
 
+    /**
+     * Whether the logged-in user may see the Primary KPI tab — only payroll users
+     * (User.Payroll__c == 'Yes'). Non-payroll users see Secondary KPI only.
+     * Queried in Apex so it is reliable regardless of the running user's FLS on Payroll__c.
+     */
+    @AuraEnabled(cacheable=true)
+    public static Boolean currentUserShowsPrimary() {
+        List<User> us = [SELECT Payroll__c FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
+        return !us.isEmpty() && us[0].Payroll__c == 'Yes';
+    }
+
     @AuraEnabled(cacheable=false)
     public static Dashboard getDashboard(Integer year, Integer month, String incentivePeriod, Id viewUserId) {
         Dashboard d = new Dashboard();
