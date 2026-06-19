@@ -5,15 +5,20 @@
 
         <div class="slds-p-horizontal_small slds-p-bottom_medium kpi-root">
 
-            <!-- Filters -->
+            <!-- Filters: cascading hierarchy pickers + period -->
             <div class="slds-grid slds-gutters_x-small slds-wrap slds-m-bottom_small">
-                <template if:true={showPicker}>
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_2-of-4">
-                        <lightning-combobox label="View"
-                            value={selectedUserId}
-                            options={userPickerOptions}
-                            onchange={handleUserChange}></lightning-combobox>
-                    </div>
+                <template if:true={showPickers}>
+                    <template for:each={decoratedSteps} for:item="step">
+                        <div key={step.tierIndex}
+                             class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4 slds-p-bottom_x-small">
+                            <lightning-combobox
+                                label={step.label}
+                                value={step.value}
+                                options={step.options}
+                                data-tier={step.tierIndex}
+                                onchange={handleStepChange}></lightning-combobox>
+                        </div>
+                    </template>
                 </template>
                 <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
                     <lightning-input type="number" label="Year" value={year}

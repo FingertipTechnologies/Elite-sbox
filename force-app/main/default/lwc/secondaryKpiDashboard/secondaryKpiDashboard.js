@@ -2,7 +2,7 @@ import { LightningElement, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import FORM_FACTOR from '@salesforce/client/formFactor';
 import getDashboard from '@salesforce/apex/SecondaryKpiDashboard_Controller.getDashboard';
-import getDsmSsaSubordinates from '@salesforce/apex/SecondaryKpiDashboard_Controller.getDsmSsaSubordinates';
+import getHierarchy from '@salesforce/apex/SecondaryKpiDashboard_Controller.getHierarchy';
 
 const MONTHS = [
     { label: 'January', value: 1 }, { label: 'February', value: 2 },
@@ -81,7 +81,7 @@ const TARGET_COLUMNS = [
       typeAttributes: CCY, cellAttributes: { alignment: 'right' } }
 ];
 
-const ALL_TEAM_VALUE = ''; // empty string = "All my DSM / SSAs"
+const ALL_VALUE = ''; // empty-string sentinel for the "All <tier>" option
 
 export default class SecondaryKpiDashboard extends LightningElement {
     monthOptions = MONTHS;
@@ -94,8 +94,11 @@ export default class SecondaryKpiDashboard extends LightningElement {
 
     @track year;
     @track month;
-    @track selectedUserId = ALL_TEAM_VALUE;
-    @track userPickerOptions = [];
+    // Selected user id at each visible picker tier, top→bottom. An entry of ''
+    // means "All at this tier" — drilling stops there. The effective user is
+    // simply the last non-empty entry (or null if none).
+    @track selectedPath = [];
+    @track pickerSteps = [];
     @track data;
     @track isLoading = false;
 
@@ -103,7 +106,7 @@ export default class SecondaryKpiDashboard extends LightningElement {
         const now = new Date();
         this.year = now.getFullYear();
         this.month = now.getMonth() + 1;
-        this.loadOptionsAndDashboard();
+        this.reloadAll();
     }
 
     // ===== Mode flags =====
@@ -113,8 +116,31 @@ export default class SecondaryKpiDashboard extends LightningElement {
     get isTeam() { return !!this.data && this.data.mode === 'TEAM'; }
     get isEmpty() { return !!this.data && this.data.mode === 'EMPTY'; }
     get viewerIsManager() { return !!this.data && this.data.viewerIsDsmSsa === false; }
-    get showPicker() {
-        return this.viewerIsManager && this.userPickerOptions.length > 1;
+
+    get showPickers() {
+        return this.viewerIsManager && this.pickerSteps.length > 0;
+    }
+
+    // Effective user-id derived from the deepest specific selection in the path.
+    get effectiveUserId() {
+        for (let i = this.selectedPath.length - 1; i >= 0; i--) {
+            if (this.selectedPath[i]) return this.selectedPath[i];
+        }
+        return null;
+    }
+
+    // Picker rendering data — one combobox per visible tier, each prepended
+    // with an "All <tier>" option valued '' so the user can stop drilling.
+    get decoratedSteps() {
+        return this.pickerSteps.map(s => ({
+            tierIndex: s.tierIndex,
+            label: `Select ${s.tierLabel}`,
+            value: s.selectedUserId || ALL_VALUE,
+            options: [
+                { label: `All ${s.tierLabel}`, value: ALL_VALUE },
+                ...((s.options || []).map(o => ({ label: o.label, value: o.userId })))
+            ]
+        }));
     }
 
     // ===== Hero =====
@@ -265,74 +291,93 @@ export default class SecondaryKpiDashboard extends LightningElement {
 
     handleYear(e) {
         this.year = e.target.value ? Number(e.target.value) : null;
-        this.loadDashboard();
+        this.loadDashboardOnly();
     }
     handleMonth(e) {
         this.month = Number(e.detail.value);
-        this.loadDashboard();
+        this.loadDashboardOnly();
     }
-    handleUserChange(e) {
-        this.selectedUserId = e.detail.value;
-        this.loadDashboard();
-    }
-    handleRefresh() { this.loadDashboard(); }
+    handleRefresh() { this.reloadAll(); }
 
-    // Click on a user row in the My DSM/SSA Team table.
+    // Picker change at any tier. Truncate the path at this position, set the
+    // new value, drop everything deeper, then reload hierarchy + dashboard.
+    handleStepChange(e) {
+        const tier = Number(e.currentTarget.dataset.tier);
+        const value = e.detail.value || '';
+        const stepIdx = this.pickerSteps.findIndex(s => s.tierIndex === tier);
+        if (stepIdx < 0) return;
+        const newPath = this.selectedPath.slice(0, stepIdx);
+        newPath.push(value);
+        this.selectedPath = this.trimTrailing(newPath);
+        this.reloadAll();
+    }
+
+    // Click on a user row in the My DSM/SSA Team table → that user becomes
+    // the deepest selection. Since this list is always DSM/SSAs, we append a
+    // selection at the DSM/SSA tier (which may be deeper than the current
+    // path) and let the server return the resolved cascade.
     handleUserAction(e) {
         if (e.detail.action.name !== 'drill') return;
-        this.drillTo(e.detail.row.userId);
+        this.drillToUser(e.detail.row.userId);
     }
     handleUserCardClick(e) {
         const uid = e.currentTarget.dataset.id;
-        if (uid) this.drillTo(uid);
+        if (uid) this.drillToUser(uid);
     }
-    drillTo(userId) {
-        this.selectedUserId = userId;
-        this.loadDashboard();
+    drillToUser(userId) {
+        // Drop trailing entries then push the new leaf; server figures out
+        // where in the cascade it sits.
+        this.selectedPath = this.trimTrailing(this.selectedPath);
+        this.selectedPath.push(userId);
+        this.reloadAll();
     }
     handleBackToTeam() {
-        this.selectedUserId = ALL_TEAM_VALUE;
-        this.loadDashboard();
+        // Pop the deepest specific selection so the dashboard climbs back up
+        // one level. If only one selection is present, that resets to "all".
+        const next = this.selectedPath.slice(0, -1);
+        this.selectedPath = this.trimTrailing(next);
+        this.reloadAll();
+    }
+
+    trimTrailing(path) {
+        // Trailing '' entries add no information — strip them so the canonical
+        // path matches between client and server.
+        const p = [...path];
+        while (p.length && p[p.length - 1] === '') p.pop();
+        return p;
     }
 
     // ===== Apex =====
 
-    loadOptionsAndDashboard() {
-        this.isLoading = true;
-        getDsmSsaSubordinates()
-            .then(opts => {
-                const list = opts || [];
-                this.userPickerOptions = [
-                    { label: 'All my DSM / SSAs', value: ALL_TEAM_VALUE },
-                    ...list.map(o => ({ label: o.label, value: o.userId }))
-                ];
-                return this.fetchDashboard();
-            })
-            .catch(err => this.toast('Error', this.msg(err), 'error'))
-            .finally(() => { this.isLoading = false; });
-    }
-
-    loadDashboard() {
+    reloadAll() {
         if (!this.year || !this.month) return;
         this.isLoading = true;
-        this.fetchDashboard()
+        getHierarchy({ selectedPath: this.selectedPath })
+            .then(h => {
+                this.pickerSteps = (h && h.steps) || [];
+                // If the viewer is a DSM/SSA the server pins them to themselves —
+                // drop any client-side path.
+                if (h && h.viewerIsDsmSsa) this.selectedPath = [];
+                return getDashboard({
+                    year: this.year, month: this.month,
+                    selectedUserId: this.effectiveUserId
+                });
+            })
+            .then(d => { this.data = d; })
             .catch(err => this.toast('Error', this.msg(err), 'error'))
             .finally(() => { this.isLoading = false; });
     }
 
-    fetchDashboard() {
-        // An empty string in selectedUserId means "team view"; send null to Apex
-        // so the @AuraEnabled Id parameter doesn't reject the value.
-        const sel = this.selectedUserId === ALL_TEAM_VALUE ? null : this.selectedUserId;
-        return getDashboard({ year: this.year, month: this.month, selectedUserId: sel })
-            .then(d => {
-                this.data = d;
-                // DSM / SSAs are pinned to themselves — reflect that in the picker
-                // state for clarity when one ever sees the combobox.
-                if (d && d.viewerIsDsmSsa) {
-                    this.selectedUserId = d.selectedUserId;
-                }
-            });
+    loadDashboardOnly() {
+        if (!this.year || !this.month) return;
+        this.isLoading = true;
+        getDashboard({
+            year: this.year, month: this.month,
+            selectedUserId: this.effectiveUserId
+        })
+            .then(d => { this.data = d; })
+            .catch(err => this.toast('Error', this.msg(err), 'error'))
+            .finally(() => { this.isLoading = false; });
     }
 
     msg(e) {

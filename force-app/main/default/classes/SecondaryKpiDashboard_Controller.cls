@@ -115,11 +115,49 @@ public without sharing class SecondaryKpiDashboard_Controller {
         @AuraEnabled public Hero hero;
     }
 
+    public class PickerStep {
+        @AuraEnabled public Integer tierIndex;
+        @AuraEnabled public String tierLabel;
+        @AuraEnabled public List<UserOption> options;
+        @AuraEnabled public Id selectedUserId;
+    }
+
+    public class HierarchyResponse {
+        @AuraEnabled public List<PickerStep> steps = new List<PickerStep>();
+        @AuraEnabled public Id effectiveUserId;
+        @AuraEnabled public Boolean viewerIsDsmSsa = false;
+    }
+
     // ===== Constants =====
 
     private static final Set<String> SALES_REP_PROFILES = new Set<String>{
         'DSM', 'SSA'
     };
+
+    // Tier model — used by the cascading picker. Order matters: top to bottom.
+    // Each tier is a list of equivalent profile names so seniority variants
+    // (Sr. RSM / RSM / Deputy RSM, etc.) collapse into one logical level.
+    // Empty tiers in a given viewer's downline are skipped automatically, so
+    // an org whose hierarchy doesn't use one of the intermediate levels
+    // (e.g. no TSMs) still renders correctly.
+    private static final List<List<String>> TIER_PROFILES = new List<List<String>>{
+        new List<String>{ 'General Manager - Sales', 'Sr. RSM', 'RSM', 'Deputy RSM' },
+        new List<String>{ 'Sr. ASM', 'ASM', 'Deputy ASM' },
+        new List<String>{ 'Sr. TSM', 'TSM', 'Deputy TSM' },
+        new List<String>{ 'Sr. TSE', 'TSE', 'Jr. TSE' },
+        new List<String>{ 'DSM', 'SSA' }
+    };
+    private static final List<String> TIER_LABELS = new List<String>{
+        'RSM', 'ASM', 'TSM', 'TSE', 'DSM / SSA'
+    };
+
+    private static Integer tierIndexFor(String profileName) {
+        if (profileName == null) return -1;
+        for (Integer i = 0; i < TIER_PROFILES.size(); i++) {
+            if (TIER_PROFILES[i].contains(profileName)) return i;
+        }
+        return -1;
+    }
 
     // ===== Picker =====
 
@@ -170,6 +208,106 @@ public without sharing class SecondaryKpiDashboard_Controller {
         return result;
     }
 
+    // ===== Cascading picker =====
+
+    /**
+     * Returns the picker cascade the LWC should render, given the user's
+     * progressive selections (top-to-bottom, e.g. [ASM-id, TSE-id]).
+     *
+     *  - DSM / SSA viewers get no steps; they are locked to themselves.
+     *  - Empty tiers in the viewer's downline are skipped, so an ASM whose
+     *    DSMs report directly (no TSE layer) sees one combobox, not two.
+     *  - Only one tier *below* the deepest specific selection is shown,
+     *    so the cascade reveals progressively.
+     */
+    @AuraEnabled(cacheable=false)
+    public static HierarchyResponse getHierarchy(List<String> selectedPath) {
+        HierarchyResponse out = new HierarchyResponse();
+        Id me = UserInfo.getUserId();
+        User myUser = [
+            SELECT Id, UserRoleId, Profile.Name FROM User WHERE Id = :me LIMIT 1
+        ];
+        String myProfile = myUser.Profile != null ? myUser.Profile.Name : null;
+        out.viewerIsDsmSsa = myProfile != null && SALES_REP_PROFILES.contains(myProfile);
+
+        if (out.viewerIsDsmSsa) {
+            out.effectiveUserId = me;
+            return out;
+        }
+
+        Integer viewerTier = tierIndexFor(myProfile);
+        Integer startTier = viewerTier + 1;      // tier *below* the viewer's
+        if (startTier < 0) startTier = 0;        // admin / above-all → start at top tier
+
+        Id scopeRootId = me;
+        List<String> path = selectedPath == null ? new List<String>() : selectedPath;
+        Integer pathPos = 0;
+
+        for (Integer tier = startTier; tier < TIER_PROFILES.size(); tier++) {
+            List<UserOption> options = usersInTierUnderUser(scopeRootId, TIER_PROFILES[tier]);
+            if (options.isEmpty()) continue; // skip empty layers — no users to choose from
+
+            PickerStep step = new PickerStep();
+            step.tierIndex = tier;
+            step.tierLabel = TIER_LABELS[tier];
+            step.options = options;
+
+            // Resolve a selection at this visible position from the supplied path.
+            if (pathPos < path.size()) {
+                String sel = path[pathPos];
+                if (String.isNotBlank(sel)) {
+                    for (UserOption o : options) {
+                        if (String.valueOf(o.userId) == sel) {
+                            step.selectedUserId = (Id) sel;
+                            scopeRootId = (Id) sel;
+                            break;
+                        }
+                    }
+                }
+            }
+            out.steps.add(step);
+            pathPos++;
+
+            // Stop revealing deeper tiers if no specific selection was made here.
+            if (step.selectedUserId == null) break;
+        }
+
+        out.effectiveUserId = (scopeRootId == me) ? null : scopeRootId;
+        return out;
+    }
+
+    /** Active users at a given tier inside the supplied root user's downline. */
+    private static List<UserOption> usersInTierUnderUser(Id rootUserId, List<String> tierProfiles) {
+        List<UserOption> out = new List<UserOption>();
+        if (rootUserId == null) return out;
+        User root = [SELECT Id, UserRoleId FROM User WHERE Id = :rootUserId LIMIT 1];
+        Set<Id> downline = collectDownlineUsers(root.UserRoleId);
+        downline.add(rootUserId);
+        if (downline.isEmpty()) return out;
+        for (User u : [
+            SELECT Id, Name, Profile.Name, Employee_Code__c
+            FROM User
+            WHERE Id IN :downline
+              AND IsActive = true
+              AND Profile.Name IN :tierProfiles
+              AND Id != :rootUserId
+            ORDER BY Name
+        ]) {
+            UserOption opt = new UserOption();
+            opt.userId = u.Id;
+            opt.name = u.Name;
+            opt.profileName = u.Profile != null ? u.Profile.Name : '';
+            opt.employeeCode = u.Employee_Code__c;
+            String suffix = String.isNotBlank(u.Employee_Code__c)
+                ? ' · ' + u.Employee_Code__c : '';
+            String role = String.isNotBlank(opt.profileName)
+                ? ' (' + opt.profileName + ')' : '';
+            opt.label = u.Name + suffix + role;
+            out.add(opt);
+        }
+        return out;
+    }
+
     // ===== Dashboard =====
 
     @AuraEnabled(cacheable=false)
@@ -187,37 +325,63 @@ public without sharing class SecondaryKpiDashboard_Controller {
 
         Id me = UserInfo.getUserId();
         User myUser = [
-            SELECT Id, Name, Profile.Name FROM User WHERE Id = :me LIMIT 1
+            SELECT Id, Name, Profile.Name, UserRoleId FROM User WHERE Id = :me LIMIT 1
         ];
         out.viewerUserId = me;
         out.viewerIsDsmSsa = myUser.Profile != null
             && SALES_REP_PROFILES.contains(myUser.Profile.Name);
 
-        // Resolve the user-set the dashboard is about.
-        List<UserOption> subordinates = findDsmSsaUsers(me);
-        Set<Id> allowedIds = new Set<Id>();
-        for (UserOption o : subordinates) allowedIds.add(o.userId);
-
+        // DSM / SSA — always their own dashboard regardless of selectedUserId.
         if (out.viewerIsDsmSsa) {
-            // DSM / SSA — always their own dashboard.
             out.mode = 'PERSONAL';
             return buildPersonal(out, me, year, month);
         }
 
-        if (subordinates.isEmpty()) {
+        // Validate selectedUserId is inside the viewer's downline. If not (URL
+        // hack, stale state, etc.), fall back to the viewer's whole scope.
+        Id scopeRootId = (selectedUserId == null) ? me : selectedUserId;
+        if (scopeRootId != me) {
+            Set<Id> viewerDownline = collectDownlineUsers(myUser.UserRoleId);
+            viewerDownline.add(me);
+            if (!viewerDownline.contains(scopeRootId)) scopeRootId = me;
+        }
+
+        // If the scope user is a DSM / SSA, render their personal view; otherwise
+        // aggregate every DSM / SSA in their downline as a team view.
+        Boolean scopeIsDsmSsa = false;
+        if (scopeRootId != me) {
+            User su = [SELECT Profile.Name FROM User WHERE Id = :scopeRootId LIMIT 1];
+            scopeIsDsmSsa = su.Profile != null
+                && SALES_REP_PROFILES.contains(su.Profile.Name);
+        }
+        if (scopeIsDsmSsa) {
+            out.mode = 'PERSONAL';
+            return buildPersonal(out, scopeRootId, year, month);
+        }
+
+        Set<Id> dsmSsaIds = findDsmSsaUserIdsUnder(scopeRootId);
+        if (dsmSsaIds.isEmpty()) {
             out.mode = 'EMPTY';
             out.hero = new Hero();
             return out;
         }
-
-        if (selectedUserId != null && allowedIds.contains(selectedUserId)) {
-            out.mode = 'PERSONAL';
-            return buildPersonal(out, selectedUserId, year, month);
-        }
-
-        // Default for managers — team view across every DSM / SSA in their hierarchy.
         out.mode = 'TEAM';
-        return buildTeam(out, allowedIds, year, month);
+        return buildTeam(out, dsmSsaIds, year, month);
+    }
+
+    private static Set<Id> findDsmSsaUserIdsUnder(Id rootUserId) {
+        Set<Id> ids = new Set<Id>();
+        if (rootUserId == null) return ids;
+        User root = [SELECT Id, UserRoleId FROM User WHERE Id = :rootUserId LIMIT 1];
+        Set<Id> downline = collectDownlineUsers(root.UserRoleId);
+        downline.add(rootUserId);
+        if (downline.isEmpty()) return ids;
+        for (User u : [
+            SELECT Id FROM User
+            WHERE Id IN :downline AND IsActive = true
+              AND Profile.Name IN :SALES_REP_PROFILES
+        ]) ids.add(u.Id);
+        return ids;
     }
 
     // ===== PERSONAL mode =====
