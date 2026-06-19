@@ -104,9 +104,10 @@ tr.font.size = Pt(24)
 tr.font.color.rgb = NAVY
 
 para(
-    "This manual explains how to set up and use Schemes in the system, end to end: "
-    "Scheme Product Group creation, Scheme creation, and how schemes appear and apply "
-    "during Order creation. It includes worked examples and a troubleshooting checklist.",
+    "This manual explains how to set up and use Schemes in the system, end to end, as three "
+    "process-step parts: Part 1 — Scheme Product Creation, Part 2 — Scheme Creation and "
+    "Applicability (including the scheme types with a worked example for each), and Part 3 — "
+    "Creation of Order. A short concepts overview and a troubleshooting checklist are included.",
     color=GREY,
 )
 
@@ -149,18 +150,30 @@ para(
     italic=True, color=GREEN,
 )
 
-# ----------------------------------------------------------------------------- Part A
-doc.add_heading("Part A — Creating a Scheme Product Group", level=1)
+# ----------------------------------------------------------------------------- Part 1
+doc.add_heading("Part 1 — Scheme Product Creation", level=1)
 para(
     "A Scheme Product Group is the reusable bucket of SKUs that a group-based scheme (Free "
-    "Quantity, QPS, FOC Giveaway) points at. Create the group first, then reference it when you "
-    "build the scheme."
+    "Quantity, QPS, FOC Giveaway) points at. Always create the group first, then reference it when "
+    "you build the scheme in Part 2."
 )
 
-doc.add_heading("A.1  Open the builder", level=2)
-para("Open the Scheme Product Group screen and click New (or open an existing group to edit it).")
+doc.add_heading("Process steps", level=2)
+numbered([
+    "Open the Scheme Product Group screen and click New (or open an existing group to edit it).",
+    "Fill the header — Name, Group Purpose, Sales Channel, optional Description, and the Active "
+    "toggle (see the field table below).",
+    "Select the Sales Channel. The SKU table stays hidden ('Select a Sales Channel') until a "
+    "channel is chosen, then loads the products for that channel.",
+    "Narrow the list with the filter row (Category, Product Group, Sub Group, Variant, Grammage, "
+    "MRP) or the Search SKU box (product name / SKU code).",
+    "Tick the checkbox on each SKU you want in the group — the header shows a live 'n selected' "
+    "count. Watch the conflict (⚠) flag.",
+    "Click Save. The group and its selected products (Scheme Product Group Items) are stored "
+    "together and the group becomes available in the Scheme wizard.",
+])
 
-doc.add_heading("A.2  Fill the header", level=2)
+doc.add_heading("Header fields", level=2)
 add_table(
     ["Field", "Required", "Notes"],
     [
@@ -172,47 +185,47 @@ add_table(
     ],
     widths=[1.3, 1.0, 4.3],
 )
-para("Until you select a Sales Channel, the product table stays hidden with the hint "
-     "'Select a Sales Channel.'", italic=True, color=GREY)
 
-doc.add_heading("A.3  Find the products", level=2)
-para("Once a channel is selected, the SKU table loads. Narrow it down with the filter row:")
-bullets([
-    "Category, Product Group, Sub Group, Variant, Grammage (g), MRP",
-    "Search SKU — type a product name or SKU code.",
-])
-para("Helper buttons:")
+doc.add_heading("Filter & selection helpers", level=2)
 bullets([
     "Clear Filters — reset all filters.",
     "Select All Visible — tick every row currently shown by the filters.",
     "Clear Selection — untick everything.",
     "All / Selected (n) toggle — switch between the full list and just your picked items.",
 ])
-
-doc.add_heading("A.4  Select the SKUs", level=2)
-para("Tick the checkbox on each product you want in the group. The header shows a live 'n selected' "
-     "count. Columns: SKU Code, Product Name, Category, Group, Sub Group, Variant, Grammage, MRP, "
-     "and a warning flag.")
+para("SKU columns: SKU Code, Product Name, Category, Group, Sub Group, Variant, Grammage, MRP, and a "
+     "warning flag.")
 para("Conflict warning: If a SKU already belongs to another group with the same purpose and channel, "
      "a warning icon appears (hover to see which group). Avoid putting the same SKU in two competing "
      "groups, or schemes can overlap unexpectedly.", italic=True, color=GREY)
-
-doc.add_heading("A.5  Save", level=2)
-para("Click Save. The group and its selected products (Scheme Product Group Items) are stored "
-     "together. The group is now available to pick in the Scheme wizard.")
 para("Tip: Keep groups focused (e.g. one pack size / brand family). You'll reuse them across many "
      "schemes over time.", italic=True, color=GREEN)
 
-# ----------------------------------------------------------------------------- Part B
-doc.add_heading("Part B — Creating a Scheme", level=1)
+# ----------------------------------------------------------------------------- Part 2
+doc.add_heading("Part 2 — Scheme Creation and Applicability", level=1)
 para("Schemes are built in a 2-step wizard: ① Definition and ② Applicability. Open the Scheme tab "
      "and click New (existing schemes open the same wizard in edit mode). Use Next / Back, and Save "
      "on the last step. Cancel discards.")
 
+doc.add_heading("Process steps", level=2)
+numbered([
+    "Open the Scheme tab → New to launch the wizard.",
+    "Step 1 — Master Details: enter the Scheme Name, Sales Channel, Scheme Type, Start/End dates, "
+    "and the Active toggle.",
+    "Step 1 — Linkage: depending on the Scheme Type, pick a Scheme Product Group (Free Quantity / "
+    "QPS / FOC Giveaway), a Product Category (Category Value), or nothing (Order Value).",
+    "Step 1 — Slab Definition: click Add Slab and fill the tier columns (they adapt to the Scheme "
+    "Type). Add more slabs for multiple tiers; the trash icon removes a row. Click Next.",
+    "Step 2 — Applicability: for each level (Outlet Categories, Regions, Areas, Territories) either "
+    "leave 'Apply to all' ON or turn it OFF and move specific values into Selected.",
+    "Click Save. The Scheme, all its Slabs, and the Applicability rows are saved together in one "
+    "action. Re-open the scheme anytime to edit it.",
+])
+
 doc.add_heading("Step 1 — Definition", level=2)
 para("Step 1 has three cards: Master Details, Product Group / Category, and Slab Definition.")
 
-doc.add_heading("B.1  Master Details", level=3)
+doc.add_heading("Master Details", level=3)
 add_table(
     ["Field", "Required", "Notes"],
     [
@@ -227,7 +240,7 @@ add_table(
     widths=[1.4, 1.0, 4.2],
 )
 
-doc.add_heading("B.2  Product Group / Category (linkage)", level=3)
+doc.add_heading("Product Group / Category (linkage)", level=3)
 para("What this card shows depends on the Scheme Type:")
 bullets([
     "**Free Quantity / QPS / FOC Giveaway → a Scheme Product Group search. It lists active groups for your Sales Channel with the matching Group Purpose (Price Division for Free Qty/QPS, FOC Qualifier for FOC). Search by name and click to select; use Change to pick a different one.",
@@ -237,7 +250,7 @@ bullets([
 para("If you haven't chosen a Scheme Type and Sales Channel yet, this card shows 'Pick Scheme Type "
      "and Sales Channel first.'", italic=True, color=GREY)
 
-doc.add_heading("B.3  Slab Definition (the tiers)", level=3)
+doc.add_heading("Slab Definition (the tiers)", level=3)
 para("Add one or more slabs (tiers). The columns adapt to the Scheme Type. Use Add Slab to add a "
      "row and the trash icon to remove one.")
 add_table(
@@ -274,19 +287,81 @@ bullets([
 para("Example: Apply to all Regions = ON, but Areas = OFF with only 'North Zone' selected → the "
      "scheme runs in every region but only for the North Zone area.", italic=True, color=GREY)
 
-doc.add_heading("B.5  Save", level=3)
+doc.add_heading("Save", level=3)
 para("Click Save. The system saves the Scheme, all its Slabs, and the Applicability rows together "
      "in one action. Re-open the scheme anytime to edit it.")
 para("Activation checklist — a scheme only goes live when ALL are true: Active = on, today is "
      "within Start/End dates, the Sales Channel matches, the Applicability matches the customer, "
      "and the linked group/category has products.", bold=True, color=GREEN)
 
-# ----------------------------------------------------------------------------- Part C
-doc.add_heading("Part C — How Schemes Appear During Order Creation", level=1)
-para("When a salesperson creates a Secondary Customer order, matching schemes show up automatically "
-     "and prices recalculate as quantities are entered.")
+doc.add_heading("Scheme Types — with an example each", level=2)
+para("There are five scheme types. Each example below shows the slab you would enter and what the "
+     "customer gets at order time.")
 
-doc.add_heading("C.1  Which schemes appear (coverage rules)", level=2)
+doc.add_heading("1) Free Quantity", level=3)
+para("Free units of the same product group; the free units' value is spread (price diluted) across "
+     "the line so the line total reflects the giveaway.")
+para("Example — Group 'Pudding Cake 500 G', slab Min Qty 10, Max Qty 19, Free Qty 2. The customer "
+     "orders 12 EA → qualifies for the 10–19 tier → gets 2 EA free. The unit price is diluted across "
+     "the 12 units so the 2 free units cost nothing overall.")
+
+doc.add_heading("2) QPS (Quantity Purchase Scheme)", level=3)
+para("A flat ₹ per-unit discount for buying within a quantity band.")
+para("Example — Group 'Pudding Cake 500 G', slab Min Qty 42, Max Qty 71, Benefit ₹1 / EA. The "
+     "customer orders 50 EA at ₹20 → each unit is discounted ₹1 → pays ₹19 / EA (₹50 total saving).")
+
+doc.add_heading("3) FOC Giveaway", level=3)
+para("Free units of a different (free-of-cost) product when the 'buy' group reaches the band.")
+para("Example — Buy group 'Whole Wheat Chakki Atta', slab Min Qty 20, FOC Product 'Roasted "
+     "Vermicelli 200 g', Free Qty 2. The customer buys 20 EA of Atta → gets 2 EA of Roasted "
+     "Vermicelli free. If Vermicelli is also ordered, the 2 free units merge into that line "
+     "(shown as '+2 free'); otherwise a separate FREE line is added at ₹0.")
+
+doc.add_heading("4) Category Value", level=3)
+para("A % discount on the value of a product sub-group / category, shown as a header discount.")
+para("Example — Category 'Plum', slab Min Value ₹10,000, Max Value ₹19,000, Discount 1%. The "
+     "customer's Plum-category lines total ₹12,000 → qualifies → 1% (₹120) is taken off as a "
+     "'Category Value Discount' on the order.")
+
+doc.add_heading("5) Order Value", level=3)
+para("A % discount on the whole order value (no product linkage), shown as a header discount and "
+     "reflected in Net Payable.")
+para("Example — slab Min Value ₹10,000, Max Value ₹19,000, Discount 1%. The order totals ₹15,000 → "
+     "1% off the order. Order Value is applied after any Category Value discount (i.e. on the value "
+     "remaining after the category discount).")
+
+# ----------------------------------------------------------------------------- Part 3
+doc.add_heading("Part 3 — Creation of Order", level=1)
+para("When a salesperson creates a Secondary Customer order, matching schemes show up automatically "
+     "and prices recalculate as quantities are entered. Schemes apply only for Secondary Customers — "
+     "Primary Customers see base prices and a 'No schemes are applicable' message.")
+
+doc.add_heading("Process steps", level=2)
+numbered([
+    "From the Beat Planner visit / Execute screen (or the Order object's New action), open the order "
+    "screen for a Secondary Customer. The customer (account) is carried into the screen; if none is "
+    "passed, use the Search Customer picker.",
+    "Products screen ('All items'): search / filter products and enter the EA quantity for each. A "
+    "⭐ / ribbon marks scheme products; an applied line shows a discounted price band next to the "
+    "original price, with a breakup you can expand.",
+    "Schemes ('Running Schemes') tab: review the applicable schemes (read-only) — each card shows the "
+    "name, type, offer tiers as sentences, validity, and the covered group/category. Expand / collapse "
+    "with the chevron.",
+    "Selected tab: quick-review every product that has a non-zero quantity before finishing.",
+    "Summary screen: enter Delivery To and Expected Delivery Date (PO Number / PO Date appear for "
+    "Primary Customers only). Review per-line discounted prices, Sub Total, Tax, Grand Total, any "
+    "header discounts (Category Value / Order Value) and the resulting Net Payable. FOC / free lines "
+    "are tagged FREE (or '+n free' when merged).",
+    "Click Save Orders. The system validates the required header fields and the minimum order value, "
+    "captures the device location (GPS), then saves the order.",
+    "After save: a 'Orders saved successfully' toast appears and you return to the visit / Execute "
+    "screen (or the Order list view if you came from the Order New action).",
+])
+para("Every applied benefit is also recorded against the order for auditing / claims (Order Scheme "
+     "Applied rows: which scheme, which tier, the benefit amount, free quantity, etc.).", italic=True,
+     color=GREY)
+
+doc.add_heading("Which schemes appear (coverage rules)", level=2)
 para("A scheme appears for a customer when all of the following hold:")
 numbered([
     "The account is a Secondary Customer (primary customers don't see these schemes).",
@@ -297,7 +372,7 @@ numbered([
     "The scheme has product membership — a product group, a category, or it's an Order Value scheme.",
 ])
 
-doc.add_heading("C.2  The 'Running Schemes' list", level=2)
+doc.add_heading("The 'Running Schemes' list", level=2)
 para("The order screen shows a Running Schemes panel of cards — one per applicable scheme. Each card shows:")
 bullets([
     "Scheme name and Scheme Type.",
@@ -310,7 +385,7 @@ bullets([
 ])
 para("(In the invoice wizard, each card can be expanded/collapsed with the chevron.)", italic=True, color=GREY)
 
-doc.add_heading("C.3  Indicators on each product row", level=2)
+doc.add_heading("Indicators on each product row", level=2)
 bullets([
     "A ribbon / ⭐ icon marks products that belong to a running scheme.",
     "When a scheme applies to a line, a price band shows the discounted unit price next to the "
@@ -318,7 +393,7 @@ bullets([
     "price changes (Base → Free Quantity → QPS → …).",
 ])
 
-doc.add_heading("C.4  What each scheme type does to the price", level=2)
+doc.add_heading("What each scheme type does to the price", level=2)
 para("As quantities are entered, the engine recalculates in a fixed order. Multiple schemes can "
      "apply to the same products.")
 bullets([
@@ -332,7 +407,7 @@ bullets([
 ])
 para("For value-based schemes, the system always uses the highest tier the order value qualifies for.")
 
-doc.add_heading("C.5  The order summary", level=2)
+doc.add_heading("The order summary", level=2)
 bullets([
     "FOC / free lines are tagged FREE (or a line shows '+n free' for merged units).",
     "Per-line prices show the discounted unit price.",
@@ -342,8 +417,8 @@ bullets([
 para("Every applied benefit is also recorded against the order for auditing/claims (which scheme, "
      "which tier, the benefit amount, free quantity, etc.).")
 
-# ----------------------------------------------------------------------------- Part D
-doc.add_heading("Part D — Troubleshooting: 'Why isn't my scheme showing?'", level=1)
+# ----------------------------------------------------------------------------- Appendix
+doc.add_heading("Appendix — Troubleshooting: 'Why isn't my scheme showing?'", level=1)
 numbered([
     "Active & dates — Is the scheme Active, and is today between its Start and End dates?",
     "Customer type — Is the order for a Secondary Customer? Primary customers don't see these.",

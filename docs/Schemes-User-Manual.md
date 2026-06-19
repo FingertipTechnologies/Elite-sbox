@@ -1,12 +1,14 @@
 # Schemes — User Manual
 
-This manual explains how to set up and use **Schemes** in the system, end to end:
+This manual explains how to set up and use **Schemes** in the system, end to end, as three
+process-step parts:
 
-- **Part A — Scheme Product Group creation** (the reusable list of products a scheme applies to)
-- **Part B — Scheme creation** (the offer itself: type, tiers/slabs, validity, targeting)
-- **Part C — How schemes appear and apply during Order creation**
+- **Part 1 — Scheme Product Creation** (the reusable list of products a scheme applies to)
+- **Part 2 — Scheme Creation and Applicability** (the offer itself: type, tiers/slabs, validity,
+  targeting) — including the **scheme types with a worked example for each**
+- **Part 3 — Creation of Order** (how schemes appear and apply when an order is placed)
 
-It also includes worked examples and a "why isn't my scheme showing?" troubleshooting checklist.
+A short concepts overview and a "why isn't my scheme showing?" troubleshooting checklist are included.
 
 ---
 
@@ -41,16 +43,27 @@ location and products all match.
 
 ---
 
-## Part A — Creating a Scheme Product Group
+## Part 1 — Scheme Product Creation
 
 A Scheme Product Group is the reusable bucket of SKUs that a group-based scheme (Free Quantity,
-QPS, FOC Giveaway) points at. Create the group **first**, then reference it when you build the scheme.
+QPS, FOC Giveaway) points at. Always create the group **first**, then reference it when you build
+the scheme in Part 2.
 
-### A.1 Open the builder
-Open the **Scheme Product Group** screen and click **New** (or open an existing group to edit it).
+### Process steps
 
-### A.2 Fill the header
-At the top, set:
+1. Open the **Scheme Product Group** screen and click **New** (or open an existing group to edit it).
+2. Fill the **header** — Name, Group Purpose, Sales Channel, optional Description, and the **Active**
+   toggle (see the field table below).
+3. Select the **Sales Channel**. The SKU table stays hidden (*"Select a Sales Channel"*) until a
+   channel is chosen, then loads the products for that channel.
+4. Narrow the list with the **filter row** (Category, Product Group, Sub Group, Variant, Grammage,
+   MRP) or the **Search SKU** box (product name / SKU code).
+5. **Tick** the checkbox on each SKU you want in the group — the header shows a live *"n selected"*
+   count. Watch the conflict (⚠) flag.
+6. Click **Save**. The group and its selected products (Scheme Product Group Items) are stored
+   together and the group becomes available in the Scheme wizard.
+
+### Header fields
 
 | Field | Required | Notes |
 |---|---|---|
@@ -63,11 +76,7 @@ At the top, set:
 > Until you select a **Sales Channel**, the product table stays hidden with the hint
 > *"Select a Sales Channel."*
 
-### A.3 Find the products
-Once a channel is selected, the SKU table loads. Narrow it down with the filter row:
-
-- **Category**, **Product Group**, **Sub Group**, **Variant**, **Grammage (g)**, **MRP**
-- **Search SKU** — type a product name or SKU code.
+### Filter & selection helpers
 
 Helper buttons:
 - **Clear Filters** — reset all filters.
@@ -75,26 +84,19 @@ Helper buttons:
 - **Clear Selection** — untick everything.
 - **All / Selected (n)** toggle — switch between the full list and just your picked items.
 
-### A.4 Select the SKUs
-Tick the checkbox on each product you want in the group. The header shows a live **"n selected"** count.
-
-The table columns are: **SKU Code, Product Name, Category, Group, Sub Group, Variant, Grammage, MRP**,
-and a **warning (⚠) flag**.
+SKU columns: **SKU Code, Product Name, Category, Group, Sub Group, Variant, Grammage, MRP**, and a
+**warning (⚠) flag**.
 
 > **Conflict warning (⚠):** If a SKU already belongs to **another** group with the **same purpose
 > and channel**, a warning icon appears (hover to see which group). Avoid putting the same SKU in
 > two competing groups, or schemes can overlap unexpectedly.
-
-### A.5 Save
-Click **Save**. The group and its selected products (Scheme Product Group Items) are stored together.
-The group is now available to pick in the Scheme wizard.
 
 > **Tip:** Keep groups focused (e.g. one pack size / brand family). You'll reuse them across many
 > schemes over time.
 
 ---
 
-## Part B — Creating a Scheme
+## Part 2 — Scheme Creation and Applicability
 
 Schemes are built in a **2-step wizard**: **① Definition** and **② Applicability**. Open the
 **Scheme** tab and click **New** (existing schemes open the same wizard in edit mode).
@@ -102,11 +104,25 @@ Schemes are built in a **2-step wizard**: **① Definition** and **② Applicabi
 The stepper at the top shows **1 Definition → 2 Applicability**. Use **Next / Back**, and **Save**
 on the last step. **Cancel** discards.
 
+### Process steps
+
+1. Open the **Scheme** tab → **New** to launch the wizard.
+2. **Step 1 — Master Details:** enter the Scheme Name, Sales Channel, Scheme Type, Start/End dates,
+   and the **Active** toggle.
+3. **Step 1 — Linkage:** depending on the Scheme Type, pick a **Scheme Product Group** (Free Quantity
+   / QPS / FOC Giveaway), a **Product Category** (Category Value), or **nothing** (Order Value).
+4. **Step 1 — Slab Definition:** click **Add Slab** and fill the tier columns (they adapt to the
+   Scheme Type). Add more slabs for multiple tiers; the trash icon removes a row. Click **Next**.
+5. **Step 2 — Applicability:** for each level (Outlet Categories, Regions, Areas, Territories) either
+   leave **Apply to all** ON or turn it OFF and move specific values into **Selected**.
+6. Click **Save**. The Scheme, all its Slabs, and the Applicability rows are saved together in one
+   action. Re-open the scheme anytime to edit it.
+
 ### Step 1 — Definition
 
 Step 1 has three cards: **Master Details**, **Product Group / Category**, and **Slab Definition**.
 
-#### B.1 Master Details
+#### Master Details
 
 | Field | Required | Notes |
 |---|---|---|
@@ -118,7 +134,7 @@ Step 1 has three cards: **Master Details**, **Product Group / Category**, and **
 | **Active** | — | Toggle on to make it live (in addition to being within the date range). |
 | **Description** | No | Optional internal notes. |
 
-#### B.2 Product Group / Category (linkage)
+#### Product Group / Category (linkage)
 
 What this card shows depends on the **Scheme Type** you picked:
 
@@ -134,7 +150,7 @@ What this card shows depends on the **Scheme Type** you picked:
 > If you haven't chosen a Scheme Type **and** Sales Channel yet, this card shows
 > *"Pick Scheme Type and Sales Channel first."*
 
-#### B.3 Slab Definition (the tiers)
+#### Slab Definition (the tiers)
 
 Add one or more **slabs** (tiers). The columns adapt to the Scheme Type. Use **Add Slab** to add a
 row and the trash icon to remove one.
@@ -162,7 +178,6 @@ Ordering 25 EA → falls in the second tier → the engine grants free units bas
 **FOC Product search:** in an FOC slab, click the FOC Product cell, search by name or SKU code (the
 list is scoped to the scheme's Sales Channel), and pick the giveaway product. Use the ✕ to change it.
 
-#### B.4 Next
 When Step 1 is valid, click **Next** to go to Applicability.
 
 ### Step 2 — Applicability (targeting)
@@ -183,7 +198,7 @@ For each level:
 > Example: *Apply to all Regions = ON*, but *Areas = OFF* with only "North Zone" selected →
 > the scheme runs in every region but only for the North Zone area.
 
-### B.5 Save
+### Save
 Click **Save**. The system saves the **Scheme**, all its **Slabs**, and the **Applicability** rows
 together in one action. You can re-open the scheme anytime to edit it (the wizard re-hydrates with
 your saved values).
@@ -192,14 +207,71 @@ your saved values).
 > today is within **Start/End** dates, the **Sales Channel** matches, the **Applicability** matches
 > the customer, and the **linked group/category** has products.
 
+### Scheme Types — with an example each
+
+There are five scheme types. Each example shows the slab you would enter and what the customer gets
+at order time.
+
+**1) Free Quantity** — free units of the **same** product group; the free units' value is spread
+(price diluted) across the line.
+> *Example:* Group "Pudding Cake 500 G", slab **Min Qty 10, Max Qty 19, Free Qty 2**. The customer
+> orders **12 EA** → qualifies for the 10–19 tier → gets **2 EA free**. The unit price is diluted
+> across the 12 units so the 2 free units cost nothing overall.
+
+**2) QPS (Quantity Purchase Scheme)** — a flat **₹ per-unit** discount for buying within a band.
+> *Example:* Group "Pudding Cake 500 G", slab **Min Qty 42, Max Qty 71, Benefit ₹1 / EA**. The
+> customer orders **50 EA at ₹20** → each unit is discounted ₹1 → pays **₹19 / EA** (₹50 saving).
+
+**3) FOC Giveaway** — free units of a **different** (free-of-cost) product.
+> *Example:* Buy group "Whole Wheat Chakki Atta", slab **Min Qty 20, FOC Product "Roasted Vermicelli
+> 200 g", Free Qty 2**. Buying **20 EA of Atta** → **2 EA of Roasted Vermicelli free**. If Vermicelli
+> is also ordered, the 2 free units merge into that line (**"+2 free"**); otherwise a separate **FREE**
+> line is added at ₹0.
+
+**4) Category Value** — a **% discount** on a product sub-group / category value, as a header discount.
+> *Example:* Category "Plum", slab **Min Value ₹10,000, Max Value ₹19,000, Discount 1%**. The
+> customer's Plum-category lines total **₹12,000** → qualifies → **1% (₹120)** comes off as a
+> "Category Value Discount".
+
+**5) Order Value** — a **% discount** on the **whole order** value (no product linkage), shown as a
+header discount and reflected in Net Payable.
+> *Example:* slab **Min Value ₹10,000, Max Value ₹19,000, Discount 1%**. The order totals **₹15,000**
+> → **1% off**. Order Value is applied **after** any Category Value discount (on the value remaining
+> after the category discount).
+
 ---
 
-## Part C — How Schemes Appear During Order Creation
+## Part 3 — Creation of Order
 
 When a salesperson creates a **Secondary Customer** order, matching schemes show up automatically and
-prices recalculate as quantities are entered.
+prices recalculate as quantities are entered. Schemes apply **only for Secondary Customers** — Primary
+Customers see base prices and a *"No schemes are applicable"* message.
 
-### C.1 Which schemes appear (coverage rules)
+### Process steps
+
+1. From the **Beat Planner** visit / Execute screen (or the Order object's **New** action), open the
+   order screen for a **Secondary Customer**. The customer (account) is carried into the screen; if
+   none is passed, use the **Search Customer** picker.
+2. **Products screen ("All items"):** search / filter products and enter the **EA quantity** for each.
+   A ⭐ / ribbon marks scheme products; an applied line shows a **discounted price band** next to the
+   original price, with a breakup you can expand.
+3. **Schemes ("Running Schemes") tab:** review the applicable schemes (read-only) — each card shows the
+   name, type, offer tiers as sentences, validity, and the covered group/category. Expand / collapse
+   with the chevron.
+4. **Selected tab:** quick-review every product that has a non-zero quantity before finishing.
+5. **Summary screen:** enter **Delivery To** and **Expected Delivery Date** (PO Number / PO Date appear
+   for Primary Customers only). Review per-line discounted prices, **Sub Total, Tax, Grand Total**, any
+   **header discounts** (Category Value / Order Value) and the resulting **Net Payable**. FOC / free
+   lines are tagged **FREE** (or **"+n free"** when merged).
+6. Click **Save Orders**. The system validates the required header fields and the **minimum order
+   value**, captures the device **location** (GPS), then saves the order.
+7. **After save:** a *"Orders saved successfully"* toast appears and you return to the visit / Execute
+   screen (or the Order list view if you came from the Order New action).
+
+> Every applied benefit is also recorded against the order for auditing / claims (Order Scheme Applied
+> rows: which scheme, which tier, the benefit amount, free quantity, etc.).
+
+### Which schemes appear (coverage rules)
 
 A scheme appears for a customer when **all** of the following hold:
 
@@ -212,7 +284,7 @@ A scheme appears for a customer when **all** of the following hold:
 6. The scheme has **product membership** — a product group, a category, or it's an Order Value
    scheme (whole order).
 
-### C.2 The "Running Schemes" list
+### The "Running Schemes" list
 
 The order screen shows a **Running Schemes** panel of cards — one per applicable scheme. Each card
 shows:
@@ -229,14 +301,14 @@ shows:
 
 (In the invoice wizard, each card can be expanded/collapsed with the chevron.)
 
-### C.3 Indicators on each product row
+### Indicators on each product row
 
 - A **ribbon / ⭐ icon** marks products that belong to a running scheme.
 - When a scheme actually applies to a line, a **price band** shows the **discounted unit price**
   next to the **original price**, plus a **tag with the scheme name**. A breakup control reveals the
   step-by-step price changes (Base → Free Quantity → QPS → …).
 
-### C.4 What each scheme type does to the price (plain language)
+### What each scheme type does to the price (plain language)
 
 As quantities are entered, the engine recalculates in a fixed order. Multiple schemes can apply to
 the same products.
@@ -255,7 +327,7 @@ the same products.
 
 For value-based schemes, the system always uses the **highest tier the order value qualifies for**.
 
-### C.5 The order summary
+### The order summary
 
 The summary reflects all scheme effects:
 
@@ -271,7 +343,7 @@ tier, the benefit amount, free quantity, etc.).
 
 ---
 
-## Part D — Troubleshooting: "Why isn't my scheme showing?"
+## Appendix — Troubleshooting: "Why isn't my scheme showing?"
 
 Work down this checklist:
 
