@@ -304,7 +304,7 @@
                                     <td class="col-sno">{s.sNo}</td>
                                     <td><lightning-input variant="label-hidden" label="Min" type="number" data-uid={s._uid} data-field="qtyMin" value={s.qtyMin} onchange={handleSlabFieldChange}></lightning-input></td>
                                     <td><lightning-input variant="label-hidden" label="Max" type="number" data-uid={s._uid} data-field="qtyMax" value={s.qtyMax} onchange={handleSlabFieldChange}></lightning-input></td>
-                                    <td><lightning-input variant="label-hidden" label="Per EA" type="number" data-uid={s._uid} data-field="benefitPerEa" value={s.benefitPerEa} onchange={handleSlabFieldChange}></lightning-input></td>
+                                    <td><lightning-input variant="label-hidden" label="Per EA" type="number" step="0.01" data-uid={s._uid} data-field="benefitPerEa" value={s.benefitPerEa} onchange={handleSlabFieldChange}></lightning-input></td>
                                     <td class="col-action">
                                         <template if:true={s.showRemove}>
                                             <lightning-button-icon icon-name="utility:delete" alternative-text="Remove" data-uid={s._uid} onclick={handleRemoveSlab}></lightning-button-icon>
