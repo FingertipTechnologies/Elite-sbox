@@ -2081,7 +2081,9 @@ export default class ProductScreen4 extends LightningElement {
             if (totalQty <= 0) return;
             const slab = this._pickSlabByQty(scheme.slabsRaw, totalQty);
             if (!slab || !slab.qtyMin || parseFloat(slab.qtyMin) <= 0 || !slab.freeQty) return;
-            const free = Math.floor(totalQty / parseFloat(slab.qtyMin)) * parseFloat(slab.freeQty);
+            // Free Quantity is a price dilution: carry the exact (proportional) free qty rounded to
+            // 4 decimals, e.g. buy 85 with a "11 -> 1 free" slab earns 85/11 = 7.7273 (not floored to 7).
+            const free = Math.round((totalQty / parseFloat(slab.qtyMin)) * parseFloat(slab.freeQty) * 1e4) / 1e4;
             if (free <= 0) return;
             const factor = totalQty / (totalQty + free);
             members.forEach(m => {
