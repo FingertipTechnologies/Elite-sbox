@@ -9,7 +9,8 @@ public class TAM_AttendanceServiceTest {
             Username = alias + System.currentTimeMillis() + '@example.com',
             Alias = alias.substring(0, Math.min(8, alias.length())),
             TimeZoneSidKey = 'Asia/Kolkata', LocaleSidKey = 'en_US',
-            EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'en_US', ProfileId = p.Id
+            EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'en_US', ProfileId = p.Id,
+            Employee_Code__c = 'EC-' + alias + String.valueOf(System.currentTimeMillis())
         );
     }
 
