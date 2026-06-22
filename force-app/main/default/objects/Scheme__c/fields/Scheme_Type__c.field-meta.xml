@@ -9,6 +9,33 @@
     <type>Picklist</type>
     <valueSet>
         <restricted>true</restricted>
-        <valueSetName>Scheme_Type</valueSetName>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Free Quantity</fullName>
+                <default>false</default>
+                <label>Free Quantity</label>
+            </value>
+            <value>
+                <fullName>QPS</fullName>
+                <default>false</default>
+                <label>QPS</label>
+            </value>
+            <value>
+                <fullName>FOC Giveaway</fullName>
+                <default>false</default>
+                <label>FOC Giveaway</label>
+            </value>
+            <value>
+                <fullName>Category Value</fullName>
+                <default>false</default>
+                <label>Category Value</label>
+            </value>
+            <value>
+                <fullName>Order Value</fullName>
+                <default>false</default>
+                <label>Order Value</label>
+            </value>
+        </valueSetDefinition>
     </valueSet>
 </CustomField>
