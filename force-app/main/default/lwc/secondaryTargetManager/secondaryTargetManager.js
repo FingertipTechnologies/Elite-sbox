@@ -615,15 +615,14 @@ export default class SecondaryTargetManager extends LightningElement {
         this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
     }
 
-    // Returns the SLDS cell class for the Target / Achieved / % Ach / Pending
-    // columns based on how the row stands against its target. Returns '' when
-    // there's no comparable target so empty / zero-target rows aren't styled.
+    // Returns the SLDS text colour class for the Target / Achieved / % Ach /
+    // Pending columns based on how the row stands against its target. Text-only
+    // colouring — no cell background change. Returns '' when there's no
+    // comparable target so empty / zero-target rows aren't styled.
     statusClassFor(row) {
         const target = Number(row.Target_Value__c) || 0;
         if (!target) return '';
         const pct = Number(row.Achievement_Percent__c) || 0;
-        // >=100% → met → green background (white text courtesy of slds-theme_success).
-        // <100% → missed → red text on the default white cell.
-        return pct >= 100 ? 'slds-theme_success' : 'slds-text-color_error';
+        return pct >= 100 ? 'slds-text-color_success' : 'slds-text-color_error';
     }
 }
