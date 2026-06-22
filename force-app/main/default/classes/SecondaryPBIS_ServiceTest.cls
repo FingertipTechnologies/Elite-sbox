@@ -353,8 +353,11 @@ public class SecondaryPBIS_ServiceTest {
         // Achievement_Percent__c = -5 falls under every bracket's floor;
         // findMatchingSlab should return null instead of any slab.
         Target_Criteria__c cRev = [SELECT Id FROM Target_Criteria__c WHERE Name = 'Sec Revenue' LIMIT 1];
+        // Must SELECT every field findMatchingSlab reads, otherwise it throws
+        // "SObject row was retrieved via SOQL without querying the requested field".
         List<Incentive_Slab__c> slabs = [
-            SELECT Id, Compare_On__c, Achievement_From__c, Achievement_To__c, Incentive_Amount__c
+            SELECT Id, Target_Criteria__c, Sales_Channel__c, Focused_Pack__c,
+                   Compare_On__c, Achievement_From__c, Achievement_To__c, Incentive_Amount__c
             FROM Incentive_Slab__c WHERE Target_Criteria__c = :cRev.Id AND Achievement_From__c > 0
         ];
 
