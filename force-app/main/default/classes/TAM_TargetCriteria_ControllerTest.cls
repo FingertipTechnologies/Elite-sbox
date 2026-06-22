@@ -75,12 +75,21 @@ public class TAM_TargetCriteria_ControllerTest {
         System.assert(cats.containsKey('userFields'));
         System.assert(cats.containsKey('allFields'));
 
-        // CreatedDate is a DateTime → date bucket.
-        System.assert(cats.get('dateFields').contains('CreatedDate'),
-            'CreatedDate should be classified as a date field');
-        // OwnerId is a reference-to-User on Account → user bucket.
-        System.assert(cats.get('userFields').contains('OwnerId'),
-            'OwnerId should be classified as a User field');
+        // Schema.fields.getMap() returns lowercased keys, so the buckets carry
+        // 'createddate' / 'ownerid' rather than the camel-case API names.
+        System.assert(containsIgnoreCase(cats.get('dateFields'), 'CreatedDate'),
+            'CreatedDate should be classified as a date field; got ' + cats.get('dateFields'));
+        System.assert(containsIgnoreCase(cats.get('userFields'), 'OwnerId'),
+            'OwnerId should be classified as a User field; got ' + cats.get('userFields'));
+    }
+
+    private static Boolean containsIgnoreCase(List<String> haystack, String needle) {
+        if (haystack == null || needle == null) return false;
+        String n = needle.toLowerCase();
+        for (String s : haystack) {
+            if (s != null && s.toLowerCase() == n) return true;
+        }
+        return false;
     }
 
     // ----- List + single fetch -----
