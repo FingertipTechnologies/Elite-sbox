@@ -3,40 +3,57 @@
   Focused manifest for the Secondary Targets / PBIS / KPI Dashboard test
   classes that are NEW or MODIFIED in this branch.
 
-  Pre-existing test classes (SecondaryTarget_ControllerTest,
-  SecondaryPBIS_ServiceTest, SecondaryPBIS_ControllerTest,
-  SecondaryAchievementBatchTest, TAM_CalculationEngine_ServiceTest,
-  TAM_AttendanceServiceTest, FocusedPackControllerTest) are already in
-  the target org and intentionally left out of this manifest so the
-  deploy doesn't fail when their production class siblings have
-  diverged in the repo. Deploy those classes separately if you need
-  to refresh them.
+  Also includes TAM_TargetCriteria_Controller (production) — the legacy
+  Target_Actual__c cascade refs in that class were removed in this branch
+  to unblock deploys to orgs that never had Target_Actual__c.
 
   Deploy from the repo root:
     sf project deploy start \
       --manifest manifest/package-secondary-tests.xml \
       --target-org <alias> \
       --test-level RunSpecifiedTests \
-      --tests TAM_TargetCriteria_ControllerTest \
-      --tests TAM_FilterEngine_ServiceTest \
-      --tests SecondaryPBISSchedulerTest \
+      --tests SecondaryAchievementBatchTest \
       --tests SecondaryAchievementSchedulerTest \
-      --tests SecondaryKpiDashboard_ControllerTest
+      --tests SecondaryPBIS_ControllerTest \
+      --tests SecondaryPBIS_ServiceTest \
+      --tests SecondaryPBISSchedulerTest \
+      --tests SecondaryTarget_ControllerTest \
+      --tests SecondaryKpiDashboard_ControllerTest \
+      --tests TAM_AttendanceServiceTest \
+      --tests TAM_CalculationEngine_ServiceTest \
+      --tests TAM_FieldMetadata_ServiceTest \
+      --tests TAM_FilterEngine_ServiceTest \
+      --tests TAM_TargetCriteria_ControllerTest \
+      --tests FocusedPackControllerTest
 
-  Add `--dry-run` for a validation-only pass first.
+  Add `--dry-run` for a validation-only pass first. Drop
+  FocusedPackControllerTest from the --tests list if its production
+  sibling has diverged between the repo and the target org (it's
+  intentionally not in the deploy types below for the same reason).
 -->
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
-        <!-- Target Criteria CRUD (13 @AuraEnabled methods) -->
-        <members>TAM_TargetCriteria_ControllerTest</members>
-        <!-- WHERE-clause builder for every filtered criterion -->
-        <members>TAM_FilterEngine_ServiceTest</members>
-        <!-- Monthly PBIS scheduler -->
-        <members>SecondaryPBISSchedulerTest</members>
-        <!-- Daily achievement scheduler -->
+        <!-- New test classes -->
         <members>SecondaryAchievementSchedulerTest</members>
-        <!-- KPI Dashboard controller (expanded coverage) -->
+        <members>SecondaryPBISSchedulerTest</members>
+        <members>TAM_FieldMetadata_ServiceTest</members>
+        <members>TAM_FilterEngine_ServiceTest</members>
+        <members>TAM_TargetCriteria_ControllerTest</members>
+
+        <!-- Pre-existing test classes modified in this branch
+             (Employee_Code__c uniqueness, SKU_Code__c required,
+              restricted-picklist defensiveness) -->
+        <members>SecondaryAchievementBatchTest</members>
         <members>SecondaryKpiDashboard_ControllerTest</members>
+        <members>SecondaryPBIS_ControllerTest</members>
+        <members>SecondaryPBIS_ServiceTest</members>
+        <members>SecondaryTarget_ControllerTest</members>
+        <members>TAM_AttendanceServiceTest</members>
+        <members>TAM_CalculationEngine_ServiceTest</members>
+
+        <!-- Production class — Target_Actual__c references removed -->
+        <members>TAM_TargetCriteria_Controller</members>
+
         <name>ApexClass</name>
     </types>
     <version>65.0</version>
