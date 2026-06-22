@@ -1,9 +1,6 @@
 @isTest
 public class SecondaryTarget_ControllerTest {
 
-    private static final String SECONDARY_FILTER =
-        '{"filters":[{"id":1,"field":"Order_Type__c","operator":"=","type":"Picklist","value":"Secondary Order"}]}';
-
     private static User makeUser(String alias) {
         Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
         return new User(
@@ -32,22 +29,33 @@ public class SecondaryTarget_ControllerTest {
         Product__c prod = new Product__c(Name = 'P', Net_Weight__c = 1, SKU_Code__c = 'STC-P');
         insert prod;
 
-        Order__c o = new Order__c(Order_Type__c = 'Secondary Order', Account__c = acc.Id,
-            OwnerId = u.Id, Order_Fulfillment_Status__c = 'Not Fulfilled', Order_Date__c = Date.today());
+        // Order_Type__c (both objects) + Order_Fulfillment_Status__c are
+        // restricted picklists whose active values vary per org (SAP codes
+        // in some, 'Secondary Order' in others). Leave them null and scope
+        // the criterion's filter by Account__c instead — see filter setup
+        // below.
+        Order__c o = new Order__c(Account__c = acc.Id,
+            OwnerId = u.Id, Order_Date__c = Date.today());
         insert o;
 
         // Order_Owner_Id__c and Order_Date__c are formula fields from the parent Order.
         insert new List<Order_Item__c>{
             new Order_Item__c(Order__c = o.Id, Product__c = prod.Id, Account__c = acc.Id,
-                Order_Type__c = 'Secondary Order', Quantity__c = 1, Total_Amount__c = 700),
+                Quantity__c = 1, Total_Amount__c = 700),
             new Order_Item__c(Order__c = o.Id, Product__c = prod.Id, Account__c = acc.Id,
-                Order_Type__c = 'Secondary Order', Quantity__c = 1, Total_Amount__c = 300)
+                Quantity__c = 1, Total_Amount__c = 300)
         };
+
+        // Scope the criterion to the one test Account so pre-existing org
+        // data can't bleed into the per-user totals (the previous
+        // Order_Type__c filter is unreliable across orgs).
+        String accountFilter = '{"filters":[{"id":1,"field":"Account__c","operator":"=","type":"Picklist","value":"'
+            + acc.Id + '"}]}';
 
         Target_Criteria__c crit = new Target_Criteria__c(
             Name = 'Sec Revenue', Object__c = 'Order_Item__c', Operator__c = 'SUM',
             Field__c = 'Total_Amount__c', Date_Field__c = 'Order_Date__c',
-            User_Field__c = 'Order_Owner_Id__c', Filters__c = SECONDARY_FILTER, Active__c = true);
+            User_Field__c = 'Order_Owner_Id__c', Filters__c = accountFilter, Active__c = true);
         insert crit;
 
         Secondary_Target__c t = new Secondary_Target__c(
