@@ -67,7 +67,7 @@ export default class SecondaryTargetManager extends LightningElement {
 
     @track rows = [];
     @track criteriaOptions = [{ label: 'All Criteria', value: '' }];
-    @track focusPackOptions = [];
+    @track _focusPacksRaw = [];
     @track channelOptions = [];
     @track selectedCriteria = '';
     @track activeOnly = false;
@@ -121,6 +121,18 @@ export default class SecondaryTargetManager extends LightningElement {
     // criteria options without the "All" entry, for the form picker
     get formCriteriaOptions() { return this.criteriaOptions.filter(o => o.value); }
 
+    // Focus Packs filtered by the form's current Sales Channel. Packs whose
+    // own channel is blank are treated as "applies to any channel" so they
+    // always appear. With no channel selected, every pack is shown.
+    get focusPackOptions() {
+        const ch = this.form && this.form.Sales_Channel__c;
+        const raw = this._focusPacksRaw || [];
+        if (!ch) return raw.map(o => ({ label: o.label, value: o.value }));
+        return raw
+            .filter(o => !o.channel || o.channel === ch)
+            .map(o => ({ label: o.label, value: o.value }));
+    }
+
     // ===== loaders =====
     loadCriteriaOptions() {
         getCriteriaOptions()
@@ -139,7 +151,11 @@ export default class SecondaryTargetManager extends LightningElement {
 
     loadPickOptions() {
         getFocusedPackOptions()
-            .then(d => { this.focusPackOptions = (d || []).map(o => ({ label: o.label, value: o.value })); })
+            .then(d => {
+                this._focusPacksRaw = (d || []).map(o => ({
+                    label: o.label, value: o.value, channel: o.channel || ''
+                }));
+            })
             .catch(() => { /* non-fatal */ });
         getChannelOptions()
             .then(d => { this.channelOptions = (d || []).map(o => ({ label: o.label, value: o.value })); })
@@ -225,7 +241,17 @@ export default class SecondaryTargetManager extends LightningElement {
     handleFormField(e) {
         const field = e.target.dataset.field;
         const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-        this.form = { ...this.form, [field]: val };
+        const next = { ...this.form, [field]: val };
+        // If the user changes the Sales Channel, drop any focus pack that no
+        // longer belongs to the new channel so the combobox doesn't display a
+        // stale (and invalid) value.
+        if (field === 'Sales_Channel__c' && next.Focused_Pack__c) {
+            const pack = (this._focusPacksRaw || []).find(o => o.value === next.Focused_Pack__c);
+            if (pack && pack.channel && val && pack.channel !== val) {
+                next.Focused_Pack__c = '';
+            }
+        }
+        this.form = next;
     }
 
     handleCriteriaChange(e) {

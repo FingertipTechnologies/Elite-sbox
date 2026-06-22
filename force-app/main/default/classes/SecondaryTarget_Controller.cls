@@ -134,7 +134,14 @@ public with sharing class SecondaryTarget_Controller {
         for (Focused_Pack__c fp : [
             SELECT Id, Name, Sales_Channel__c FROM Focused_Pack__c ORDER BY Name LIMIT 1000
         ]) {
-            opts.add(new Map<String, String>{ 'label' => fp.Name, 'value' => fp.Id });
+            // Carry channel so the LWC can filter packs by the form's selected
+            // Sales Channel without an extra round-trip. Empty string for packs
+            // that don't carry a channel (those apply everywhere).
+            opts.add(new Map<String, String>{
+                'label' => fp.Name,
+                'value' => fp.Id,
+                'channel' => fp.Sales_Channel__c == null ? '' : fp.Sales_Channel__c
+            });
         }
         return opts;
     }

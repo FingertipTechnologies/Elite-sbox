@@ -52,7 +52,7 @@ export default class SecondaryPbisSlabs extends LightningElement {
     @track criteriaOptions = [{ label: 'All Criteria', value: '' }];
     @track channelOptions = [];
     @track channelFilterOptions = [{ label: 'All Channels', value: '' }];
-    @track packOptions = [];
+    @track _packsRaw = [];
     @track selectedChannel = '';
     @track selectedCriteria = '';
     @track activeOnly = true;
@@ -87,8 +87,16 @@ export default class SecondaryPbisSlabs extends LightningElement {
     get rowChannelOptions() {
         return [{ label: '— All Channels —', value: '' }, ...this.channelOptions];
     }
-    get rowPackOptions() {
-        return [{ label: '— All Packs —', value: '' }, ...this.packOptions];
+    // Each bulk row gets its own filtered pack list keyed off its own
+    // Sales_Channel__c selection so the per-row combobox stays in sync.
+    get decoratedBulkRows() {
+        return this.bulkRows.map(r => ({
+            ...r,
+            packOptionsForRow: [
+                { label: '— All Packs —', value: '' },
+                ...this.packsForChannel(r.Sales_Channel__c)
+            ]
+        }));
     }
 
     loadCriteria() {
@@ -118,8 +126,27 @@ export default class SecondaryPbisSlabs extends LightningElement {
 
     loadPacks() {
         getFocusedPackOptions()
-            .then(d => { this.packOptions = (d || []).map(o => ({ label: o.label, value: o.value })); })
+            .then(d => {
+                this._packsRaw = (d || []).map(o => ({
+                    label: o.label, value: o.value, channel: o.channel || ''
+                }));
+            })
             .catch(() => {});
+    }
+
+    // Packs filtered by a given Sales Channel. Packs with no channel apply to
+    // all channels. Empty channel = no filter (show all).
+    packsForChannel(ch) {
+        const raw = this._packsRaw || [];
+        if (!ch) return raw.map(o => ({ label: o.label, value: o.value }));
+        return raw
+            .filter(o => !o.channel || o.channel === ch)
+            .map(o => ({ label: o.label, value: o.value }));
+    }
+
+    // Single-form combobox — filtered by form.Sales_Channel__c.
+    get packOptions() {
+        return this.packsForChannel(this.form && this.form.Sales_Channel__c);
     }
 
     loadRows() {
@@ -175,7 +202,19 @@ export default class SecondaryPbisSlabs extends LightningElement {
         const rowId = Number(e.target.dataset.id);
         const field = e.target.dataset.field;
         const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-        this.bulkRows = this.bulkRows.map(r => r.id === rowId ? { ...r, [field]: val } : r);
+        this.bulkRows = this.bulkRows.map(r => {
+            if (r.id !== rowId) return r;
+            const next = { ...r, [field]: val };
+            // Channel change → drop a focus pack that no longer matches the
+            // new channel, so the row doesn't carry a stale value.
+            if (field === 'Sales_Channel__c' && next.Focused_Pack__c) {
+                const pack = (this._packsRaw || []).find(o => o.value === next.Focused_Pack__c);
+                if (pack && pack.channel && val && pack.channel !== val) {
+                    next.Focused_Pack__c = '';
+                }
+            }
+            return next;
+        });
     }
 
     handleBulkRowCriteriaChange(e) {
@@ -266,7 +305,16 @@ export default class SecondaryPbisSlabs extends LightningElement {
     handleField(e) {
         const field = e.target.dataset.field;
         const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-        this.form = { ...this.form, [field]: val };
+        const next = { ...this.form, [field]: val };
+        // Channel change → drop a focus pack that doesn't belong to the new
+        // channel so the combobox doesn't carry a stale, hidden value.
+        if (field === 'Sales_Channel__c' && next.Focused_Pack__c) {
+            const pack = (this._packsRaw || []).find(o => o.value === next.Focused_Pack__c);
+            if (pack && pack.channel && val && pack.channel !== val) {
+                next.Focused_Pack__c = '';
+            }
+        }
+        this.form = next;
     }
 
     handleCriteriaChange(e) {

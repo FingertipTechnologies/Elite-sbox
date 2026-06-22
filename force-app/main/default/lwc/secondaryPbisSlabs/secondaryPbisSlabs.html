@@ -129,7 +129,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <template for:each={bulkRows} for:item="row">
+                                <template for:each={decoratedBulkRows} for:item="row">
                                     <tr key={row.id}>
                                         <td>
                                             <lightning-combobox variant="label-hidden"
@@ -148,7 +148,7 @@
                                             <lightning-combobox variant="label-hidden"
                                                 data-id={row.id} data-field="Focused_Pack__c"
                                                 value={row.Focused_Pack__c}
-                                                options={rowPackOptions}
+                                                options={row.packOptionsForRow}
                                                 disabled={row.packDisabled}
                                                 onchange={handleBulkRowField}></lightning-combobox>
                                         </td>
