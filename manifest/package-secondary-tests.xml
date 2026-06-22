@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Focused manifest for the Secondary Targets / PBIS / KPI Dashboard module
+  test classes.
+
+  Deploy from the repo root:
+    sf project deploy start \
+      --manifest manifest/package-secondary-tests.xml \
+      --target-org <alias> \
+      --test-level RunSpecifiedTests \
+      --tests SecondaryTarget_ControllerTest \
+      --tests SecondaryPBIS_ServiceTest \
+      --tests SecondaryPBIS_ControllerTest \
+      --tests SecondaryAchievementBatchTest \
+      --tests SecondaryAchievementSchedulerTest \
+      --tests SecondaryPBISSchedulerTest \
+      --tests SecondaryKpiDashboard_ControllerTest \
+      --tests TAM_CalculationEngine_ServiceTest \
+      --tests TAM_AttendanceServiceTest \
+      --tests TAM_FilterEngine_ServiceTest \
+      --tests TAM_TargetCriteria_ControllerTest \
+      --tests FocusedPackControllerTest
+
+  Or dry-run first with `--dry-run` appended.
+
+  Note: this manifest deploys only the *test* sources. The production
+  classes they exercise must already exist in the target org. If you're
+  deploying to a fresh sandbox, deploy the full force-app/ tree first,
+  then run this manifest with RunSpecifiedTests for a focused test pass.
+-->
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <!-- Secondary Targets engine -->
+        <members>SecondaryTarget_ControllerTest</members>
+        <members>SecondaryAchievementBatchTest</members>
+        <members>SecondaryAchievementSchedulerTest</members>
+
+        <!-- Secondary PBIS (monthly incentive) -->
+        <members>SecondaryPBIS_ServiceTest</members>
+        <members>SecondaryPBIS_ControllerTest</members>
+        <members>SecondaryPBISSchedulerTest</members>
+
+        <!-- KPI Dashboard -->
+        <members>SecondaryKpiDashboard_ControllerTest</members>
+
+        <!-- Target Achievement Module (TAM) shared services -->
+        <members>TAM_TargetCriteria_ControllerTest</members>
+        <members>TAM_CalculationEngine_ServiceTest</members>
+        <members>TAM_AttendanceServiceTest</members>
+        <members>TAM_FilterEngine_ServiceTest</members>
+
+        <!-- Focused Pack master -->
+        <members>FocusedPackControllerTest</members>
+
+        <name>ApexClass</name>
+    </types>
+    <version>65.0</version>
+</Package>
