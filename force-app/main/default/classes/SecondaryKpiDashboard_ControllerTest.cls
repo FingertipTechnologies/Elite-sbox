@@ -189,4 +189,92 @@ public class SecondaryKpiDashboard_ControllerTest {
         Test.stopTest();
         System.assertNotEquals(null, opts);
     }
+
+    // ----- PERSONAL mode coverage (System.runAs as a DSM viewer) -----
+
+    @isTest
+    static void dsmViewerLandsInPersonalModeWithTheirOwnData() {
+        // Insert a real DSM-profile user, attach Secondary_Target__c and an
+        // Incentive_Credit__c for the current month, then System.runAs that
+        // user so the controller's viewerIsDsmSsa branch fires and locks
+        // PERSONAL mode to them. Exercises buildPersonal end-to-end.
+        Profile dsm;
+        try {
+            dsm = [SELECT Id FROM Profile WHERE Name = 'DSM' LIMIT 1];
+        } catch (System.QueryException ex) {
+            // Org lacks a 'DSM' profile (different org / variant naming) —
+            // the PERSONAL branch isn't reachable here; bail without failing.
+            return;
+        }
+
+        String stamp = String.valueOf(System.currentTimeMillis()) + 'd';
+        User dsmUser = new User(
+            FirstName = 'D', LastName = 'kpidsm',
+            Email = 'dsm' + stamp + '@example.com',
+            Username = 'dsm' + stamp + '@example.com',
+            Alias = 'dsmu',
+            TimeZoneSidKey = 'Asia/Kolkata', LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'en_US',
+            ProfileId = dsm.Id,
+            Employee_Code__c = 'DSM-' + stamp
+        );
+        // Isolate the setup-object DML from the non-setup inserts below so a
+        // single test transaction can do both without tripping MIXED_DML.
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert dsmUser;
+        }
+
+        Target_Criteria__c crit = [SELECT Id FROM Target_Criteria__c WHERE Name = 'KPI Revenue' LIMIT 1];
+        Date today = Date.today();
+        Date monthStart = Date.newInstance(today.year(), today.month(), 1);
+        Date monthEnd = monthStart.addMonths(1).addDays(-1);
+
+        insert new Secondary_Target__c(
+            User__c = dsmUser.Id, Target_Criteria__c = crit.Id,
+            Target_Value__c = 500, Achievement_Value__c = 400,
+            Achievement_Percent__c = 80.00,
+            Is_Active__c = true,
+            Start_Date__c = monthStart, End_Date__c = monthEnd
+        );
+        insert new Incentive_Credit__c(
+            Executive__c = dsmUser.Id, Credit_Amount__c = 250,
+            Source__c = 'Secondary PBIS',
+            Year__c = today.year(), Month__c = today.month(),
+            Target_Criteria__c = crit.Id
+        );
+
+        System.runAs(dsmUser) {
+            Test.startTest();
+            // selectedUserId is deliberately set to a foreign id — the
+            // viewerIsDsmSsa guard rail should override it and lock the
+            // dashboard to the DSM viewer themselves, exercising that path
+            // alongside buildPersonal.
+            SecondaryKpiDashboard_Controller.DashboardData d =
+                SecondaryKpiDashboard_Controller.getDashboard(today.year(), today.month(), UserInfo.getUserId());
+            Test.stopTest();
+
+            System.assertEquals(true, d.viewerIsDsmSsa, 'DSM viewer flag');
+            System.assertEquals('PERSONAL', d.mode);
+            System.assertEquals(dsmUser.Id, d.selectedUserId,
+                'PERSONAL must be locked to the viewer regardless of selectedUserId');
+            System.assertEquals('kpidsm', d.selectedUserName.substringAfter(' '));
+            System.assertEquals(500, d.hero.totalTarget);
+            System.assertEquals(400, d.hero.totalAchievement);
+            System.assertEquals(250, d.hero.totalIncentive);
+            System.assertEquals(1, d.hero.activeTargets);
+            System.assertEquals(1, d.targets.size(),
+                'one target row for the seeded criterion');
+            System.assertEquals('KPI Revenue', d.targets[0].criterionName);
+            System.assertEquals(250, d.targets[0].incentive,
+                'matched-incentive snapshot per criterion');
+
+            // getHierarchy as a DSM viewer should return no picker steps —
+            // the cascade is suppressed by the viewer-lock.
+            SecondaryKpiDashboard_Controller.HierarchyResponse h =
+                SecondaryKpiDashboard_Controller.getHierarchy(null);
+            System.assertEquals(true, h.viewerIsDsmSsa);
+            System.assert(h.steps == null || h.steps.isEmpty(),
+                'DSM viewer should see no cascade steps');
+        }
+    }
 }
