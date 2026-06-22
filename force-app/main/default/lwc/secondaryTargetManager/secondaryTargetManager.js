@@ -33,13 +33,13 @@ const COLUMNS = [
     { label: 'End', fieldName: 'End_Date__c', type: 'date-local', initialWidth: 110,
       typeAttributes: { year: 'numeric', month: 'short', day: '2-digit' } },
     { label: 'Target', fieldName: 'Target_Value__c', type: 'number', initialWidth: 95,
-      cellAttributes: { alignment: 'right' } },
+      cellAttributes: { alignment: 'right', class: { fieldName: 'statusCellClass' } } },
     { label: 'Achieved', fieldName: 'Achievement_Value__c', type: 'number', initialWidth: 95,
-      cellAttributes: { alignment: 'right' } },
+      cellAttributes: { alignment: 'right', class: { fieldName: 'statusCellClass' } } },
     { label: '% Ach.', fieldName: 'pctFraction', type: 'percent', initialWidth: 90,
-      cellAttributes: { alignment: 'right' }, typeAttributes: { step: '0.01' } },
+      cellAttributes: { alignment: 'right', class: { fieldName: 'statusCellClass' } }, typeAttributes: { step: '0.01' } },
     { label: 'Pending', fieldName: 'Pending_Target__c', type: 'number', initialWidth: 95,
-      cellAttributes: { alignment: 'right' } },
+      cellAttributes: { alignment: 'right', class: { fieldName: 'statusCellClass' } } },
     { label: 'Active', fieldName: 'Is_Active__c', type: 'boolean', initialWidth: 65 },
     { label: 'Last Updated', fieldName: 'Last_Updated__c', type: 'date',
       typeAttributes: { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' } },
@@ -177,7 +177,8 @@ export default class SecondaryTargetManager extends LightningElement {
                     criteriaName: (r.Target_Criteria__r && r.Target_Criteria__r.Name) || '',
                     operator: (r.Target_Criteria__r && r.Target_Criteria__r.Operator__c) || '',
                     packName: (r.Focused_Pack__r && r.Focused_Pack__r.Name) || '',
-                    pctFraction: r.Achievement_Percent__c != null ? r.Achievement_Percent__c / 100 : null
+                    pctFraction: r.Achievement_Percent__c != null ? r.Achievement_Percent__c / 100 : null,
+                    statusCellClass: this.statusClassFor(r)
                 }));
             })
             .catch(e => this.toast('Error', this.msg(e), 'error'))
@@ -612,5 +613,17 @@ export default class SecondaryTargetManager extends LightningElement {
 
     toast(title, message, variant) {
         this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
+    }
+
+    // Returns the SLDS cell class for the Target / Achieved / % Ach / Pending
+    // columns based on how the row stands against its target. Returns '' when
+    // there's no comparable target so empty / zero-target rows aren't styled.
+    statusClassFor(row) {
+        const target = Number(row.Target_Value__c) || 0;
+        if (!target) return '';
+        const pct = Number(row.Achievement_Percent__c) || 0;
+        // >=100% → met → green background (white text courtesy of slds-theme_success).
+        // <100% → missed → red text on the default white cell.
+        return pct >= 100 ? 'slds-theme_success' : 'slds-text-color_error';
     }
 }
