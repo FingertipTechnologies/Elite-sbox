@@ -81,9 +81,15 @@ public class SecondaryTarget_ControllerTest {
             SecondaryTarget_Controller.getTargets('', crit.Id, true, UserInfo.getUserId()).size(),
             'a different user should return no rows');
 
+        // Use a date window that doesn't overlap the seeded target
+        // (today-5 .. today+5) so the duplicate-active guard doesn't reject
+        // this save — the test's purpose is to verify the happy CRUD path,
+        // not the duplicate-guard which has its own dedicated test below.
         Secondary_Target__c neu = new Secondary_Target__c(
             User__c = u.Id, Target_Criteria__c = crit.Id, Target_Value__c = 500,
-            Is_Active__c = true, Start_Date__c = Date.today(), End_Date__c = Date.today().addDays(10));
+            Is_Active__c = true,
+            Start_Date__c = Date.today().addDays(6),
+            End_Date__c = Date.today().addDays(20));
         Secondary_Target__c saved = SecondaryTarget_Controller.saveTarget(neu);
         System.assertNotEquals(null, saved.Id);
 
