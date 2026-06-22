@@ -1839,7 +1839,10 @@ insert tar;
 
     @isTest
     static void coverage_matchesViaApplyToAllAndIncludesGroupProducts() {
-        Account acc = new Account(Name = 'Cov Acc', Customer_Type__c = 'Primary Customer');
+        Account acc = new Account(Name = 'Cov Acc', Customer_Type__c = 'Primary Customer',
+            City__c = 'Delhi', State__c = 'Delhi', District__c = 'New Delhi', Pincode__c = '110001',
+            Customer_Status__c = 'Active', Primary_Phone_Number__c = '7000000011',
+            Aadhaar_No__c = '700012341231', SAP_Customer_Code__c = '70000011');
         insert acc;
         Product__c p1 = new Product__c(Name = 'CovP1', Is_Active__c = true, SKU_Code__c = 'CovP1');
         Product__c p2 = new Product__c(Name = 'CovP2', Is_Active__c = true, SKU_Code__c = 'CovP2');
@@ -1895,7 +1898,10 @@ insert tar;
         }
         if (validRegion == null) return;
 
-        Account acc = new Account(Name = 'RegAcc', Customer_Type__c = 'Primary Customer', Region__c = validRegion);
+        Account acc = new Account(Name = 'RegAcc', Customer_Type__c = 'Primary Customer', Region__c = validRegion,
+            City__c = 'Delhi', State__c = 'Delhi', District__c = 'New Delhi', Pincode__c = '110001',
+            Customer_Status__c = 'Active', Primary_Phone_Number__c = '7000000012',
+            Aadhaar_No__c = '700012341232', SAP_Customer_Code__c = '70000012');
         insert acc;
         Product__c p1 = new Product__c(Name = 'RegP', Is_Active__c = true, SKU_Code__c = 'RegP');
         insert p1;
@@ -1934,7 +1940,10 @@ insert tar;
 
     @isTest
     static void coverage_skipsExpiredAndFutureSchemes() {
-        Account acc = new Account(Name = 'DateAcc', Customer_Type__c = 'Primary Customer');
+        Account acc = new Account(Name = 'DateAcc', Customer_Type__c = 'Primary Customer',
+            City__c = 'Delhi', State__c = 'Delhi', District__c = 'New Delhi', Pincode__c = '110001',
+            Customer_Status__c = 'Active', Primary_Phone_Number__c = '7000000013',
+            Aadhaar_No__c = '700012341233', SAP_Customer_Code__c = '70000013');
         insert acc;
         Product__c p1 = new Product__c(Name = 'DateP', Is_Active__c = true, SKU_Code__c = 'DateP');
         insert p1;
