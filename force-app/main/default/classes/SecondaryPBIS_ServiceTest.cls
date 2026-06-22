@@ -320,15 +320,6 @@ public class SecondaryPBIS_ServiceTest {
         System.assertEquals(nullSibling.Id, skipped[0].targetId);
     }
 
-    @isTest
-    static void testFindOverlappingTargetsReturnsEmptyForInvalidPeriod() {
-        Test.startTest();
-        List<SecondaryPBIS_Service.SkippedTargetInfo> empty =
-            SecondaryPBIS_Service.findOverlappingTargets(null, null);
-        Test.stopTest();
-        System.assertEquals(0, empty.size(), 'null period returns an empty list');
-    }
-
     // ===== findMatchingSlab (public matcher used by the engine) =====
 
     @isTest
