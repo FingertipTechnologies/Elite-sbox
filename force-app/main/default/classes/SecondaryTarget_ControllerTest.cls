@@ -337,4 +337,78 @@ public class SecondaryTarget_ControllerTest {
         System.assertNotEquals(null, exp.startDate);
         System.assertNotEquals(null, exp.endDate);
     }
+
+    @isTest
+    static void testExplainAchievementAllOperators() {
+        // explainAchievement has a switch over Operator__c with one branch
+        // per operator (SUM / COUNT / COUNT_DISTINCT / DAILY_* / FOCUS_PACK_*).
+        // The smoke test above only exercises SUM. Create one criterion +
+        // target per remaining operator and call explainAchievement on each
+        // so every branch gets executed.
+        User u = [SELECT Id, Name FROM User WHERE LastName = 'stctrl' LIMIT 1];
+        Focused_Pack__c fp = new Focused_Pack__c(
+            Name = 'Exp Pack', Minimum_Qualifying_Quantity__c = 1
+        );
+        insert fp;
+
+        Map<String, Target_Criteria__c> crits = new Map<String, Target_Criteria__c>();
+        crits.put('COUNT', new Target_Criteria__c(
+            Name = 'Exp COUNT', Object__c = 'Order_Item__c', Operator__c = 'COUNT',
+            Date_Field__c = 'Order_Date__c', User_Field__c = 'Order_Owner_Id__c', Active__c = true
+        ));
+        crits.put('COUNT_DISTINCT', new Target_Criteria__c(
+            Name = 'Exp UBO', Object__c = 'Order_Item__c', Operator__c = 'COUNT_DISTINCT',
+            Date_Field__c = 'Order_Date__c', User_Field__c = 'Order_Owner_Id__c',
+            Distinct_Field__c = 'Account__c', Active__c = true
+        ));
+        crits.put('DAILY_UNIQUE_AVG', new Target_Criteria__c(
+            Name = 'Exp TC', Object__c = 'Order_Item__c', Operator__c = 'DAILY_UNIQUE_AVG',
+            Date_Field__c = 'Order_Date__c', User_Field__c = 'Order_Owner_Id__c',
+            Distinct_Field__c = 'Account__c', Use_Attendance_Divisor__c = true, Active__c = true
+        ));
+        crits.put('DAILY_LINES_PER_ORDER', new Target_Criteria__c(
+            Name = 'Exp TLSD', Object__c = 'Order_Item__c', Operator__c = 'DAILY_LINES_PER_ORDER',
+            Date_Field__c = 'Order_Date__c', User_Field__c = 'Order_Owner_Id__c',
+            Distinct_Field__c = 'Order__c', Use_Attendance_Divisor__c = true, Active__c = true
+        ));
+        crits.put('DAILY_RATIO_AVG', new Target_Criteria__c(
+            Name = 'Exp Ratio', Object__c = 'Order_Item__c', Operator__c = 'DAILY_RATIO_AVG',
+            Date_Field__c = 'Order_Date__c', User_Field__c = 'Order_Owner_Id__c',
+            Numerator_Field__c = 'Total_Amount__c', Denominator_Field__c = 'Quantity__c',
+            Use_Attendance_Divisor__c = true, Active__c = true
+        ));
+        crits.put('FOCUS_PACK_REVENUE', new Target_Criteria__c(
+            Name = 'Exp FP Rev', Object__c = 'Order_Item__c', Operator__c = 'FOCUS_PACK_REVENUE',
+            Date_Field__c = 'Order_Date__c', User_Field__c = 'Order_Owner_Id__c', Active__c = true
+        ));
+        crits.put('FOCUS_PACK_ECO', new Target_Criteria__c(
+            Name = 'Exp FP ECO', Object__c = 'Order_Item__c', Operator__c = 'FOCUS_PACK_ECO',
+            Date_Field__c = 'Order_Date__c', User_Field__c = 'Order_Owner_Id__c', Active__c = true
+        ));
+        insert crits.values();
+
+        List<Secondary_Target__c> targets = new List<Secondary_Target__c>();
+        for (String op : crits.keySet()) {
+            Boolean needsPack = op.startsWith('FOCUS_PACK');
+            targets.add(new Secondary_Target__c(
+                User__c = u.Id, User_Name__c = u.Name,
+                Target_Criteria__c = crits.get(op).Id, Target_Value__c = 100,
+                Focused_Pack__c = needsPack ? fp.Id : null,
+                Is_Active__c = true,
+                Start_Date__c = Date.today().addDays(-5),
+                End_Date__c = Date.today().addDays(5)
+            ));
+        }
+        insert targets;
+
+        Test.startTest();
+        for (Secondary_Target__c t : targets) {
+            SecondaryTarget_Controller.AchievementExplanation exp =
+                SecondaryTarget_Controller.explainAchievement(t.Id);
+            System.assertNotEquals(null, exp, 'explainAchievement returned a wrapper');
+            System.assertNotEquals(null, exp.targetName);
+            System.assertNotEquals(null, exp.operator);
+        }
+        Test.stopTest();
+    }
 }
