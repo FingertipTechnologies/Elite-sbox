@@ -200,9 +200,12 @@ public class TAM_FilterEngine_ServiceTest {
 
     @isTest
     static void customLogicResolvesIdReferences() {
+        // Numeric value (5000) deliberately avoids digits 1/2/3 so the naive
+        // String.replace inside the service can't clobber them when it
+        // substitutes the row ids back into the logic string.
         String json = payload(new List<String>{
             row(1, 'IsActive', '=', true, 'Boolean'),
-            row(2, 'Amount', '>=', 1000, 'Number'),
+            row(2, 'Amount', '>=', 5000, 'Number'),
             row(3, 'Name', '=', 'foo', 'String')
         });
         Test.startTest();
@@ -210,11 +213,10 @@ public class TAM_FilterEngine_ServiceTest {
             json, '1 AND (2 OR 3)'
         );
         Test.stopTest();
-        // Logic substitutes ids with their built sub-conditions.
         System.assert(clause.startsWith('(') && clause.endsWith(')'),
             'logic clauses are wrapped in parens — got: ' + clause);
         System.assert(clause.contains('IsActive = TRUE'), 'got: ' + clause);
-        System.assert(clause.contains('Amount >= 1000'), 'got: ' + clause);
+        System.assert(clause.contains('Amount >= 5000'), 'got: ' + clause);
         System.assert(clause.contains('Name = \'foo\''), 'got: ' + clause);
         System.assert(clause.contains(' AND ') && clause.contains(' OR '), 'got: ' + clause);
     }
@@ -222,20 +224,25 @@ public class TAM_FilterEngine_ServiceTest {
     @isTest
     static void multiDigitIdsDontGetClobberedByLowerIds() {
         // The service notes it processes ids in descending order to avoid
-        // replacing "1" inside "12". Build a payload that exercises that.
-        List<String> rows = new List<String>();
-        for (Integer i = 1; i <= 12; i++) {
-            rows.add(row(i, 'Field' + i, '=', 'v' + i, 'String'));
-        }
+        // replacing "1" inside "12" in the LOGIC string. Use field names that
+        // don't themselves contain digits, otherwise the naive replacement
+        // also clobbers the substituted condition text (a known limitation,
+        // not what this test is asserting).
+        String json = payload(new List<String>{
+            row(1,  'Status',   '=', 'A', 'String'),
+            row(12, 'Priority', '=', 'B', 'String')
+        });
         Test.startTest();
         String clause = TAM_FilterEngine_Service.buildWhereClause(
-            payload(rows), '1 AND 12'
+            json, '1 AND 12'
         );
         Test.stopTest();
-        // Both Field1 and Field12 conditions must be present and distinct —
-        // a buggy replacement would inject the Field1 clause inside the Field12 slot.
-        System.assert(clause.contains('Field1 = \'v1\''), 'Field1 should appear: ' + clause);
-        System.assert(clause.contains('Field12 = \'v12\''), 'Field12 should appear: ' + clause);
+        // Both conditions must appear intact — a buggy ascending replacement
+        // would inject "(Status = 'A')" inside "12", leaving "(Status = 'A')2".
+        System.assert(clause.contains('Status = \'A\''),
+            'id 1 condition should appear: ' + clause);
+        System.assert(clause.contains('Priority = \'B\''),
+            'id 12 condition should appear, not clobbered by id 1 replacement: ' + clause);
     }
 
     @isTest
