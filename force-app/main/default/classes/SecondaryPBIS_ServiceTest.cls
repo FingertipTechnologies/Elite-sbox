@@ -181,4 +181,203 @@ public class SecondaryPBIS_ServiceTest {
         Test.stopTest();
         System.assertEquals(1, [SELECT COUNT() FROM CronTrigger WHERE CronJobDetail.Name = 'PBIS Test']);
     }
+
+    // ===== Dedup tie-breakers (findOverlappingTargets / pickBestPerKey / isBetterTarget) =====
+
+    @isTest
+    static void testFindOverlappingTargetsByPercentTieBreak() {
+        // Add a second 'Sec Revenue' target overlapping the same period for the
+        // same user. Higher Achievement_Percent__c should win; the loser is
+        // reported as skipped by findOverlappingTargets.
+        User u = [SELECT Id FROM User WHERE LastName = 'pbis' LIMIT 1];
+        Target_Criteria__c cRev = [SELECT Id FROM Target_Criteria__c WHERE Name = 'Sec Revenue' LIMIT 1];
+        Date may1 = Date.newInstance(2026, 5, 1);
+        Date may31 = Date.newInstance(2026, 5, 31);
+
+        Secondary_Target__c stronger = new Secondary_Target__c(
+            User__c = u.Id, Target_Criteria__c = cRev.Id,
+            Target_Value__c = 1000, Achievement_Value__c = 950, Achievement_Percent__c = 95.00,
+            Is_Active__c = true, Start_Date__c = may1, End_Date__c = may31
+        );
+        insert stronger;
+
+        Test.startTest();
+        List<SecondaryPBIS_Service.SkippedTargetInfo> skipped =
+            SecondaryPBIS_Service.findOverlappingTargets(2026, 5);
+        Test.stopTest();
+
+        // The 80%-existing target loses to the 95%-new one — exactly one row
+        // is reported skipped, and it's the 80% one (Achievement_Percent__c
+        // path of isBetterTarget exercised).
+        System.assertEquals(1, skipped.size(), 'exactly one duplicate should be skipped');
+        Secondary_Target__c loser = [
+            SELECT Id, Achievement_Percent__c FROM Secondary_Target__c
+            WHERE Id = :skipped[0].targetId LIMIT 1
+        ];
+        System.assertEquals(80.00, loser.Achievement_Percent__c, 'the 80% target is the loser');
+        System.assertEquals(stronger.Id, skipped[0].keptTargetId, 'the 95% target is the winner');
+    }
+
+    @isTest
+    static void testFindOverlappingTargetsByValueTieBreak() {
+        // Same Achievement_Percent__c on both → tie-break falls through to
+        // Achievement_Value__c (line 224 of isBetterTarget).
+        User u = [SELECT Id FROM User WHERE LastName = 'pbis' LIMIT 1];
+        Target_Criteria__c cRev = [SELECT Id FROM Target_Criteria__c WHERE Name = 'Sec Revenue' LIMIT 1];
+        Date may1 = Date.newInstance(2026, 5, 1);
+        Date may31 = Date.newInstance(2026, 5, 31);
+
+        // Bring the existing target's percent up to 90% to match what we add.
+        Secondary_Target__c existing = [
+            SELECT Id, Achievement_Percent__c, Achievement_Value__c
+            FROM Secondary_Target__c WHERE Target_Criteria__c = :cRev.Id LIMIT 1
+        ];
+        existing.Achievement_Percent__c = 90.00;
+        existing.Achievement_Value__c = 900;
+        update existing;
+
+        Secondary_Target__c higherValue = new Secondary_Target__c(
+            User__c = u.Id, Target_Criteria__c = cRev.Id,
+            Target_Value__c = 1000, Achievement_Value__c = 1500,  // higher value at same %
+            Achievement_Percent__c = 90.00,
+            Is_Active__c = true, Start_Date__c = may1, End_Date__c = may31
+        );
+        insert higherValue;
+
+        Test.startTest();
+        List<SecondaryPBIS_Service.SkippedTargetInfo> skipped =
+            SecondaryPBIS_Service.findOverlappingTargets(2026, 5);
+        Test.stopTest();
+
+        System.assertEquals(1, skipped.size());
+        System.assertEquals(higherValue.Id, skipped[0].keptTargetId,
+            'higher Achievement_Value__c wins when percent ties');
+        System.assertEquals(existing.Id, skipped[0].targetId,
+            'the lower-value target is the skipped loser');
+    }
+
+    @isTest
+    static void testFindOverlappingTargetsByLastModifiedTieBreak() {
+        // Percent + Value both tie → tie-break falls through to
+        // LastModifiedDate (line 226 of isBetterTarget). The most-recently
+        // touched record wins; touch `existing` last so it becomes the winner.
+        User u = [SELECT Id FROM User WHERE LastName = 'pbis' LIMIT 1];
+        Target_Criteria__c cRev = [SELECT Id FROM Target_Criteria__c WHERE Name = 'Sec Revenue' LIMIT 1];
+        Date may1 = Date.newInstance(2026, 5, 1);
+        Date may31 = Date.newInstance(2026, 5, 31);
+
+        Secondary_Target__c existing = [
+            SELECT Id FROM Secondary_Target__c WHERE Target_Criteria__c = :cRev.Id LIMIT 1
+        ];
+
+        Secondary_Target__c sibling = new Secondary_Target__c(
+            User__c = u.Id, Target_Criteria__c = cRev.Id,
+            Target_Value__c = 1000, Achievement_Value__c = 800, Achievement_Percent__c = 80.00,
+            Is_Active__c = true, Start_Date__c = may1, End_Date__c = may31
+        );
+        insert sibling;
+        // Touch the existing record so its LastModifiedDate is strictly newer.
+        existing.Last_Updated__c = Datetime.now();
+        update existing;
+
+        Test.startTest();
+        List<SecondaryPBIS_Service.SkippedTargetInfo> skipped =
+            SecondaryPBIS_Service.findOverlappingTargets(2026, 5);
+        Test.stopTest();
+
+        System.assertEquals(1, skipped.size());
+        System.assertEquals(existing.Id, skipped[0].keptTargetId,
+            'most recently modified wins the LastModifiedDate tie-breaker');
+        System.assertEquals(sibling.Id, skipped[0].targetId);
+    }
+
+    @isTest
+    static void testFindOverlappingTargetsHandlesNullAchievementFields() {
+        // candidate/kept Achievement_Percent__c == null → covers the null
+        // coalesce branches at the top of isBetterTarget (lines 218-219).
+        User u = [SELECT Id FROM User WHERE LastName = 'pbis' LIMIT 1];
+        Target_Criteria__c cRev = [SELECT Id FROM Target_Criteria__c WHERE Name = 'Sec Revenue' LIMIT 1];
+        Date may1 = Date.newInstance(2026, 5, 1);
+        Date may31 = Date.newInstance(2026, 5, 31);
+
+        // Existing target has Achievement_Percent__c = 80.
+        // Add a sibling with null percent + null value → loses on every axis.
+        Secondary_Target__c nullSibling = new Secondary_Target__c(
+            User__c = u.Id, Target_Criteria__c = cRev.Id,
+            Target_Value__c = 1000,
+            Achievement_Value__c = null, Achievement_Percent__c = null,
+            Is_Active__c = true, Start_Date__c = may1, End_Date__c = may31
+        );
+        insert nullSibling;
+
+        Test.startTest();
+        List<SecondaryPBIS_Service.SkippedTargetInfo> skipped =
+            SecondaryPBIS_Service.findOverlappingTargets(2026, 5);
+        Test.stopTest();
+
+        System.assertEquals(1, skipped.size(), 'one of the two must be skipped');
+        // Null-percent target is the loser — verify by id.
+        System.assertEquals(nullSibling.Id, skipped[0].targetId);
+    }
+
+    @isTest
+    static void testFindOverlappingTargetsReturnsEmptyForInvalidPeriod() {
+        Test.startTest();
+        List<SecondaryPBIS_Service.SkippedTargetInfo> empty =
+            SecondaryPBIS_Service.findOverlappingTargets(null, null);
+        Test.stopTest();
+        System.assertEquals(0, empty.size(), 'null period returns an empty list');
+    }
+
+    // ===== findMatchingSlab (public matcher used by the engine) =====
+
+    @isTest
+    static void testFindMatchingSlabPicksHighestQualifyingBracket() {
+        Target_Criteria__c cRev = [SELECT Id FROM Target_Criteria__c WHERE Name = 'Sec Revenue' LIMIT 1];
+        List<Incentive_Slab__c> slabs = [
+            SELECT Id, Target_Criteria__c, Sales_Channel__c, Focused_Pack__c,
+                   Compare_On__c, Achievement_From__c, Achievement_To__c,
+                   Incentive_Amount__c, Active__c
+            FROM Incentive_Slab__c WHERE Target_Criteria__c = :cRev.Id
+        ];
+
+        // A target sitting in the 100-105% bracket should match the 1,000-payout slab.
+        Secondary_Target__c match = new Secondary_Target__c(
+            Target_Criteria__c = cRev.Id, Target_Value__c = 1000,
+            Achievement_Value__c = 1020, Achievement_Percent__c = 102.00,
+            Is_Active__c = true
+        );
+
+        Test.startTest();
+        Incentive_Slab__c chosen = SecondaryPBIS_Service.findMatchingSlab(match, slabs);
+        Test.stopTest();
+
+        System.assertNotEquals(null, chosen);
+        System.assertEquals(1000, chosen.Incentive_Amount__c,
+            'the 100-105 bracket pays 1,000 per the seed data');
+    }
+
+    @isTest
+    static void testFindMatchingSlabReturnsNullBelowFloor() {
+        // Achievement_Percent__c = -5 falls under every bracket's floor;
+        // findMatchingSlab should return null instead of any slab.
+        Target_Criteria__c cRev = [SELECT Id FROM Target_Criteria__c WHERE Name = 'Sec Revenue' LIMIT 1];
+        List<Incentive_Slab__c> slabs = [
+            SELECT Id, Compare_On__c, Achievement_From__c, Achievement_To__c, Incentive_Amount__c
+            FROM Incentive_Slab__c WHERE Target_Criteria__c = :cRev.Id AND Achievement_From__c > 0
+        ];
+
+        Secondary_Target__c underTarget = new Secondary_Target__c(
+            Target_Criteria__c = cRev.Id,
+            Achievement_Value__c = -1, Achievement_Percent__c = -5,
+            Is_Active__c = true
+        );
+
+        Test.startTest();
+        Incentive_Slab__c chosen = SecondaryPBIS_Service.findMatchingSlab(underTarget, slabs);
+        Test.stopTest();
+
+        System.assertEquals(null, chosen,
+            'below every slab floor → no payout, returns null');
+    }
 }
