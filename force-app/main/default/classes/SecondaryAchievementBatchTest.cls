@@ -219,36 +219,51 @@ public class SecondaryAchievementBatchTest {
             makeVisit(uTc.Id, acc3.Id)
         };
 
+        // Scope every criterion to the test's own outlet IDs so we don't sum
+        // pre-existing org data into the per-user totals. Account__c is a
+        // Lookup but the filter engine treats IN-list strings as quoted
+        // values, which works for SOQL on Lookup fields too.
+        String accountFilter = '{"filters":[{"id":1,"field":"Account__c","operator":"IN","type":"Picklist","value":["'
+            + acc1.Id + '","' + acc2.Id + '","' + acc3.Id + '"]}]}';
+
         // Criteria
         Target_Criteria__c cRev = baseCriteria('Sec Revenue', 'SUM');
         cRev.Field__c = 'Total_Amount__c';
+        cRev.Filters__c = accountFilter;
 
         Target_Criteria__c cUbo = baseCriteria('UBO', 'COUNT_DISTINCT');
         cUbo.Distinct_Field__c = 'Account__c';
+        cUbo.Filters__c = accountFilter;
 
         Target_Criteria__c cTc = baseCriteria('TC', 'DAILY_UNIQUE_AVG');
         cTc.Distinct_Field__c = 'Account__c';
         cTc.Use_Attendance_Divisor__c = true;
         cTc.Secondary_Source_Objects__c = VISIT_SOURCE;
+        cTc.Filters__c = accountFilter;
 
         Target_Criteria__c cPc = baseCriteria('PC', 'DAILY_UNIQUE_AVG');
         cPc.Distinct_Field__c = 'Account__c';
         cPc.Use_Attendance_Divisor__c = false;
+        cPc.Filters__c = accountFilter;
 
         // Average TLSD (BRD 3.3.4): lines per order per day, averaged over working days.
         Target_Criteria__c cTlsd = baseCriteria('Avg TLSD', 'DAILY_LINES_PER_ORDER');
         cTlsd.Distinct_Field__c = 'Order__c';
         cTlsd.Use_Attendance_Divisor__c = true;
+        cTlsd.Filters__c = accountFilter;
 
         // Generic daily ratio (sum/sum) — keeps that operator covered.
         Target_Criteria__c cTlsdRatio = baseCriteria('TLSD Ratio', 'DAILY_RATIO_AVG');
         cTlsdRatio.Numerator_Field__c = 'Total_Amount__c';
         cTlsdRatio.Denominator_Field__c = 'Quantity__c';
         cTlsdRatio.Use_Attendance_Divisor__c = true;
+        cTlsdRatio.Filters__c = accountFilter;
 
         Target_Criteria__c cFpRev = baseCriteria('FP Revenue', 'FOCUS_PACK_REVENUE');
+        cFpRev.Filters__c = accountFilter;
         Target_Criteria__c cFpEco = baseCriteria('FP ECO', 'FOCUS_PACK_ECO');
         cFpEco.Field__c = 'Each_Qyt__c'; // configurable ECO quantity field
+        cFpEco.Filters__c = accountFilter;
         insert new List<Target_Criteria__c>{ cRev, cUbo, cTc, cPc, cTlsd, cTlsdRatio, cFpRev, cFpEco };
 
         Map<String, Id> fp = new Map<String, Id>();
