@@ -12,10 +12,8 @@ public class SecondaryAchievementBatchTest {
     // and may not share values with the item's global set, so we resolve
     // it independently. Same defensive pattern is applied to every other
     // restricted picklist the test setup touches.
-    private static final String ORDER_TYPE_VALUE        = firstActivePicklist(Order_Item__c.Order_Type__c, 'Secondary Order');
-    private static final String PARENT_ORDER_TYPE_VALUE = firstActivePicklist(Order__c.Order_Type__c, 'Secondary Order');
-    private static final String FULFILLMENT_STATUS      = firstActivePicklist(Order__c.Order_Fulfillment_Status__c, 'Not Fulfilled');
-    private static final String CUSTOMER_TYPE_VALUE     = firstActivePicklist(Account.Customer_Type__c, 'Secondary Customer');
+    private static final String ORDER_TYPE_VALUE    = firstActivePicklist(Order_Item__c.Order_Type__c, 'Secondary Order');
+    private static final String CUSTOMER_TYPE_VALUE = firstActivePicklist(Account.Customer_Type__c, 'Secondary Customer');
     private static final String SECONDARY_FILTER =
         '{"filters":[{"id":1,"field":"Order_Type__c","operator":"=","type":"Picklist","value":"'
         + ORDER_TYPE_VALUE + '"}]}';
@@ -67,13 +65,16 @@ public class SecondaryAchievementBatchTest {
         );
     }
 
-    // makeOrder ignores the `type` arg — the parent Order's picklist is a
-    // different set than the item's, and the engine filter targets only the
-    // item's Order_Type__c. We use the parent-specific value here.
+    // Both Order_Type__c and Order_Fulfillment_Status__c on Order__c are
+    // optional (required=false in the source metadata) AND unused by the
+    // calculation engine — the only Order_Type__c the engine cares about
+    // lives on Order_Item__c, set inside makeItem below. Leaving them null
+    // here sidesteps every per-org picklist quirk on the parent Order
+    // (validation rules, record-type filtering, drift between source and
+    // deployed picklist values).
     private static Order__c makeOrder(Id ownerId, Id accId, String type, Date orderDate) {
         return new Order__c(
-            Order_Type__c = PARENT_ORDER_TYPE_VALUE, Account__c = accId, OwnerId = ownerId,
-            Order_Fulfillment_Status__c = FULFILLMENT_STATUS, Order_Date__c = orderDate
+            Account__c = accId, OwnerId = ownerId, Order_Date__c = orderDate
         );
     }
 
