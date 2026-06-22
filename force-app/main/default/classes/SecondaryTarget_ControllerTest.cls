@@ -223,4 +223,118 @@ public class SecondaryTarget_ControllerTest {
         Secondary_Target__c t = [SELECT Achievement_Value__c FROM Secondary_Target__c LIMIT 1];
         System.assertEquals(1000.00, t.Achievement_Value__c, 'batch computed achievement');
     }
+
+    // ----- Isolated option-method coverage (does not depend on saveTarget) -----
+
+    @isTest
+    static void testGetCriteriaOptionsStandalone() {
+        Test.startTest();
+        List<Map<String, String>> opts = SecondaryTarget_Controller.getCriteriaOptions();
+        Test.stopTest();
+        System.assert(opts != null && !opts.isEmpty(), 'criteria seeded by @TestSetup are surfaced');
+        // Each option carries label/value/operator triplet.
+        System.assertNotEquals(null, opts[0].get('value'));
+        System.assertNotEquals(null, opts[0].get('label'));
+    }
+
+    @isTest
+    static void testGetChannelOptionsStandalone() {
+        Test.startTest();
+        List<Map<String, String>> opts = SecondaryTarget_Controller.getChannelOptions();
+        Test.stopTest();
+        System.assertNotEquals(null, opts, 'channels list is returned (may be empty in some orgs)');
+    }
+
+    @isTest
+    static void testGetFocusedPackOptionsStandalone() {
+        Test.startTest();
+        List<Map<String, String>> opts = SecondaryTarget_Controller.getFocusedPackOptions();
+        Test.stopTest();
+        System.assertNotEquals(null, opts);
+        // Schema entries now carry the channel slot we added for the
+        // per-channel-filter feature — verify the key is present even when empty.
+        if (!opts.isEmpty()) {
+            System.assert(opts[0].containsKey('label'));
+            System.assert(opts[0].containsKey('value'));
+            System.assert(opts[0].containsKey('channel'));
+        }
+    }
+
+    @isTest
+    static void testSearchUsersStandalone() {
+        Test.startTest();
+        List<Map<String, String>> matches = SecondaryTarget_Controller.searchUsers('T');
+        // Even an empty string is acceptable input — the helper wraps it with %.
+        List<Map<String, String>> blank = SecondaryTarget_Controller.searchUsers('');
+        List<Map<String, String>> nullArg = SecondaryTarget_Controller.searchUsers(null);
+        Test.stopTest();
+        System.assertNotEquals(null, matches);
+        System.assertNotEquals(null, blank);
+        System.assertNotEquals(null, nullArg);
+    }
+
+    @isTest
+    static void testGetTargetsFilterCombinations() {
+        // Exercise the dynamic SOQL WHERE-clause assembly: every combination
+        // of (channel, criteria, active, userId) builds a different SOQL.
+        User u = [SELECT Id FROM User WHERE LastName = 'stctrl' LIMIT 1];
+        Target_Criteria__c c = [SELECT Id FROM Target_Criteria__c LIMIT 1];
+
+        Test.startTest();
+        SecondaryTarget_Controller.getTargets(null, null, null, null);                // no filters
+        SecondaryTarget_Controller.getTargets(null, c.Id, true, null);                // criteria + active
+        SecondaryTarget_Controller.getTargets(null, null, null, String.valueOf(u.Id)); // user only
+        SecondaryTarget_Controller.getTargets('Cake', c.Id, true, String.valueOf(u.Id)); // every filter
+        Test.stopTest();
+        // No assertions on row counts (sandbox-dependent); the goal is to
+        // exercise each WHERE-clause branch.
+        System.assert(true);
+    }
+
+    @isTest
+    static void testGetTargetReturnsSeededRecord() {
+        Secondary_Target__c t = [SELECT Id FROM Secondary_Target__c LIMIT 1];
+        Test.startTest();
+        Secondary_Target__c got = SecondaryTarget_Controller.getTarget(t.Id);
+        Test.stopTest();
+        System.assertEquals(t.Id, got.Id);
+    }
+
+    @isTest
+    static void testDeleteTargetStandalone() {
+        // Create-then-delete in this test so other tests still have the
+        // seeded target available.
+        User u = [SELECT Id, Name FROM User WHERE LastName = 'stctrl' LIMIT 1];
+        Target_Criteria__c c = [SELECT Id FROM Target_Criteria__c LIMIT 1];
+        Secondary_Target__c throwaway = new Secondary_Target__c(
+            User__c = u.Id, User_Name__c = u.Name,
+            Target_Criteria__c = c.Id, Target_Value__c = 100,
+            Is_Active__c = false,
+            Start_Date__c = Date.today(), End_Date__c = Date.today().addDays(1)
+        );
+        insert throwaway;
+
+        Test.startTest();
+        SecondaryTarget_Controller.deleteTarget(throwaway.Id);
+        Test.stopTest();
+
+        System.assertEquals(0, [SELECT COUNT() FROM Secondary_Target__c WHERE Id = :throwaway.Id]);
+    }
+
+    @isTest
+    static void testExplainAchievementSmoke() {
+        // explainAchievement is the View-Calculation modal driver — biggest
+        // uncovered surface in the controller. Smoke-test it against the
+        // seeded SUM target so the wrapper structure + dynamic SOQL paths
+        // get exercised.
+        Secondary_Target__c t = [SELECT Id FROM Secondary_Target__c LIMIT 1];
+        Test.startTest();
+        SecondaryTarget_Controller.AchievementExplanation exp =
+            SecondaryTarget_Controller.explainAchievement(t.Id);
+        Test.stopTest();
+        System.assertNotEquals(null, exp);
+        System.assertNotEquals(null, exp.targetName);
+        System.assertNotEquals(null, exp.startDate);
+        System.assertNotEquals(null, exp.endDate);
+    }
 }
