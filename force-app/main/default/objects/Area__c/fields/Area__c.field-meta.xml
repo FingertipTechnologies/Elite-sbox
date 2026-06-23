@@ -312,5 +312,9 @@
             <controllingFieldValue>West</controllingFieldValue>
             <valueName>Mumbai</valueName>
         </valueSettings>
+        <valueSettings>
+            <controllingFieldValue>Karnataka</controllingFieldValue>
+            <valueName>MT_KA</valueName>
+        </valueSettings>
     </valueSet>
 </CustomField>

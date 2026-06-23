@@ -5,7 +5,7 @@ private class RunningSchemeControllerTest {
     private static final String TYPE_FREE_QTY = 'Free Quantity';
     private static final String TYPE_QPS      = 'QPS';
     private static final String REGION = 'Karnataka';
-    private static final String AREA   = 'North';
+    private static final String AREA   = 'MT_KA';
 
     // Resolve a valid Group_Purpose picklist value (global value set lives in the org).
     private static String resolvePurpose(String token) {
