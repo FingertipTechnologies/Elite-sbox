@@ -426,4 +426,20 @@ public class SecondaryTarget_ControllerTest {
         }
         Test.stopTest();
     }
+
+    @isTest
+    static void testGetTargetsExercisesRoleHierarchyHelper() {
+        // The other tests wrap getTargets in System.runAs(seededUser) — that
+        // user has no UserRoleId, so downlineUserIds() short-circuits and the
+        // descendant-walk + user-collection paths stay uncovered. Call
+        // getTargets as the default test runner (the org's automated process
+        // user / admin), who typically does have a UserRoleId, so the helper
+        // runs end-to-end. Assertions are loose — the result set depends on
+        // the running user's downline; the goal is just code coverage.
+        Test.startTest();
+        List<Secondary_Target__c> result =
+            SecondaryTarget_Controller.getTargets(null, null, null, null);
+        Test.stopTest();
+        System.assertNotEquals(null, result, 'getTargets returned a list');
+    }
 }

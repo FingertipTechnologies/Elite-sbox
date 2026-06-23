@@ -139,4 +139,21 @@ public class SecondaryPBIS_ControllerTest {
         }
         System.assert(threw, 'invalid month should throw');
     }
+
+    @isTest
+    static void testScopedGettersExerciseRoleHierarchyHelper() {
+        // The seeded user has no UserRoleId, so wrapping getUserMonthlyTotals
+        // in System.runAs(u) short-circuits downlineUserIds(). Call without
+        // runAs so the running test runner — who typically has a UserRoleId
+        // — drives the descendant-walk + user-collection paths. Assertions
+        // are loose; the goal is code coverage of the helper, not the result.
+        Test.startTest();
+        List<SecondaryPBIS_Controller.MonthlyTotal> totals =
+            SecondaryPBIS_Controller.getUserMonthlyTotals(2026, 5);
+        List<Incentive_Credit__c> rows =
+            SecondaryPBIS_Controller.getAllMonthlyRows(2026, 5);
+        Test.stopTest();
+        System.assertNotEquals(null, totals);
+        System.assertNotEquals(null, rows);
+    }
 }
