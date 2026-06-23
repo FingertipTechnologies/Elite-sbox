@@ -18,6 +18,10 @@
         <members>PBISActualsScheduler</members>
         <members>PBISActualsRefreshController</members>
         <members>PBISActuals_ServiceTest</members>
+        <members>PBISActualsBatchTest</members>
+        <members>PBISActualsSchedulerTest</members>
+        <members>PBISActuals_ControllerTest</members>
+        <members>PBISActualsRefreshControllerTest</members>
         <members>SDParameter_Controller</members>
         <members>SDParameter_ControllerTest</members>
         <name>ApexClass</name>
