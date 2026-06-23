@@ -19,9 +19,57 @@ public with sharing class SecondaryTarget_Controller {
         if (String.isNotBlank(criteriaId)) wheres.add('Target_Criteria__c = :criteriaId');
         if (String.isNotBlank(userId)) wheres.add('User__c = :userId');
         if (activeOnly == true) wheres.add('Is_Active__c = true');
+
+        // Scope the result to the running user's role-hierarchy downline so a
+        // manager (RSM / ASM / TSE) only sees their own team's targets, not
+        // every DSM's data across the org. Admins / system roles whose
+        // UserRoleId is null fall through with no scope filter.
+        Set<Id> downline = downlineUserIds();
+        if (downline != null) {
+            // Bind set into dynamic SOQL via a local for the :downlineIds reference.
+            wheres.add('User__c IN :downline');
+        }
+
         if (!wheres.isEmpty()) q += ' WHERE ' + String.join(wheres, ' AND ');
         q += ' ORDER BY LastModifiedDate DESC LIMIT 500';
         return Database.query(q);
+    }
+
+    /**
+     * Returns the user ids in the running user's role-hierarchy downline
+     * (including themselves). Returns null when the user has no role assigned
+     * (e.g. System Administrator) — callers treat that as "no scope filter".
+     */
+    private static Set<Id> downlineUserIds() {
+        Id me = UserInfo.getUserId();
+        User u = [SELECT UserRoleId FROM User WHERE Id = :me LIMIT 1];
+        if (u.UserRoleId == null) return null; // unrestricted
+
+        // Walk the role hierarchy once and collect every descendant role id.
+        Set<Id> roleIds = new Set<Id>{ u.UserRoleId };
+        Map<Id, Set<Id>> parentToChildren = new Map<Id, Set<Id>>();
+        for (UserRole r : [SELECT Id, ParentRoleId FROM UserRole]) {
+            if (r.ParentRoleId == null) continue;
+            if (!parentToChildren.containsKey(r.ParentRoleId)) {
+                parentToChildren.put(r.ParentRoleId, new Set<Id>());
+            }
+            parentToChildren.get(r.ParentRoleId).add(r.Id);
+        }
+        collectDescendantRoles(u.UserRoleId, parentToChildren, roleIds);
+
+        Set<Id> userIds = new Set<Id>();
+        for (User x : [SELECT Id FROM User WHERE UserRoleId IN :roleIds AND IsActive = true]) {
+            userIds.add(x.Id);
+        }
+        userIds.add(me); // belt-and-braces: include the viewer even if their role has no users
+        return userIds;
+    }
+
+    private static void collectDescendantRoles(Id parentRoleId, Map<Id, Set<Id>> parentToChildren, Set<Id> acc) {
+        if (!parentToChildren.containsKey(parentRoleId)) return;
+        for (Id child : parentToChildren.get(parentRoleId)) {
+            if (acc.add(child)) collectDescendantRoles(child, parentToChildren, acc);
+        }
     }
 
     @AuraEnabled(cacheable=false)
