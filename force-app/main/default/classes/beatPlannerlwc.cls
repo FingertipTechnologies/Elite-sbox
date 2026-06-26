@@ -1967,8 +1967,8 @@ global with sharing class beatPlannerlwc {
         }
         
         Set<String> channelSet = new Set<String>();
-        
-        if (customerType == 'Primary Custmer') {
+        system.debug('customerType'+customerType);
+        if (customerType == 'Primary Customer') { 
             channelSet = getPrimaryCustomerChannels(accountId, currentUserId, salesChannelList, us.Alternate_Sales_Channel__c);
         } else if (customerType == 'Secondary Customer') {
             channelSet = getSecondaryCustomerChannels(accountId, currentUserId, salesChannelList);
@@ -1985,10 +1985,9 @@ global with sharing class beatPlannerlwc {
     // PRIMARY: Direct query on Customer__c = accountId
     public static Set<String> getPrimaryCustomerChannels(String accountId, Id currentUserId,Set<String> salesChannelList, String alternateSalesChannel) {
         Set<String> channelSet = new Set<String>();
-        
         List<Product_Mapping__c> primaryMappings;
         
-        if (alternateSalesChannel == null) {
+        if (alternateSalesChannel == null || alternateSalesChannel == '') {
             // When no alternate channel, filter by executive
             primaryMappings = [
                 SELECT Chanel__c 
@@ -3039,7 +3038,7 @@ global with sharing class beatPlannerlwc {
             ord.Delivery_To__c = (String)plantOrder.get('deliveryTo');
             ord.Expected_Delivery_Date__c = Date.valueOf((String)plantOrder.get('expectedDate'));
             if (plantOrder.get('orderOwnerId') != null && plantOrder.get('orderOwnerId') != '') {
-                ord.OwnerId = (Id) String.valueOf(plantOrder.get('orderOwnerId'));
+                //ord.OwnerId = (Id) String.valueOf(plantOrder.get('orderOwnerId'));
                 ord.Executive__c = (String)plantOrder.get('orderOwnerId');
             }
             

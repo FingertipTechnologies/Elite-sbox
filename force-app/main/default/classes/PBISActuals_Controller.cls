@@ -5,13 +5,14 @@
 public with sharing class PBISActuals_Controller {
     @AuraEnabled
     public static void recalcOne(Id recordId) {
-        if (recordId == null) {
+        if (recordId == null)
+        {
             throw new AuraHandledException('No record id provided.');
         }
-        try {
+        try 
+        {
             PBISActuals_Service.recalculate(new Set<Id>{ recordId });
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
-        }
+        } 
+        catch (Exception e) {throw new AuraHandledException(e.getMessage());}
     }
 }

@@ -44,7 +44,7 @@ public with sharing class SDParameter_Controller {
         return [
             SELECT Id, Name, Object__c, Operator__c, Field__c, User_Field__c, Date_Field__c,
                    SKU_Field__c, Focused_Pack__c, Focused_Pack__r.Name, Sales_Channel__c,
-                   Filters__c, Filter_Logic__c, SOQL_Query__c, Source_Config__c,
+                   Filters__c, Filter_Logic__c, SOQL_Query__c, Source_Config__c,External_Id__c,
                    Is_Mandatory__c, Is_Active__c
             FROM S_D_Parameter__c
             WHERE Id = :parameterId

@@ -15112,11 +15112,11 @@
     </tabVisibilities>
     <tabVisibilities>
         <tab>Secondary_PBIS_Console</tab>
-        <visibility>Hidden</visibility>
+        <visibility>DefaultOn</visibility>
     </tabVisibilities>
     <tabVisibilities>
         <tab>Secondary_PBIS_Slabs</tab>
-        <visibility>Hidden</visibility>
+        <visibility>DefaultOn</visibility>
     </tabVisibilities>
     <tabVisibilities>
         <tab>Secondary_Receipt_Item__c</tab>
@@ -15128,7 +15128,7 @@
     </tabVisibilities>
     <tabVisibilities>
         <tab>Secondary_Target_Manager</tab>
-        <visibility>Hidden</visibility>
+        <visibility>DefaultOn</visibility>
     </tabVisibilities>
     <tabVisibilities>
         <tab>Secondary_Target__c</tab>

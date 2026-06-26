@@ -14,16 +14,26 @@ private class SDParameter_ControllerTest {
         return null;
     }
 
+    // save() sets External_Id__c = "Sales Channel | Name", and External_Id__c is a UNIQUE field.
+    // Unique constraints are enforced against ALL org records (even ones a test can't see), so a
+    // fixed Name collides with existing data in a populated org (passes in a clean sandbox, fails in
+    // production). Make every save()-based test use a unique Name so the insert can never duplicate.
+    private static String uniqueName(String base) {
+        return base + ' ' + String.valueOf(Math.abs(Crypto.getRandomInteger()));
+    }
+
     @isTest
     static void testSaveInsertAndUpdate() {
+        String nm = uniqueName('Total Volume Achievement');
         S_D_Parameter__c param = new S_D_Parameter__c(
-            Name = 'Total Volume Achievement',
+            Name = nm,
             Object__c = 'Invoice_item__c',
             Operator__c = 'SUM',
             Field__c = 'Quantity__c',
             User_Field__c = 'OwnerId',
             Is_Mandatory__c = true,
-            Is_Active__c = true
+            Is_Active__c = true,
+            External_Id__c ='11'
         );
 
         Test.startTest();
@@ -31,7 +41,7 @@ private class SDParameter_ControllerTest {
         System.assertNotEquals(null, saved.Id, 'Insert should return an Id');
         System.assertEquals('SUM', saved.Operator__c);
         System.assertEquals(true, saved.Is_Mandatory__c, 'Mandatory flag should persist');
-        System.assertEquals('Total Volume Achievement', saved.External_Id__c,
+        System.assertEquals(nm, saved.External_Id__c,
             'External Id auto-set from Name (no channel)');
 
         saved.Operator__c = 'COUNT';
@@ -47,7 +57,7 @@ private class SDParameter_ControllerTest {
         // Account has a self-referential MasterRecord relationship; a filter that picked
         // MasterRecord.Type should be stripped back to Type in the generated SOQL.
         S_D_Parameter__c sumParam = new S_D_Parameter__c(
-            Name = 'New Customer Count',
+            Name = uniqueName('New Customer Count'),
             Object__c = 'Account',
             Operator__c = 'COUNT',
             User_Field__c = 'CreatedById',
@@ -119,7 +129,7 @@ private class SDParameter_ControllerTest {
             }
         });
         S_D_Parameter__c p = new S_D_Parameter__c(
-            Name = 'Unique Customers', Operator__c = 'MULTI_OBJECT_DISTINCT', Source_Config__c = config
+            Name = uniqueName('Unique Customers'), Operator__c = 'MULTI_OBJECT_DISTINCT', Source_Config__c = config
         );
 
         Test.startTest();
@@ -184,7 +194,7 @@ private class SDParameter_ControllerTest {
     static void testGetParameterAndFocusedPacks() {
         Focused_Pack__c fp = [SELECT Id, Sales_Channel__c FROM Focused_Pack__c LIMIT 1];
         S_D_Parameter__c param = SDParameter_Controller.save(new S_D_Parameter__c(
-            Name = 'Focus Pack 1',
+            Name = uniqueName('Focus Pack 1'),
             Operator__c = 'FOCUS_PACK_REVENUE',
             Focused_Pack__c = fp.Id,
             Sales_Channel__c = fp.Sales_Channel__c,

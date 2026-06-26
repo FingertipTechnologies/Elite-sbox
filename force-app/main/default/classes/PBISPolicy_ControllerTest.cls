@@ -14,7 +14,7 @@ private class PBISPolicy_ControllerTest {
 
     @isTest
     static void testSaveInsertWithSlabs() {
-        PBIS_Policy__c policy = new PBIS_Policy__c(Name = 'Institutional', Basis__c = 'Value', Is_Active__c = true);
+        PBIS_Policy__c policy = new PBIS_Policy__c(Name = 'Institutional', Basis__c = 'Value', Is_Active__c = true,Sales_Channels__c ='KA');
         List<PBIS_Incentive_Slab__c> slabs = new List<PBIS_Incentive_Slab__c>{
             slab(1, 90, 94.99, 4.50, 4.05),
             slab(2, 95, 99.99, 10.00, 9.90)

@@ -75,13 +75,18 @@ public class SecondaryPBIS_ControllerTest {
 
         System.assertEquals(1, res.rowsWritten, 'one match for the seeded data');
 
-        List<SecondaryPBIS_Controller.MonthlyTotal> totals =
-            SecondaryPBIS_Controller.getUserMonthlyTotals(2026, 5);
+        // runAs the seeded user (no UserRoleId) so the controller's new
+        // role-hierarchy scope filter returns "no filter" — otherwise the
+        // running admin's downline scope would exclude the test executive.
+        List<SecondaryPBIS_Controller.MonthlyTotal> totals;
+        List<Incentive_Credit__c> rows;
+        System.runAs(u) {
+            totals = SecondaryPBIS_Controller.getUserMonthlyTotals(2026, 5);
+            rows = SecondaryPBIS_Controller.getUserMonthlyRows(u.Id, 2026, 5);
+        }
         System.assertEquals(1, totals.size());
         System.assertEquals(u.Id, totals[0].executiveId);
         System.assertEquals(1250.00, totals[0].total, 'Revenue 110% picks the >105 slab');
-
-        List<Incentive_Credit__c> rows = SecondaryPBIS_Controller.getUserMonthlyRows(u.Id, 2026, 5);
         System.assertEquals(1, rows.size());
         System.assertEquals(1250.00, rows[0].Credit_Amount__c);
     }
@@ -133,5 +138,22 @@ public class SecondaryPBIS_ControllerTest {
             threw = true;
         }
         System.assert(threw, 'invalid month should throw');
+    }
+
+    @isTest
+    static void testScopedGettersExerciseRoleHierarchyHelper() {
+        // The seeded user has no UserRoleId, so wrapping getUserMonthlyTotals
+        // in System.runAs(u) short-circuits downlineUserIds(). Call without
+        // runAs so the running test runner — who typically has a UserRoleId
+        // — drives the descendant-walk + user-collection paths. Assertions
+        // are loose; the goal is code coverage of the helper, not the result.
+        Test.startTest();
+        List<SecondaryPBIS_Controller.MonthlyTotal> totals =
+            SecondaryPBIS_Controller.getUserMonthlyTotals(2026, 5);
+        List<Incentive_Credit__c> rows =
+            SecondaryPBIS_Controller.getAllMonthlyRows(2026, 5);
+        Test.stopTest();
+        System.assertNotEquals(null, totals);
+        System.assertNotEquals(null, rows);
     }
 }

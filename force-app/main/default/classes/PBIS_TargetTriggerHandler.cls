@@ -3,7 +3,7 @@
  *
  * Auto-populates Gross_Salary__c from the linked User's Monthly_Gross_Salary_INR__c,
  * so the salary does not have to be entered/imported on the per-user target row.
- *
+ * 
  * Sync behaviour:
  *  - before insert: set Gross_Salary__c for every row that has a User__c.
  *  - before update: only when User__c changed — re-derive from the new User, or blank

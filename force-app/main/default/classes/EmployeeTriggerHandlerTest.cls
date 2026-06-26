@@ -272,7 +272,7 @@ private class EmployeeTriggerHandlerTest {
             FirstName = 'Test',
             LastName = 'User',
             Email = 'test.useruser@test.com',
-            Username = 'test.user1234@test.com',
+            Username = 'test.userKSKSKSLalalal1234@test.com',
             Alias = 'test',
             TimeZoneSidKey = 'America/Los_Angeles',
             LocaleSidKey = 'en_US',
