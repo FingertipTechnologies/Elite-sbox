@@ -1,32 +1,43 @@
 name: Retrieve from Salesforce
-
+ 
 on:
   workflow_dispatch:
-
+ 
 jobs:
   retrieve:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    
+ 
+    # Node 22+ on ubuntu-latest makes the Salesforce CLI exit 13
+    # ("unsettled top-level await"); pin Node 20 and keep the CLI quiet/stable.
+    env:
+      SF_AUTOUPDATE_DISABLE: "true"
+      SF_DISABLE_TELEMETRY: "true"
+ 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
+ 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+ 
       - name: Install Salesforce CLI
         run: |
           npm install --global @salesforce/cli
           sf --version
-      
+ 
       - name: Authenticate to Salesforce
         run: |
           echo "${{ secrets.SALESFORCE_AUTH_URL }}" > authfile.txt
           sf org login sfdx-url --sfdx-url-file authfile.txt --alias deployment-org --set-default
-      
+ 
       - name: Retrieve from Salesforce
         run: |
           sf project retrieve start --manifest manifest/package.xml --target-org deployment-org
-      
+ 
       - name: Commit changes to GitHub
         run: |
           rm -f authfile.txt
