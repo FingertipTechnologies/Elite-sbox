@@ -358,6 +358,10 @@ export default class SecondaryOrders extends LightningElement {
             if (totalQty <= 0) return;
             const slab = this._pickSlabByQty(scheme.slabsRaw, totalQty);
             if (!slab || !slab.qtyMin || parseFloat(slab.qtyMin) <= 0 || !slab.freeQty) return;
+            // Free Quantity qualifies only when the total reaches Min Qty + Free Qty (e.g. 11+1 = 12),
+            // not Min Qty alone (11). The diluted unit price is unchanged (factor = qtyMin/(qtyMin+freeQty)
+            // is constant); this gate only delays activation until the full qualifying qty is ordered.
+            if (totalQty < parseFloat(slab.qtyMin) + parseFloat(slab.freeQty)) return;
             // Free Quantity is a price dilution: carry the exact (proportional) free qty rounded to
             // 4 decimals, e.g. buy 85 with a "11 -> 1 free" slab earns 85/11 = 7.7273 (not floored to 7).
             const free = Math.round((totalQty / parseFloat(slab.qtyMin)) * parseFloat(slab.freeQty) * 1e4) / 1e4;
