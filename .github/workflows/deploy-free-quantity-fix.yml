@@ -20,9 +20,21 @@ on:
 jobs:
   deploy-free-quantity-fix:
     runs-on: ubuntu-latest
+
+    # Node 22+ on ubuntu-latest makes the Salesforce CLI exit 13
+    # ("unsettled top-level await"); pin Node 20 and keep the CLI quiet/stable.
+    env:
+      SF_AUTOUPDATE_DISABLE: "true"
+      SF_DISABLE_TELEMETRY: "true"
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Install Salesforce CLI
         run: |
