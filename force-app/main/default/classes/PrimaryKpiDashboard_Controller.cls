@@ -134,9 +134,10 @@ public with sharing class PrimaryKpiDashboard_Controller {
         Boolean hasPath = !path.isEmpty();
         d.teamPickers = buildTeamPickers(me, d.viewerIsAdmin, path);
 
-        // The deepest picked user is the focus. The team table shows only the
-        // focus's DIRECT reportees (one level) so the drill goes down step by step:
-        //   - admin, "All" → the regional managers (RSM tier),
+        // The deepest picked user is the focus. Picking a user drills to their
+        // DIRECT reportees (one level, step by step); the "All" aggregate spans
+        // everyone beneath the top:
+        //   - admin, "All" → everyone under every regional manager (RSM tier),
         //   - a picked user → that user's direct reportees,
         //   - other manager, "All" → the viewer's own direct reportees.
         Id teamFocusId = hasPath ? path[path.size() - 1] : null;
@@ -144,7 +145,7 @@ public with sharing class PrimaryKpiDashboard_Controller {
         if (hasPath) {
             teamMembers = directReporteeIds(teamFocusId);
         } else if (d.viewerIsAdmin) {
-            teamMembers = topManagerUserIds();
+            teamMembers = allUsersUnderTopManagers();
         } else {
             teamMembers = directReporteeIds(me);
         }
@@ -242,16 +243,26 @@ public with sharing class PrimaryKpiDashboard_Controller {
         return o;
     }
 
-    // The regional managers (RSM tier) — the top level of the admin's drill.
-    private static Set<Id> topManagerUserIds() {
-        Set<Id> ids = new Set<Id>();
+    // Every regional manager (RSM tier) plus everyone in their role downline —
+    // the "All" aggregate an admin sees before drilling into one RSM.
+    private static Set<Id> allUsersUnderTopManagers() {
+        Set<Id> userIds = new Set<Id>();
+        Set<Id> roleIds = new Set<Id>();
         for (User u : [
-            SELECT Id FROM User
+            SELECT Id, UserRoleId FROM User
             WHERE IsActive = true AND Profile.Name IN :TOP_MANAGER_PROFILES
         ]) {
-            ids.add(u.Id);
+            userIds.add(u.Id);
+            if (u.UserRoleId != null) roleIds.add(u.UserRoleId);
         }
-        return ids;
+        if (!roleIds.isEmpty()) {
+            Set<Id> childRoles = RoleHeirarchyUtility.getAllChildRoleIds(roleIds);
+            childRoles.addAll(roleIds);
+            for (User u : [SELECT Id FROM User WHERE UserRoleId IN :childRoles AND IsActive = true]) {
+                userIds.add(u.Id);
+            }
+        }
+        return userIds;
     }
 
     // Direct reportees (one level down) as a user-id set — the same universe the
