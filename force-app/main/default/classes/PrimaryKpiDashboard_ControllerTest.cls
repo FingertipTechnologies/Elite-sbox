@@ -33,7 +33,7 @@ private class PrimaryKpiDashboard_ControllerTest {
     static void testPersonalDetail() {
         Test.startTest();
         PrimaryKpiDashboard_Controller.Dashboard d = PrimaryKpiDashboard_Controller.getDashboard(
-            Date.today().year(), Date.today().month(), 'Monthly', UserInfo.getUserId()
+            Date.today().year(), Date.today().month(), 'Monthly', UserInfo.getUserId(), null
         );
         Test.stopTest();
 
@@ -52,7 +52,7 @@ private class PrimaryKpiDashboard_ControllerTest {
     static void testEmptyWhenNoTargetForPeriod() {
         Test.startTest();
         PrimaryKpiDashboard_Controller.Dashboard d = PrimaryKpiDashboard_Controller.getDashboard(
-            2099, 1, 'Monthly', null
+            2099, 1, 'Monthly', null, null
         );
         Test.stopTest();
 
@@ -65,7 +65,7 @@ private class PrimaryKpiDashboard_ControllerTest {
         // Null year/month default to today; picker list is built without error.
         Test.startTest();
         PrimaryKpiDashboard_Controller.Dashboard d = PrimaryKpiDashboard_Controller.getDashboard(
-            null, null, null, null
+            null, null, null, null, null
         );
         Test.stopTest();
 
@@ -73,5 +73,24 @@ private class PrimaryKpiDashboard_ControllerTest {
         System.assertNotEquals(null, d.userPickerOptions);
         // The running user's own target is present, so the focused detail is populated.
         System.assertNotEquals(null, d.hero);
+    }
+
+    // The My Team drill-down metadata is always populated so the LWC can render
+    // its cascading pickers. The running (admin) user starts at the RSM tier.
+    @isTest
+    static void testTeamDrilldownMetadata() {
+        Test.startTest();
+        PrimaryKpiDashboard_Controller.Dashboard d = PrimaryKpiDashboard_Controller.getDashboard(
+            Date.today().year(), Date.today().month(), 'Monthly', null, new List<Id>()
+        );
+        Test.stopTest();
+
+        System.assertNotEquals(null, d.teamPickers, 'Drill-down pickers should always be provided');
+        System.assertNotEquals(null, d.viewerIsAdmin, 'Admin flag should be set');
+        // With no drill path chosen, an admin viewer is awaiting an RSM selection.
+        if (d.viewerIsAdmin) {
+            System.assertEquals(true, d.teamAwaitingSelection,
+                'Admin with no selection is awaiting an RSM pick');
+        }
     }
 }

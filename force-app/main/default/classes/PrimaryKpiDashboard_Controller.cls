@@ -8,10 +8,18 @@ public with sharing class PrimaryKpiDashboard_Controller {
 
     private static final Integer SLOTS = 10;
 
+    // Admins start the My Team drill-down at the RSM tier; everyone else starts
+    // at their own direct reportees.
+    private static final String ADMIN_PROFILE = 'System Administrator';
+    private static final Set<String> TOP_MANAGER_PROFILES = new Set<String>{
+        'RSM', 'Sr. RSM', 'Deputy RSM'
+    };
+
     // ===== wrappers =====
     public class Dashboard {
         @AuraEnabled public String mode;                 // PERSONAL | TEAM | EMPTY
         @AuraEnabled public Boolean viewerIsManager;
+        @AuraEnabled public Boolean viewerIsAdmin;
         @AuraEnabled public String periodLabel;
         @AuraEnabled public String selectedUserName;
         @AuraEnabled public Hero hero;
@@ -20,6 +28,19 @@ public with sharing class PrimaryKpiDashboard_Controller {
         @AuraEnabled public List<BreakdownRow> channels;       // team: Sales Channel wise
         @AuraEnabled public List<BreakdownRow> paramBreakdown; // team: S&D Parameter wise
         @AuraEnabled public List<Option> userPickerOptions;
+
+        // My Team cascade drill-down: one picker per level, top → bottom.
+        @AuraEnabled public List<TeamPicker> teamPickers;
+        @AuraEnabled public Boolean teamAwaitingSelection; // admin who hasn't picked an RSM yet
+        @AuraEnabled public Boolean teamShowsPersonal;     // a leaf user is selected in the drill
+    }
+    // One level of the My Team drill-down. `options` are the direct reportees to
+    // choose from at this level; `selectedUserId` is the choice already made (if any).
+    public class TeamPicker {
+        @AuraEnabled public Integer level;
+        @AuraEnabled public String label;
+        @AuraEnabled public Id selectedUserId;
+        @AuraEnabled public List<Option> options;
     }
     public class BreakdownRow {
         @AuraEnabled public String label;
@@ -60,7 +81,8 @@ public with sharing class PrimaryKpiDashboard_Controller {
     }
 
     @AuraEnabled(cacheable=false)
-    public static Dashboard getDashboard(Integer year, Integer month, String incentivePeriod, Id viewUserId) {
+    public static Dashboard getDashboard(Integer year, Integer month, String incentivePeriod,
+                                         Id viewUserId, List<Id> teamPath) {
         Dashboard d = new Dashboard();
         Id me = UserInfo.getUserId();
         if (year == null) year = Date.today().year();
@@ -69,12 +91,17 @@ public with sharing class PrimaryKpiDashboard_Controller {
         Date monthStart = Date.newInstance(year, month, 1);
         d.periodLabel = monthLabel(month) + ' ' + year + ' · ' + incentivePeriod;
 
+        // Viewer profile → decides where the My Team drill-down starts.
+        User meUser = [SELECT Id, Name, Profile.Name FROM User WHERE Id = :me LIMIT 1];
+        d.viewerIsAdmin = meUser.Profile != null && meUser.Profile.Name == ADMIN_PROFILE;
+
         // Strict subordinates = users in roles below the viewer's role.
         Set<Id> subordinateIds = subordinatesOf(me);
-        d.viewerIsManager = !subordinateIds.isEmpty();
+        d.viewerIsManager = !subordinateIds.isEmpty() || d.viewerIsAdmin;
 
+        // Flat downline list — drives the existing "User Search" combobox.
         d.userPickerOptions = new List<Option>();
-        if (d.viewerIsManager) {
+        if (!subordinateIds.isEmpty()) {
             for (User u : [SELECT Id, Name FROM User WHERE Id IN :subordinateIds ORDER BY Name]) {
                 Option o = new Option();
                 o.label = u.Name;
@@ -83,75 +110,206 @@ public with sharing class PrimaryKpiDashboard_Controller {
             }
         }
 
-        // Targets active in the chosen month for the viewer + subordinates (one SOQL).
+        // ===== My Team drill-down (cascading direct-reportee pickers) =====
+        List<Id> path = (teamPath == null) ? new List<Id>() : teamPath;
+        Boolean hasPath = !path.isEmpty();
+        d.teamPickers = buildTeamPickers(me, d.viewerIsAdmin, path);
+
+        // Which manager's team the analytics section reflects:
+        //   - a chosen path  → the deepest selected user,
+        //   - no path & admin → nobody yet (prompt to pick an RSM),
+        //   - no path & other → the viewer themselves (their own team).
+        Id teamFocusId = hasPath ? path[path.size() - 1] : (d.viewerIsAdmin ? null : me);
+        Set<Id> teamDownline = (teamFocusId == null) ? new Set<Id>() : subordinatesOf(teamFocusId);
+        Boolean focusIsLeaf = hasPath && teamDownline.isEmpty();
+        d.teamAwaitingSelection = d.viewerIsAdmin && !hasPath;
+        d.teamShowsPersonal = focusIsLeaf;
+
+        // Set the analytics should aggregate over.
+        Set<Id> teamAggSet;
+        if (hasPath) {
+            teamAggSet = focusIsLeaf ? new Set<Id>() : teamDownline;
+        } else if (!d.viewerIsAdmin) {
+            teamAggSet = subordinateIds;   // viewer's own team (unchanged default)
+        } else {
+            teamAggSet = new Set<Id>();     // admin, nothing picked yet
+        }
+
+        // Targets active in the chosen month for everything we may render (one SOQL).
         Set<Id> queryIds = new Set<Id>(subordinateIds);
         queryIds.add(me);
+        queryIds.addAll(teamAggSet);
+        if (teamFocusId != null) queryIds.add(teamFocusId);
+        if (viewUserId != null) queryIds.add(viewUserId);
         Map<Id, PBIS_Target__c> targetByUser = new Map<Id, PBIS_Target__c>();
         for (PBIS_Target__c t : queryTargets(queryIds, incentivePeriod, monthStart)) {
             targetByUser.put(t.User__c, t);
         }
         if (targetByUser.isEmpty()) {
+            // Nothing to show anywhere — but keep the drill pickers so a manager
+            // can still navigate the hierarchy.
             d.mode = 'EMPTY';
             return d;
         }
 
-        // Team table for managers.
-        if (d.viewerIsManager) {
+        // Team analytics for the focused manager's downline.
+        if (!teamAggSet.isEmpty()) {
             d.mode = 'TEAM';
-            d.team = new List<TeamRow>();
-            Map<Id, User> uMap = new Map<Id, User>([
-                SELECT Id, Name, UserRole.Name FROM User WHERE Id IN :subordinateIds
-            ]);
-            for (Id uid : subordinateIds) {
-                PBIS_Target__c t = targetByUser.get(uid);
-                if (t == null) continue; // subordinate has no target this period
-                TeamRow tr = new TeamRow();
-                tr.userId = uid;
-                tr.userName = uMap.containsKey(uid) ? uMap.get(uid).Name : '';
-                tr.role = (uMap.containsKey(uid) && uMap.get(uid).UserRole != null) ? uMap.get(uid).UserRole.Name : '';
-                tr.totalIncentive = nz(t.Total_Incentive_Value__c);
-                tr.maxIncentive = nz(t.Max_Incentive_Value__c);
-                tr.achievementPct = weightedPct(t);
-                tr.isEligible = t.Is_Eligible__c == true;
-                d.team.add(tr);
-            }
-            // Team breakdowns: Sales Channel wise and S&D Parameter wise.
-            Map<String, Decimal[]> chAgg = new Map<String, Decimal[]>();   // [incSum, pctSum, count]
-            Map<String, Decimal[]> pmAgg = new Map<String, Decimal[]>();
-            for (Id uid : subordinateIds) {
-                PBIS_Target__c t = targetByUser.get(uid);
-                if (t == null) continue;
-                String ch = (String) t.get('Sales_Channel__c');
-                accumulate(chAgg, String.isBlank(ch) ? '— No channel —' : ch,
-                    nz(t.Total_Incentive_Value__c), weightedPct(t));
-                for (Integer n = 1; n <= SLOTS; n++) {
-                    if (t.get('S_D_Parameter_' + n + '__c') == null) continue;
-                    SObject p = t.getSObject('S_D_Parameter_' + n + '__r');
-                    String pname = p != null ? (String) p.get('Name') : ('Slot ' + n);
-                    accumulate(pmAgg, pname,
-                        nz((Decimal) t.get('S_D_Parameter_' + n + '_Incentive_Amount__c')),
-                        nz((Decimal) t.get('S_D_Parameter_' + n + '_Achievement_Percent__c')));
-                }
-            }
-            d.channels = toBreakdownRows(chAgg);
-            d.paramBreakdown = toBreakdownRows(pmAgg);
+            d.team = buildTeamRows(teamAggSet, targetByUser);
+            d.channels = buildChannelBreakdown(teamAggSet, targetByUser);
+            d.paramBreakdown = buildParamBreakdown(teamAggSet, targetByUser);
         } else {
-            d.mode = 'PERSONAL';
+            d.mode = d.viewerIsManager ? 'TEAM' : 'PERSONAL';
         }
 
-        // Personal detail for the focused user (drilled/picked subordinate, else the viewer).
-        Id focusUser = (viewUserId != null) ? viewUserId : me;
-        PBIS_Target__c ft = targetByUser.get(focusUser);
+        // Personal detail: a drilled-to leaf user takes precedence, otherwise the
+        // My / User Search focus (viewer, or the searched user).
+        Id personalFocusId = d.teamShowsPersonal ? teamFocusId
+                                                 : ((viewUserId != null) ? viewUserId : me);
+        PBIS_Target__c ft = targetByUser.get(personalFocusId);
         if (ft == null && !d.viewerIsManager) {
             d.mode = 'EMPTY';
             return d;
         }
         if (ft != null) {
-            d.selectedUserName = userName(focusUser);
+            d.selectedUserName = userName(personalFocusId);
             d.hero = buildHero(ft);
             d.parameters = buildParams(ft);
+        } else if (d.teamShowsPersonal) {
+            // Leaf user with no target this period — still name them for the header.
+            d.selectedUserName = userName(personalFocusId);
         }
         return d;
+    }
+
+    // ===== My Team drill-down helpers =====
+
+    // One picker per level of the drill, top → bottom. The loop keeps adding a
+    // picker for the direct reportees of the last selection until either nobody
+    // is chosen yet at a level, or the chosen user has no reportees (a leaf).
+    private static List<TeamPicker> buildTeamPickers(Id me, Boolean isAdmin, List<Id> path) {
+        List<TeamPicker> pickers = new List<TeamPicker>();
+        List<Option> options = topLevelOptions(me, isAdmin);
+        Integer level = 0;
+        while (options != null && !options.isEmpty()) {
+            TeamPicker tp = new TeamPicker();
+            tp.level = level;
+            tp.options = options;
+            tp.selectedUserId = (level < path.size()) ? path[level] : null;
+            tp.label = pickerLabel(level, isAdmin);
+            pickers.add(tp);
+            if (tp.selectedUserId == null) break;   // waiting for a choice at this level
+            options = directReporteeOptions(tp.selectedUserId);
+            level++;
+        }
+        return pickers;
+    }
+
+    private static String pickerLabel(Integer level, Boolean isAdmin) {
+        if (level == 0) return isAdmin ? 'Regional Sales Manager' : 'Team Member';
+        return 'Reportee';
+    }
+
+    // Level-0 options: RSM tier for admins, own direct reportees for everyone else.
+    private static List<Option> topLevelOptions(Id me, Boolean isAdmin) {
+        if (!isAdmin) return directReporteeOptions(me);
+        List<Option> opts = new List<Option>();
+        for (User u : [
+            SELECT Id, Name, Profile.Name
+            FROM User
+            WHERE IsActive = true AND Profile.Name IN :TOP_MANAGER_PROFILES
+            ORDER BY Name
+        ]) {
+            opts.add(makeOption(u.Id, u.Name, u.Profile != null ? u.Profile.Name : null));
+        }
+        return opts;
+    }
+
+    // Direct reportees = active users in roles immediately below the given user's role.
+    private static List<Option> directReporteeOptions(Id userId) {
+        List<Option> opts = new List<Option>();
+        Set<Id> childRoleIds = directChildRoleIds(userId);
+        if (childRoleIds.isEmpty()) return opts;
+        for (User u : [
+            SELECT Id, Name, Profile.Name
+            FROM User
+            WHERE UserRoleId IN :childRoleIds AND IsActive = true
+            ORDER BY Name
+        ]) {
+            opts.add(makeOption(u.Id, u.Name, u.Profile != null ? u.Profile.Name : null));
+        }
+        return opts;
+    }
+
+    private static Set<Id> directChildRoleIds(Id userId) {
+        Set<Id> ids = new Set<Id>();
+        List<User> us = [SELECT UserRoleId FROM User WHERE Id = :userId LIMIT 1];
+        if (us.isEmpty() || us[0].UserRoleId == null) return ids;
+        for (UserRole r : [SELECT Id FROM UserRole WHERE ParentRoleId = :us[0].UserRoleId]) {
+            ids.add(r.Id);
+        }
+        return ids;
+    }
+
+    // Label a picker option as "Name (Profile)".
+    private static Option makeOption(Id userId, String name, String profileName) {
+        Option o = new Option();
+        o.userId = userId;
+        o.label = String.isNotBlank(profileName) ? name + ' (' + profileName + ')' : name;
+        return o;
+    }
+
+    // ===== Team analytics builders =====
+
+    private static List<TeamRow> buildTeamRows(Set<Id> userIds, Map<Id, PBIS_Target__c> targetByUser) {
+        List<TeamRow> rows = new List<TeamRow>();
+        if (userIds.isEmpty()) return rows;
+        Map<Id, User> uMap = new Map<Id, User>([
+            SELECT Id, Name, UserRole.Name FROM User WHERE Id IN :userIds
+        ]);
+        for (Id uid : userIds) {
+            PBIS_Target__c t = targetByUser.get(uid);
+            if (t == null) continue; // subordinate has no target this period
+            TeamRow tr = new TeamRow();
+            tr.userId = uid;
+            tr.userName = uMap.containsKey(uid) ? uMap.get(uid).Name : '';
+            tr.role = (uMap.containsKey(uid) && uMap.get(uid).UserRole != null) ? uMap.get(uid).UserRole.Name : '';
+            tr.totalIncentive = nz(t.Total_Incentive_Value__c);
+            tr.maxIncentive = nz(t.Max_Incentive_Value__c);
+            tr.achievementPct = weightedPct(t);
+            tr.isEligible = t.Is_Eligible__c == true;
+            rows.add(tr);
+        }
+        return rows;
+    }
+
+    private static List<BreakdownRow> buildChannelBreakdown(Set<Id> userIds, Map<Id, PBIS_Target__c> targetByUser) {
+        Map<String, Decimal[]> chAgg = new Map<String, Decimal[]>();   // [incSum, pctSum, count]
+        for (Id uid : userIds) {
+            PBIS_Target__c t = targetByUser.get(uid);
+            if (t == null) continue;
+            String ch = (String) t.get('Sales_Channel__c');
+            accumulate(chAgg, String.isBlank(ch) ? '— No channel —' : ch,
+                nz(t.Total_Incentive_Value__c), weightedPct(t));
+        }
+        return toBreakdownRows(chAgg);
+    }
+
+    private static List<BreakdownRow> buildParamBreakdown(Set<Id> userIds, Map<Id, PBIS_Target__c> targetByUser) {
+        Map<String, Decimal[]> pmAgg = new Map<String, Decimal[]>();
+        for (Id uid : userIds) {
+            PBIS_Target__c t = targetByUser.get(uid);
+            if (t == null) continue;
+            for (Integer n = 1; n <= SLOTS; n++) {
+                if (t.get('S_D_Parameter_' + n + '__c') == null) continue;
+                SObject p = t.getSObject('S_D_Parameter_' + n + '__r');
+                String pname = p != null ? (String) p.get('Name') : ('Slot ' + n);
+                accumulate(pmAgg, pname,
+                    nz((Decimal) t.get('S_D_Parameter_' + n + '_Incentive_Amount__c')),
+                    nz((Decimal) t.get('S_D_Parameter_' + n + '_Achievement_Percent__c')));
+            }
+        }
+        return toBreakdownRows(pmAgg);
     }
 
     // ===== helpers =====

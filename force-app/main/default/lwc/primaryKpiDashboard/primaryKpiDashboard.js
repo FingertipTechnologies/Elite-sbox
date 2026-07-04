@@ -60,6 +60,7 @@ export default class PrimaryKpiDashboard extends LightningElement {
     @track incentivePeriod = 'Monthly';
     @track viewMode = 'my';      // my | team | search
     @track viewUserId = '';
+    @track teamPath = [];        // My Team drill-down: selected userIds, top → bottom
     @track data;
     @track isLoading = false;
 
@@ -78,8 +79,32 @@ export default class PrimaryKpiDashboard extends LightningElement {
     get isMyView() { return this.viewMode === 'my'; }
     get isTeamView() { return this.viewMode === 'team'; }
     get isSearchView() { return this.viewMode === 'search'; }
-    get showPersonalBlock() { return this.hasHero && (this.isMyView || (this.isSearchView && !!this.viewUserId)); }
-    get showTeamBlock() { return this.isTeamView; }
+    // The team drill can bottom out on an individual — show their personal block then.
+    get teamShowsPersonal() { return this.isTeamView && !!this.data && !!this.data.teamShowsPersonal; }
+    get showPersonalBlock() {
+        return this.hasHero && (this.isMyView || (this.isSearchView && !!this.viewUserId) || this.teamShowsPersonal);
+    }
+    // Aggregated team analytics show only when a manager (not a leaf) is in focus.
+    get showTeamBlock() {
+        return this.isTeamView && !this.teamShowsPersonal && !this.teamAwaitingSelection;
+    }
+    get teamAwaitingSelection() {
+        return this.isTeamView && !!this.data && !!this.data.teamAwaitingSelection;
+    }
+    // Only surface the "no PBIS" banner in My view — Team view keeps its pickers.
+    get showEmptyMessage() { return this.isEmpty && !this.isTeamView; }
+
+    // ===== My Team drill-down pickers =====
+    get showTeamPickers() { return this.isTeamView && this.teamPickerRows.length > 0; }
+    get teamPickerRows() {
+        return ((this.data && this.data.teamPickers) || []).map(p => ({
+            key: 'lvl-' + p.level,
+            level: p.level,
+            label: p.label,
+            value: p.selectedUserId || '',
+            options: (p.options || []).map(o => ({ label: o.label, value: o.userId }))
+        }));
+    }
     get isDrilled() { return this.isSearchView && !!this.viewUserId; }
     get searchUserOptions() {
         return ((this.data && this.data.userPickerOptions) || []).map(o => ({ label: o.label, value: o.userId }));
@@ -87,11 +112,13 @@ export default class PrimaryKpiDashboard extends LightningElement {
     get noPersonalForMy() {
         return this.isMyView && this.hasData && !this.isEmpty && !this.hasHero;
     }
-    // User Search: a user is picked but has no target this period.
+    // User Search or a drilled-to team leaf: a user is picked but has no target.
     get noTargetForSelected() {
-        return this.isSearchView && !!this.viewUserId && this.hasData && !this.hasHero;
+        const searchMiss = this.isSearchView && !!this.viewUserId && this.hasData && !this.hasHero;
+        const teamLeafMiss = this.teamShowsPersonal && this.hasData && !this.hasHero;
+        return searchMiss || teamLeafMiss;
     }
-    // Heading above the personal block: "My Primary PBIS" for My view, the user's name in Search.
+    // Heading above the personal block: "My Primary PBIS" for My view, the user's name otherwise.
     get personalHeading() {
         return this.isMyView ? 'My Primary PBIS' : ((this.data && this.data.selectedUserName) || 'Primary PBIS');
     }
@@ -226,7 +253,7 @@ export default class PrimaryKpiDashboard extends LightningElement {
     handleYear(e) { this.year = e.target.value ? Number(e.target.value) : null; this.load(); }
     handleMonth(e) { this.month = Number(e.detail.value); this.load(); }
     handlePeriod(e) { this.incentivePeriod = e.detail.value; this.load(); }
-    handleViewMode(e) { this.viewMode = e.detail.value; this.viewUserId = ''; this.load(); }
+    handleViewMode(e) { this.viewMode = e.detail.value; this.viewUserId = ''; this.teamPath = []; this.load(); }
     handleUserSearch(e) { this.viewUserId = e.detail.value; this.load(); }
     handleRefresh() { this.load(); }
     handleRowAction(e) {
@@ -242,6 +269,22 @@ export default class PrimaryKpiDashboard extends LightningElement {
     }
     handleBack() { this.viewMode = 'team'; this.viewUserId = ''; this.load(); }
 
+    // My Team cascade: a change at level N replaces the path from N onward.
+    handleTeamPickerChange(e) {
+        const level = Number(e.currentTarget.dataset.level);
+        const val = e.detail.value;
+        const next = this.teamPath.slice(0, level);
+        if (val) next.push(val);
+        this.teamPath = next;
+        this.load();
+    }
+    // "Back to team" from a drilled-to leaf: drop the deepest selection.
+    handleBackToTeam() {
+        if (this.teamPath.length) { this.teamPath = this.teamPath.slice(0, -1); }
+        else { this.viewMode = 'team'; this.viewUserId = ''; }
+        this.load();
+    }
+
     // ===== apex =====
     load() {
         if (!this.year || !this.month) return;
@@ -250,7 +293,8 @@ export default class PrimaryKpiDashboard extends LightningElement {
             year: this.year,
             month: this.month,
             incentivePeriod: this.incentivePeriod,
-            viewUserId: this.viewUserId || null
+            viewUserId: this.viewUserId || null,
+            teamPath: this.teamPath
         })
             .then(d => { this.data = d; })
             .catch(err => this.toast('Error', this.msg(err), 'error'))
