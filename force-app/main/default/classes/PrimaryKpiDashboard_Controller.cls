@@ -124,17 +124,19 @@ public with sharing class PrimaryKpiDashboard_Controller {
         Boolean hasPath = !path.isEmpty();
         d.teamPickers = buildTeamPickers(me, d.viewerIsAdmin, path);
 
-        // The deepest picked user is the focus. With nobody picked ("All"):
-        //   - an admin sees every regional manager and their teams,
-        //   - any other manager sees their own whole team.
+        // The deepest picked user is the focus. The team table shows only the
+        // focus's DIRECT reportees (one level) so the drill goes down step by step:
+        //   - admin, "All" → the regional managers (RSM tier),
+        //   - a picked user → that user's direct reportees,
+        //   - other manager, "All" → the viewer's own direct reportees.
         Id teamFocusId = hasPath ? path[path.size() - 1] : null;
-        Set<Id> teamDownline;
+        Set<Id> teamMembers;
         if (hasPath) {
-            teamDownline = subordinatesOf(teamFocusId);
+            teamMembers = directReporteeIds(teamFocusId);
         } else if (d.viewerIsAdmin) {
-            teamDownline = topManagerUniverse();
+            teamMembers = topManagerUserIds();
         } else {
-            teamDownline = subordinateIds;
+            teamMembers = directReporteeIds(me);
         }
 
         // A specifically picked user also shows their OWN record — not just the
@@ -144,7 +146,7 @@ public with sharing class PrimaryKpiDashboard_Controller {
         // Targets active in the chosen month for everything we may render (one SOQL).
         Set<Id> queryIds = new Set<Id>(subordinateIds);
         queryIds.add(me);
-        queryIds.addAll(teamDownline);
+        queryIds.addAll(teamMembers);
         if (teamFocusId != null) queryIds.add(teamFocusId);
         if (viewUserId != null) queryIds.add(viewUserId);
         Map<Id, PBIS_Target__c> targetByUser = new Map<Id, PBIS_Target__c>();
@@ -158,12 +160,12 @@ public with sharing class PrimaryKpiDashboard_Controller {
             return d;
         }
 
-        // Team analytics over the focused user's downline (the "all" aggregate).
-        if (!teamDownline.isEmpty()) {
+        // Team analytics over the focus's direct reportees.
+        if (!teamMembers.isEmpty()) {
             d.mode = 'TEAM';
-            d.team = buildTeamRows(teamDownline, targetByUser);
-            d.channels = buildChannelBreakdown(teamDownline, targetByUser);
-            d.paramBreakdown = buildParamBreakdown(teamDownline, targetByUser);
+            d.team = buildTeamRows(teamMembers, targetByUser);
+            d.channels = buildChannelBreakdown(teamMembers, targetByUser);
+            d.paramBreakdown = buildParamBreakdown(teamMembers, targetByUser);
         } else {
             d.mode = d.viewerIsManager ? 'TEAM' : 'PERSONAL';
         }
@@ -230,27 +232,28 @@ public with sharing class PrimaryKpiDashboard_Controller {
         return o;
     }
 
-    // Every regional manager (RSM tier) plus everyone in their role downline —
-    // the "All" aggregate an admin sees before drilling into one RSM.
-    private static Set<Id> topManagerUniverse() {
-        Set<Id> userIds = new Set<Id>();
-        Set<Id> roleIds = new Set<Id>();
+    // The regional managers (RSM tier) — the top level of the admin's drill.
+    private static Set<Id> topManagerUserIds() {
+        Set<Id> ids = new Set<Id>();
         for (User u : [
-            SELECT Id, UserRoleId
-            FROM User
+            SELECT Id FROM User
             WHERE IsActive = true AND Profile.Name IN :TOP_MANAGER_PROFILES
         ]) {
-            userIds.add(u.Id);
-            if (u.UserRoleId != null) roleIds.add(u.UserRoleId);
+            ids.add(u.Id);
         }
-        if (!roleIds.isEmpty()) {
-            Set<Id> childRoles = RoleHeirarchyUtility.getAllChildRoleIds(roleIds);
-            childRoles.addAll(roleIds);
-            for (User u : [SELECT Id FROM User WHERE UserRoleId IN :childRoles AND IsActive = true]) {
-                userIds.add(u.Id);
-            }
+        return ids;
+    }
+
+    // Direct reportees (one level down) as a user-id set — the same universe the
+    // level's picker offers, so the team table and the picker stay in step.
+    private static Set<Id> directReporteeIds(Id userId) {
+        Set<Id> ids = new Set<Id>();
+        Set<Id> childRoleIds = directChildRoleIds(userId);
+        if (childRoleIds.isEmpty()) return ids;
+        for (User u : [SELECT Id FROM User WHERE UserRoleId IN :childRoleIds AND IsActive = true]) {
+            ids.add(u.Id);
         }
-        return userIds;
+        return ids;
     }
 
     private static String pickerLabel(Integer level, Boolean isAdmin) {

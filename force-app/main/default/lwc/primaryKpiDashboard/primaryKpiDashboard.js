@@ -39,7 +39,7 @@ const TEAM_COLUMNS = [
       cellAttributes: { alignment: 'right', class: { fieldName: 'pctClass' } }, initialWidth: 100 },
     { label: 'Incentive', fieldName: 'totalIncentive', type: 'currency', typeAttributes: CCY, cellAttributes: { alignment: 'right' } },
     { label: 'Eligible', fieldName: 'eligibleText', type: 'text', initialWidth: 90 },
-    { type: 'action', typeAttributes: { rowActions: [{ label: 'View this user', name: 'drill' }] } }
+    { type: 'action', typeAttributes: { rowActions: [{ label: 'Drill down', name: 'drill' }] } }
 ];
 
 export default class PrimaryKpiDashboard extends LightningElement {
@@ -256,17 +256,17 @@ export default class PrimaryKpiDashboard extends LightningElement {
     handleViewMode(e) { this.viewMode = e.detail.value; this.viewUserId = ''; this.teamPath = []; this.load(); }
     handleUserSearch(e) { this.viewUserId = e.detail.value; this.load(); }
     handleRefresh() { this.load(); }
+    // Drilling a team member steps one level down the cascade (their record +
+    // their own direct reportees), staying in the My Team view.
     handleRowAction(e) {
         if (e.detail.action.name === 'drill') {
-            this.viewMode = 'search';
-            this.viewUserId = e.detail.row.userId;
-            this.teamPath = [];   // leave the team drill so viewUserId drives the detail
+            this.teamPath = [...this.teamPath, e.detail.row.userId];
             this.load();
         }
     }
     handleTeamCardClick(e) {
         const uid = e.currentTarget.dataset.id;
-        if (uid) { this.viewMode = 'search'; this.viewUserId = uid; this.teamPath = []; this.load(); }
+        if (uid) { this.teamPath = [...this.teamPath, uid]; this.load(); }
     }
     handleBack() { this.viewMode = 'team'; this.viewUserId = ''; this.load(); }
 
