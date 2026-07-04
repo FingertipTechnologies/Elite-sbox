@@ -7,10 +7,15 @@
 
             <!-- Filters -->
             <div class="slds-grid slds-gutters_x-small slds-wrap slds-m-bottom_small">
+                <!-- Period first, then the Month (Monthly) or Quarter (Quarterly) selection -->
+                <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                    <lightning-combobox label="Period" value={incentivePeriod} options={periodOptions}
+                        onchange={handlePeriod}></lightning-combobox>
+                </div>
                 <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
                     <lightning-input type="number" label="Year" value={year} onchange={handleYear}></lightning-input>
                 </div>
-                <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
                     <template if:false={isQuarterly}>
                         <lightning-combobox label="Month" value={month} options={monthOptions}
                             onchange={handleMonth}></lightning-combobox>
@@ -19,10 +24,6 @@
                         <lightning-combobox label="Quarter" value={quarter} options={quarterOptions}
                             onchange={handleQuarter}></lightning-combobox>
                     </template>
-                </div>
-                <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
-                    <lightning-combobox label="Period" value={incentivePeriod} options={periodOptions}
-                        onchange={handlePeriod}></lightning-combobox>
                 </div>
                 <template if:true={showViewControl}>
                     <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">

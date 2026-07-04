@@ -101,9 +101,9 @@ public with sharing class PrimaryKpiDashboard_Controller {
         // Monthly → the month's 1st; Quarterly → the fiscal quarter's first day.
         Date monthStart;
         if (incentivePeriod == 'Quarterly') {
-            if (quarter == null || quarter < 1 || quarter > 4) quarter = fiscalQuarterOf(Date.today());
-            monthStart = fiscalQuarterStart(year, quarter);
-            d.periodLabel = 'Q' + quarter + ' ' + fiscalYearLabel(year) + ' · ' + incentivePeriod;
+            if (quarter == null || quarter < 1 || quarter > 4) quarter = calendarQuarterOf(Date.today());
+            monthStart = calendarQuarterStart(year, quarter);
+            d.periodLabel = 'Q' + quarter + ' ' + year + ' · ' + incentivePeriod;
         } else {
             if (month == null) month = Date.today().month();
             monthStart = Date.newInstance(year, month, 1);
@@ -496,28 +496,14 @@ public with sharing class PrimaryKpiDashboard_Controller {
         return (m != null && m >= 1 && m <= 12) ? names[m - 1] : '';
     }
 
-    // ===== Indian fiscal quarters (Q1 = Apr–Jun … Q4 = Jan–Mar) =====
-    // `year` is the fiscal-year start year, so Q4 (Jan–Mar) rolls into year + 1.
+    // ===== Calendar quarters (Q1 = Jan–Mar … Q4 = Oct–Dec) =====
 
-    private static Date fiscalQuarterStart(Integer fyStartYear, Integer q) {
-        switch on q {
-            when 2 { return Date.newInstance(fyStartYear, 7, 1); }
-            when 3 { return Date.newInstance(fyStartYear, 10, 1); }
-            when 4 { return Date.newInstance(fyStartYear + 1, 1, 1); }
-            when else { return Date.newInstance(fyStartYear, 4, 1); } // Q1
-        }
+    private static Date calendarQuarterStart(Integer year, Integer q) {
+        Integer startMonth = (q - 1) * 3 + 1;   // Q1→1(Jan), Q2→4(Apr), Q3→7(Jul), Q4→10(Oct)
+        return Date.newInstance(year, startMonth, 1);
     }
 
-    private static Integer fiscalQuarterOf(Date d) {
-        Integer m = d.month();
-        if (m >= 4 && m <= 6) return 1;
-        if (m >= 7 && m <= 9) return 2;
-        if (m >= 10 && m <= 12) return 3;
-        return 4; // Jan–Mar
-    }
-
-    private static String fiscalYearLabel(Integer fyStartYear) {
-        String nn = String.valueOf(Math.mod(fyStartYear + 1, 100)).leftPad(2, '0');
-        return fyStartYear + '-' + nn;
+    private static Integer calendarQuarterOf(Date d) {
+        return ((d.month() - 1) / 3) + 1;
     }
 }

@@ -10,10 +10,12 @@ const MONTHS = [
     { label: 'October', value: 10 }, { label: 'November', value: 11 }, { label: 'December', value: 12 }
 ];
 
-// Indian fiscal quarters (Q1 = Apr–Jun … Q4 = Jan–Mar).
+// Calendar quarters (Q1 = Jan–Mar … Q4 = Oct–Dec).
 const QUARTERS = [
-    { label: 'Q1 (Apr–Jun)', value: 1 }, { label: 'Q2 (Jul–Sep)', value: 2 },
-    { label: 'Q3 (Oct–Dec)', value: 3 }, { label: 'Q4 (Jan–Mar)', value: 4 }
+    { label: 'Q1 (First Quarter): January 1 – March 31 (3 months)', value: 1 },
+    { label: 'Q2 (Second Quarter): April 1 – June 30 (3 months)', value: 2 },
+    { label: 'Q3 (Third Quarter): July 1 – September 30 (3 months)', value: 3 },
+    { label: 'Q4 (Fourth Quarter): October 1 – December 31 (3 months)', value: 4 }
 ];
 
 const INR = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
@@ -76,18 +78,15 @@ export default class PrimaryKpiDashboard extends LightningElement {
         const now = new Date();
         this.year = now.getFullYear();
         this.month = now.getMonth() + 1;
-        this.quarter = this.fiscalQuarterOf(this.month);   // seed for when Period → Quarterly
+        this.quarter = this.calendarQuarterOf(this.month);   // seed for when Period → Quarterly
         this.load();
     }
 
     get isQuarterly() { return this.incentivePeriod === 'Quarterly'; }
 
-    // Indian fiscal quarter of a 1–12 month: Apr–Jun=1, Jul–Sep=2, Oct–Dec=3, Jan–Mar=4.
-    fiscalQuarterOf(m) {
-        if (m >= 4 && m <= 6) return 1;
-        if (m >= 7 && m <= 9) return 2;
-        if (m >= 10 && m <= 12) return 3;
-        return 4;
+    // Calendar quarter of a 1–12 month: Jan–Mar=1, Apr–Jun=2, Jul–Sep=3, Oct–Dec=4.
+    calendarQuarterOf(m) {
+        return Math.floor((m - 1) / 3) + 1;
     }
 
     // ===== mode flags =====
@@ -275,7 +274,7 @@ export default class PrimaryKpiDashboard extends LightningElement {
     handlePeriod(e) {
         this.incentivePeriod = e.detail.value;
         // Seed a quarter from the current month the first time we switch to Quarterly.
-        if (this.isQuarterly && !this.quarter) this.quarter = this.fiscalQuarterOf(this.month || 1);
+        if (this.isQuarterly && !this.quarter) this.quarter = this.calendarQuarterOf(this.month || 1);
         this.load();
     }
     handleViewMode(e) { this.viewMode = e.detail.value; this.viewUserId = ''; this.teamPath = []; this.load(); }
