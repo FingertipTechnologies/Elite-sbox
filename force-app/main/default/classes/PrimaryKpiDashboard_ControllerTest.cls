@@ -75,21 +75,22 @@ private class PrimaryKpiDashboard_ControllerTest {
         System.assertNotEquals(null, d.hero);
     }
 
-    // Selecting Quarterly + a quarter resolves the quarterly target whose
-    // Start–End span contains the calendar quarter's first day, and labels it
-    // "Q{n} {year}". A year two out keeps the end date future (validation rule)
-    // regardless of when the test runs.
+    // A Quarterly target dated within only PART of the quarter (here just the
+    // third month, like PT-0009 dated June only) must still resolve for that
+    // quarter via the overlap filter. A year two out keeps the end date future
+    // (validation rule) regardless of when the test runs.
     @isTest
     static void testQuarterlyPeriod() {
         S_D_Parameter__c param = [SELECT Id FROM S_D_Parameter__c LIMIT 1];
         Id me = UserInfo.getUserId();
-        Integer yr = Date.today().year() + 2;   // Q1 = Jan–Mar yr (future)
+        Integer yr = Date.today().year() + 2;   // Q2 = Apr–Jun yr (future)
+        // Dated June only — inside Q2 but not spanning the whole quarter.
         insert new PBIS_Target__c(
             User__c = me,
             Is_Active__c = true,
             Incentive_Period__c = 'Quarterly',
-            Start_Date__c = Date.newInstance(yr, 1, 1),
-            End_Date__c = Date.newInstance(yr, 3, 31),
+            Start_Date__c = Date.newInstance(yr, 6, 1),
+            End_Date__c = Date.newInstance(yr, 6, 30),
             S_D_Parameter_1__c = param.Id,
             S_D_Parameter_1_Weightage__c = 100,
             S_D_Parameter_1_Target__c = 10,
@@ -103,13 +104,13 @@ private class PrimaryKpiDashboard_ControllerTest {
 
         Test.startTest();
         PrimaryKpiDashboard_Controller.Dashboard d = PrimaryKpiDashboard_Controller.getDashboard(
-            yr, null, 'Quarterly', me, null, 1
+            yr, null, 'Quarterly', me, null, 2   // Q2 = Apr–Jun
         );
         Test.stopTest();
 
-        System.assertNotEquals(null, d.hero, 'Quarterly Q1 target should resolve for the calendar quarter');
+        System.assertNotEquals(null, d.hero, 'A June-only Quarterly target should resolve for Q2 via overlap');
         System.assertEquals(6000, d.hero.totalIncentive, 'Quarterly target incentive');
-        System.assert(d.periodLabel.startsWith('Q1'), 'Label starts with the quarter: ' + d.periodLabel);
+        System.assert(d.periodLabel.startsWith('Q2'), 'Label starts with the quarter: ' + d.periodLabel);
         System.assert(d.periodLabel.contains(String.valueOf(yr)), 'Year present in label: ' + d.periodLabel);
         System.assert(d.periodLabel.contains('Quarterly'), 'Period noted in label: ' + d.periodLabel);
     }

@@ -97,16 +97,19 @@ public with sharing class PrimaryKpiDashboard_Controller {
         if (year == null) year = Date.today().year();
         if (String.isBlank(incentivePeriod)) incentivePeriod = 'Monthly';
 
-        // A single in-period date drives the target query (containment filter).
-        // Monthly → the month's 1st; Quarterly → the fiscal quarter's first day.
-        Date monthStart;
+        // The selected period as a date range; a target matches if it OVERLAPS it,
+        // so a target dated within only part of the quarter still resolves.
+        Date periodStart;
+        Date periodEnd;
         if (incentivePeriod == 'Quarterly') {
             if (quarter == null || quarter < 1 || quarter > 4) quarter = calendarQuarterOf(Date.today());
-            monthStart = calendarQuarterStart(year, quarter);
+            periodStart = calendarQuarterStart(year, quarter);
+            periodEnd = calendarQuarterEnd(year, quarter);
             d.periodLabel = 'Q' + quarter + ' ' + year + ' · ' + incentivePeriod;
         } else {
             if (month == null) month = Date.today().month();
-            monthStart = Date.newInstance(year, month, 1);
+            periodStart = Date.newInstance(year, month, 1);
+            periodEnd = periodStart.addMonths(1).addDays(-1);
             d.periodLabel = monthLabel(month) + ' ' + year + ' · ' + incentivePeriod;
         }
 
@@ -161,7 +164,7 @@ public with sharing class PrimaryKpiDashboard_Controller {
         if (teamFocusId != null) queryIds.add(teamFocusId);
         if (viewUserId != null) queryIds.add(viewUserId);
         Map<Id, PBIS_Target__c> targetByUser = new Map<Id, PBIS_Target__c>();
-        for (PBIS_Target__c t : queryTargets(queryIds, incentivePeriod, monthStart)) {
+        for (PBIS_Target__c t : queryTargets(queryIds, incentivePeriod, periodStart, periodEnd)) {
             targetByUser.put(t.User__c, t);
         }
         if (targetByUser.isEmpty()) {
@@ -465,7 +468,7 @@ public with sharing class PrimaryKpiDashboard_Controller {
         return rows;
     }
 
-    private static List<PBIS_Target__c> queryTargets(Set<Id> userIds, String incentivePeriod, Date monthStart) {
+    private static List<PBIS_Target__c> queryTargets(Set<Id> userIds, String incentivePeriod, Date periodStart, Date periodEnd) {
         List<String> fields = new List<String>{
             'Id', 'User__c', 'Total_Incentive_Value__c', 'Max_Incentive_Value__c', 'Is_Eligible__c',
             'Total_Weightage__c', 'Incentive_Period__c', 'Start_Date__c', 'End_Date__c',
@@ -482,10 +485,11 @@ public with sharing class PrimaryKpiDashboard_Controller {
             fields.add('S_D_Parameter_' + n + '_Slab__c');
             fields.add('S_D_Parameter_' + n + '_Incentive_Percentage__c');
         }
+        // Overlap test: the target's Start–End span intersects the selected period.
         String soql = 'SELECT ' + String.join(fields, ', ') +
             ' FROM PBIS_Target__c' +
             ' WHERE User__c IN :userIds AND Incentive_Period__c = :incentivePeriod' +
-            ' AND Start_Date__c <= :monthStart AND End_Date__c >= :monthStart';
+            ' AND Start_Date__c <= :periodEnd AND End_Date__c >= :periodStart';
         return (List<PBIS_Target__c>) Database.query(soql);
     }
 
@@ -512,6 +516,11 @@ public with sharing class PrimaryKpiDashboard_Controller {
     private static Date calendarQuarterStart(Integer year, Integer q) {
         Integer startMonth = (q - 1) * 3 + 1;   // Q1→1(Jan), Q2→4(Apr), Q3→7(Jul), Q4→10(Oct)
         return Date.newInstance(year, startMonth, 1);
+    }
+
+    private static Date calendarQuarterEnd(Integer year, Integer q) {
+        Integer endMonth = q * 3;               // Q1→3(Mar), Q2→6(Jun), Q3→9(Sep), Q4→12(Dec)
+        return Date.newInstance(year, endMonth, 1).addMonths(1).addDays(-1);
     }
 
     private static Integer calendarQuarterOf(Date d) {

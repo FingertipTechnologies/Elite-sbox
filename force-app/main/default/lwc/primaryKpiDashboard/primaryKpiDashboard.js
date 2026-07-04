@@ -12,10 +12,10 @@ const MONTHS = [
 
 // Calendar quarters (Q1 = Jan–Mar … Q4 = Oct–Dec).
 const QUARTERS = [
-    { label: 'Q1 (First Quarter): January 1 – March 31 (3 months)', value: 1 },
-    { label: 'Q2 (Second Quarter): April 1 – June 30 (3 months)', value: 2 },
-    { label: 'Q3 (Third Quarter): July 1 – September 30 (3 months)', value: 3 },
-    { label: 'Q4 (Fourth Quarter): October 1 – December 31 (3 months)', value: 4 }
+    { label: 'Q1 (First Quarter): January – March', value: 1 },
+    { label: 'Q2 (Second Quarter): April – June', value: 2 },
+    { label: 'Q3 (Third Quarter): July – September', value: 3 },
+    { label: 'Q4 (Fourth Quarter): October – December', value: 4 }
 ];
 
 const INR = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
