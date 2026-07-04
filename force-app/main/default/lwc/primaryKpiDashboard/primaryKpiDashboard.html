@@ -11,8 +11,14 @@
                     <lightning-input type="number" label="Year" value={year} onchange={handleYear}></lightning-input>
                 </div>
                 <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
-                    <lightning-combobox label="Month" value={month} options={monthOptions}
-                        onchange={handleMonth}></lightning-combobox>
+                    <template if:false={isQuarterly}>
+                        <lightning-combobox label="Month" value={month} options={monthOptions}
+                            onchange={handleMonth}></lightning-combobox>
+                    </template>
+                    <template if:true={isQuarterly}>
+                        <lightning-combobox label="Quarter" value={quarter} options={quarterOptions}
+                            onchange={handleQuarter}></lightning-combobox>
+                    </template>
                 </div>
                 <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
                     <lightning-combobox label="Period" value={incentivePeriod} options={periodOptions}

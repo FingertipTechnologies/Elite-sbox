@@ -10,6 +10,12 @@ const MONTHS = [
     { label: 'October', value: 10 }, { label: 'November', value: 11 }, { label: 'December', value: 12 }
 ];
 
+// Indian fiscal quarters (Q1 = Apr–Jun … Q4 = Jan–Mar).
+const QUARTERS = [
+    { label: 'Q1 (Apr–Jun)', value: 1 }, { label: 'Q2 (Jul–Sep)', value: 2 },
+    { label: 'Q3 (Oct–Dec)', value: 3 }, { label: 'Q4 (Jan–Mar)', value: 4 }
+];
+
 const INR = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
 const CCY = { currencyCode: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 };
 
@@ -44,6 +50,7 @@ const TEAM_COLUMNS = [
 
 export default class PrimaryKpiDashboard extends LightningElement {
     monthOptions = MONTHS;
+    quarterOptions = QUARTERS;
     periodOptions = [{ label: 'Monthly', value: 'Monthly' }, { label: 'Quarterly', value: 'Quarterly' }];
     paramColumns = PARAM_COLUMNS;
     teamColumns = TEAM_COLUMNS;
@@ -57,6 +64,7 @@ export default class PrimaryKpiDashboard extends LightningElement {
 
     @track year;
     @track month;
+    @track quarter;
     @track incentivePeriod = 'Monthly';
     @track viewMode = 'my';      // my | team | search
     @track viewUserId = '';
@@ -68,7 +76,18 @@ export default class PrimaryKpiDashboard extends LightningElement {
         const now = new Date();
         this.year = now.getFullYear();
         this.month = now.getMonth() + 1;
+        this.quarter = this.fiscalQuarterOf(this.month);   // seed for when Period → Quarterly
         this.load();
+    }
+
+    get isQuarterly() { return this.incentivePeriod === 'Quarterly'; }
+
+    // Indian fiscal quarter of a 1–12 month: Apr–Jun=1, Jul–Sep=2, Oct–Dec=3, Jan–Mar=4.
+    fiscalQuarterOf(m) {
+        if (m >= 4 && m <= 6) return 1;
+        if (m >= 7 && m <= 9) return 2;
+        if (m >= 10 && m <= 12) return 3;
+        return 4;
     }
 
     // ===== mode flags =====
@@ -252,7 +271,13 @@ export default class PrimaryKpiDashboard extends LightningElement {
     // ===== handlers =====
     handleYear(e) { this.year = e.target.value ? Number(e.target.value) : null; this.load(); }
     handleMonth(e) { this.month = Number(e.detail.value); this.load(); }
-    handlePeriod(e) { this.incentivePeriod = e.detail.value; this.load(); }
+    handleQuarter(e) { this.quarter = Number(e.detail.value); this.load(); }
+    handlePeriod(e) {
+        this.incentivePeriod = e.detail.value;
+        // Seed a quarter from the current month the first time we switch to Quarterly.
+        if (this.isQuarterly && !this.quarter) this.quarter = this.fiscalQuarterOf(this.month || 1);
+        this.load();
+    }
     handleViewMode(e) { this.viewMode = e.detail.value; this.viewUserId = ''; this.teamPath = []; this.load(); }
     handleUserSearch(e) { this.viewUserId = e.detail.value; this.load(); }
     handleRefresh() { this.load(); }
@@ -289,14 +314,16 @@ export default class PrimaryKpiDashboard extends LightningElement {
 
     // ===== apex =====
     load() {
-        if (!this.year || !this.month) return;
+        if (!this.year) return;
+        if (this.isQuarterly ? !this.quarter : !this.month) return;
         this.isLoading = true;
         getDashboard({
             year: this.year,
             month: this.month,
             incentivePeriod: this.incentivePeriod,
             viewUserId: this.viewUserId || null,
-            teamPath: this.teamPath
+            teamPath: this.teamPath,
+            quarter: this.isQuarterly ? this.quarter : null
         })
             .then(d => { this.data = d; })
             .catch(err => this.toast('Error', this.msg(err), 'error'))

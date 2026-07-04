@@ -91,14 +91,24 @@ public with sharing class PrimaryKpiDashboard_Controller {
 
     @AuraEnabled(cacheable=false)
     public static Dashboard getDashboard(Integer year, Integer month, String incentivePeriod,
-                                         Id viewUserId, List<Id> teamPath) {
+                                         Id viewUserId, List<Id> teamPath, Integer quarter) {
         Dashboard d = new Dashboard();
         Id me = UserInfo.getUserId();
         if (year == null) year = Date.today().year();
-        if (month == null) month = Date.today().month();
         if (String.isBlank(incentivePeriod)) incentivePeriod = 'Monthly';
-        Date monthStart = Date.newInstance(year, month, 1);
-        d.periodLabel = monthLabel(month) + ' ' + year + ' · ' + incentivePeriod;
+
+        // A single in-period date drives the target query (containment filter).
+        // Monthly → the month's 1st; Quarterly → the fiscal quarter's first day.
+        Date monthStart;
+        if (incentivePeriod == 'Quarterly') {
+            if (quarter == null || quarter < 1 || quarter > 4) quarter = fiscalQuarterOf(Date.today());
+            monthStart = fiscalQuarterStart(year, quarter);
+            d.periodLabel = 'Q' + quarter + ' ' + fiscalYearLabel(year) + ' · ' + incentivePeriod;
+        } else {
+            if (month == null) month = Date.today().month();
+            monthStart = Date.newInstance(year, month, 1);
+            d.periodLabel = monthLabel(month) + ' ' + year + ' · ' + incentivePeriod;
+        }
 
         // Viewer profile → decides where the My Team drill-down starts.
         User meUser = [SELECT Id, Name, Profile.Name FROM User WHERE Id = :me LIMIT 1];
@@ -484,5 +494,30 @@ public with sharing class PrimaryKpiDashboard_Controller {
             'July', 'August', 'September', 'October', 'November', 'December'
         };
         return (m != null && m >= 1 && m <= 12) ? names[m - 1] : '';
+    }
+
+    // ===== Indian fiscal quarters (Q1 = Apr–Jun … Q4 = Jan–Mar) =====
+    // `year` is the fiscal-year start year, so Q4 (Jan–Mar) rolls into year + 1.
+
+    private static Date fiscalQuarterStart(Integer fyStartYear, Integer q) {
+        switch on q {
+            when 2 { return Date.newInstance(fyStartYear, 7, 1); }
+            when 3 { return Date.newInstance(fyStartYear, 10, 1); }
+            when 4 { return Date.newInstance(fyStartYear + 1, 1, 1); }
+            when else { return Date.newInstance(fyStartYear, 4, 1); } // Q1
+        }
+    }
+
+    private static Integer fiscalQuarterOf(Date d) {
+        Integer m = d.month();
+        if (m >= 4 && m <= 6) return 1;
+        if (m >= 7 && m <= 9) return 2;
+        if (m >= 10 && m <= 12) return 3;
+        return 4; // Jan–Mar
+    }
+
+    private static String fiscalYearLabel(Integer fyStartYear) {
+        String nn = String.valueOf(Math.mod(fyStartYear + 1, 100)).leftPad(2, '0');
+        return fyStartYear + '-' + nn;
     }
 }
