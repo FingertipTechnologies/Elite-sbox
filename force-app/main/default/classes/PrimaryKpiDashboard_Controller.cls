@@ -80,6 +80,14 @@ public with sharing class PrimaryKpiDashboard_Controller {
         @AuraEnabled public String userId;
     }
 
+    // Whether the running user participates in Primary PBIS — payroll employees do.
+    // The KPI Dashboard tab wrapper uses this to decide if the Primary tab shows.
+    @AuraEnabled(cacheable=true)
+    public static Boolean currentUserShowsPrimary() {
+        List<User> us = [SELECT Payroll__c FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
+        return !us.isEmpty() && us[0].Payroll__c == 'Yes';
+    }
+
     @AuraEnabled(cacheable=false)
     public static Dashboard getDashboard(Integer year, Integer month, String incentivePeriod,
                                          Id viewUserId, List<Id> teamPath) {

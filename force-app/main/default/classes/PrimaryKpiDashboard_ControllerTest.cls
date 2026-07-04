@@ -75,6 +75,16 @@ private class PrimaryKpiDashboard_ControllerTest {
         System.assertNotEquals(null, d.hero);
     }
 
+    // The KPI Dashboard tab wrapper calls this to decide whether to show the
+    // Primary tab. It reads the running user's Payroll__c flag.
+    @isTest
+    static void testCurrentUserShowsPrimary() {
+        Test.startTest();
+        Boolean shows = PrimaryKpiDashboard_Controller.currentUserShowsPrimary();
+        Test.stopTest();
+        System.assertNotEquals(null, shows, 'Should return a boolean for the running user');
+    }
+
     // The My Team drill-down metadata is always populated so the LWC can render
     // its cascading pickers. The running (admin) user starts at the RSM tier.
     @isTest
