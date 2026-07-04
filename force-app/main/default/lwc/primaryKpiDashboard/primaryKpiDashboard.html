@@ -186,6 +186,16 @@
                 </div>
             </template>
 
+            <!-- My Team: selected user has neither their own record nor a team -->
+            <template if:true={showTeamNoData}>
+                <div class="kpi-panel slds-text-align_center slds-p-around_medium">
+                    <lightning-icon icon-name="utility:moneybag" size="small" class="slds-m-bottom_x-small"></lightning-icon>
+                    <p class="slds-text-body_regular slds-text-color_weak">
+                        No Primary PBIS records to show for {data.periodLabel}.
+                    </p>
+                </div>
+            </template>
+
             <!-- My Team -->
             <template if:true={showTeamBlock}>
                 <!-- Team summary cards (like My view) -->

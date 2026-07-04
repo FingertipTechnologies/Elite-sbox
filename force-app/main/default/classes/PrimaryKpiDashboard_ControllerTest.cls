@@ -85,6 +85,23 @@ private class PrimaryKpiDashboard_ControllerTest {
         System.assertNotEquals(null, shows, 'Should return a boolean for the running user');
     }
 
+    // Drilling My Team onto a specific user surfaces THAT user's own record,
+    // even if their team below is empty (the July TSE case from the field report).
+    @isTest
+    static void testTeamDrillShowsSelectedUserRecord() {
+        Id me = UserInfo.getUserId();
+        Test.startTest();
+        PrimaryKpiDashboard_Controller.Dashboard d = PrimaryKpiDashboard_Controller.getDashboard(
+            Date.today().year(), Date.today().month(), 'Monthly', null, new List<Id>{ me }
+        );
+        Test.stopTest();
+
+        System.assertEquals(true, d.teamShowsPersonal,
+            'A selected user with a target shows their own record inside My Team');
+        System.assertNotEquals(null, d.hero, 'Hero built for the drilled-to user');
+        System.assertEquals(5000, d.hero.totalIncentive, 'Own record, not the empty team below');
+    }
+
     // The My Team drill-down metadata is always populated so the LWC can render
     // its cascading pickers. The running (admin) user starts at the RSM tier.
     @isTest

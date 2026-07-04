@@ -14,6 +14,8 @@ public with sharing class PrimaryKpiDashboard_Controller {
     private static final Set<String> TOP_MANAGER_PROFILES = new Set<String>{
         'RSM', 'Sr. RSM', 'Deputy RSM'
     };
+    // Sentinel option value: "show the aggregate of everyone at this level".
+    private static final String ALL_OPTION = 'ALL';
 
     // ===== wrappers =====
     public class Dashboard {
@@ -39,7 +41,7 @@ public with sharing class PrimaryKpiDashboard_Controller {
     public class TeamPicker {
         @AuraEnabled public Integer level;
         @AuraEnabled public String label;
-        @AuraEnabled public Id selectedUserId;
+        @AuraEnabled public String selectedUserId;   // a userId, or the ALL sentinel
         @AuraEnabled public List<Option> options;
     }
     public class BreakdownRow {
@@ -123,30 +125,20 @@ public with sharing class PrimaryKpiDashboard_Controller {
         Boolean hasPath = !path.isEmpty();
         d.teamPickers = buildTeamPickers(me, d.viewerIsAdmin, path);
 
-        // Which manager's team the analytics section reflects:
-        //   - a chosen path  → the deepest selected user,
-        //   - no path & admin → nobody yet (prompt to pick an RSM),
-        //   - no path & other → the viewer themselves (their own team).
+        // The deepest picked user is the focus. With nobody picked, a manager sees
+        // their own whole team; an admin is prompted to pick an RSM first.
         Id teamFocusId = hasPath ? path[path.size() - 1] : (d.viewerIsAdmin ? null : me);
         Set<Id> teamDownline = (teamFocusId == null) ? new Set<Id>() : subordinatesOf(teamFocusId);
-        Boolean focusIsLeaf = hasPath && teamDownline.isEmpty();
         d.teamAwaitingSelection = d.viewerIsAdmin && !hasPath;
-        d.teamShowsPersonal = focusIsLeaf;
 
-        // Set the analytics should aggregate over.
-        Set<Id> teamAggSet;
-        if (hasPath) {
-            teamAggSet = focusIsLeaf ? new Set<Id>() : teamDownline;
-        } else if (!d.viewerIsAdmin) {
-            teamAggSet = subordinateIds;   // viewer's own team (unchanged default)
-        } else {
-            teamAggSet = new Set<Id>();     // admin, nothing picked yet
-        }
+        // A specifically picked user also shows their OWN record — not just the
+        // (possibly empty) team below them.
+        Id personalFocusId = hasPath ? teamFocusId : ((viewUserId != null) ? viewUserId : me);
 
         // Targets active in the chosen month for everything we may render (one SOQL).
         Set<Id> queryIds = new Set<Id>(subordinateIds);
         queryIds.add(me);
-        queryIds.addAll(teamAggSet);
+        queryIds.addAll(teamDownline);
         if (teamFocusId != null) queryIds.add(teamFocusId);
         if (viewUserId != null) queryIds.add(viewUserId);
         Map<Id, PBIS_Target__c> targetByUser = new Map<Id, PBIS_Target__c>();
@@ -160,20 +152,19 @@ public with sharing class PrimaryKpiDashboard_Controller {
             return d;
         }
 
-        // Team analytics for the focused manager's downline.
-        if (!teamAggSet.isEmpty()) {
+        // Team analytics over the focused user's downline (the "all" aggregate).
+        if (!teamDownline.isEmpty()) {
             d.mode = 'TEAM';
-            d.team = buildTeamRows(teamAggSet, targetByUser);
-            d.channels = buildChannelBreakdown(teamAggSet, targetByUser);
-            d.paramBreakdown = buildParamBreakdown(teamAggSet, targetByUser);
+            d.team = buildTeamRows(teamDownline, targetByUser);
+            d.channels = buildChannelBreakdown(teamDownline, targetByUser);
+            d.paramBreakdown = buildParamBreakdown(teamDownline, targetByUser);
         } else {
             d.mode = d.viewerIsManager ? 'TEAM' : 'PERSONAL';
         }
 
-        // Personal detail: a drilled-to leaf user takes precedence, otherwise the
-        // My / User Search focus (viewer, or the searched user).
-        Id personalFocusId = d.teamShowsPersonal ? teamFocusId
-                                                 : ((viewUserId != null) ? viewUserId : me);
+        // Personal detail:
+        //   - team drill on a specific user → that user's own record,
+        //   - My / User Search → the viewer or the searched user.
         PBIS_Target__c ft = targetByUser.get(personalFocusId);
         if (ft == null && !d.viewerIsManager) {
             d.mode = 'EMPTY';
@@ -183,34 +174,53 @@ public with sharing class PrimaryKpiDashboard_Controller {
             d.selectedUserName = userName(personalFocusId);
             d.hero = buildHero(ft);
             d.parameters = buildParams(ft);
-        } else if (d.teamShowsPersonal) {
-            // Leaf user with no target this period — still name them for the header.
+        } else if (hasPath) {
+            // Selected user with no target this period — still name them for the header.
             d.selectedUserName = userName(personalFocusId);
         }
+        // Inside My Team, surface the selected user's own record when they have one.
+        d.teamShowsPersonal = hasPath && d.hero != null;
         return d;
     }
 
     // ===== My Team drill-down helpers =====
 
-    // One picker per level of the drill, top → bottom. The loop keeps adding a
-    // picker for the direct reportees of the last selection until either nobody
-    // is chosen yet at a level, or the chosen user has no reportees (a leaf).
+    // One picker per level of the drill, top → bottom. Each reportee picker also
+    // carries an "All" entry so the viewer can drop back to the level's aggregate.
+    // The loop adds a picker for the direct reportees of each selection, and a
+    // final "All"-defaulted picker for the deepest selection's reportees.
     private static List<TeamPicker> buildTeamPickers(Id me, Boolean isAdmin, List<Id> path) {
         List<TeamPicker> pickers = new List<TeamPicker>();
-        List<Option> options = topLevelOptions(me, isAdmin);
+        List<Option> reps = topLevelOptions(me, isAdmin);
         Integer level = 0;
-        while (options != null && !options.isEmpty()) {
+        while (reps != null && !reps.isEmpty()) {
+            // The admin's top RSM picker has no "All" — they pick a specific RSM first.
+            Boolean includeAll = !(isAdmin && level == 0);
             TeamPicker tp = new TeamPicker();
             tp.level = level;
-            tp.options = options;
-            tp.selectedUserId = (level < path.size()) ? path[level] : null;
             tp.label = pickerLabel(level, isAdmin);
+            tp.options = new List<Option>();
+            if (includeAll) tp.options.add(makeAllOption());
+            tp.options.addAll(reps);
+            if (level < path.size()) {
+                tp.selectedUserId = path[level];
+            } else {
+                // No specific choice at this level yet → show "All" (the aggregate).
+                tp.selectedUserId = includeAll ? ALL_OPTION : null;
+            }
             pickers.add(tp);
-            if (tp.selectedUserId == null) break;   // waiting for a choice at this level
-            options = directReporteeOptions(tp.selectedUserId);
+            if (level >= path.size()) break;   // this level is the aggregate — stop
+            reps = directReporteeOptions(path[level]);
             level++;
         }
         return pickers;
+    }
+
+    private static Option makeAllOption() {
+        Option o = new Option();
+        o.userId = ALL_OPTION;
+        o.label = 'All';
+        return o;
     }
 
     private static String pickerLabel(Integer level, Boolean isAdmin) {

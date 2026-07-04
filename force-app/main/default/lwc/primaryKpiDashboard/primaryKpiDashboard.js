@@ -79,17 +79,23 @@ export default class PrimaryKpiDashboard extends LightningElement {
     get isMyView() { return this.viewMode === 'my'; }
     get isTeamView() { return this.viewMode === 'team'; }
     get isSearchView() { return this.viewMode === 'search'; }
-    // The team drill can bottom out on an individual — show their personal block then.
+    // A specifically-selected user in the drill shows their own record too.
     get teamShowsPersonal() { return this.isTeamView && !!this.data && !!this.data.teamShowsPersonal; }
     get showPersonalBlock() {
         return this.hasHero && (this.isMyView || (this.isSearchView && !!this.viewUserId) || this.teamShowsPersonal);
     }
-    // Aggregated team analytics show only when a manager (not a leaf) is in focus.
+    // Team analytics (totals / members / breakdowns) show whenever the focused
+    // user has a downline with data — alongside their own record if they have one.
     get showTeamBlock() {
-        return this.isTeamView && !this.teamShowsPersonal && !this.teamAwaitingSelection;
+        return this.isTeamView && !this.teamAwaitingSelection && this.hasTeam;
     }
     get teamAwaitingSelection() {
         return this.isTeamView && !!this.data && !!this.data.teamAwaitingSelection;
+    }
+    // Selected user with neither a personal record nor a team → say so.
+    get showTeamNoData() {
+        return this.isTeamView && this.hasData && !this.teamAwaitingSelection
+            && !this.hasTeam && !this.teamShowsPersonal;
     }
     // Only surface the "no PBIS" banner in My view — Team view keeps its pickers.
     get showEmptyMessage() { return this.isEmpty && !this.isTeamView; }
@@ -112,11 +118,9 @@ export default class PrimaryKpiDashboard extends LightningElement {
     get noPersonalForMy() {
         return this.isMyView && this.hasData && !this.isEmpty && !this.hasHero;
     }
-    // User Search or a drilled-to team leaf: a user is picked but has no target.
+    // User Search: a user is picked but has no target this period.
     get noTargetForSelected() {
-        const searchMiss = this.isSearchView && !!this.viewUserId && this.hasData && !this.hasHero;
-        const teamLeafMiss = this.teamShowsPersonal && this.hasData && !this.hasHero;
-        return searchMiss || teamLeafMiss;
+        return this.isSearchView && !!this.viewUserId && this.hasData && !this.hasHero;
     }
     // Heading above the personal block: "My Primary PBIS" for My view, the user's name otherwise.
     get personalHeading() {
@@ -270,11 +274,12 @@ export default class PrimaryKpiDashboard extends LightningElement {
     handleBack() { this.viewMode = 'team'; this.viewUserId = ''; this.load(); }
 
     // My Team cascade: a change at level N replaces the path from N onward.
+    // Picking "All" (or clearing) drops this level and shows the aggregate.
     handleTeamPickerChange(e) {
         const level = Number(e.currentTarget.dataset.level);
         const val = e.detail.value;
         const next = this.teamPath.slice(0, level);
-        if (val) next.push(val);
+        if (val && val !== 'ALL') next.push(val);
         this.teamPath = next;
         this.load();
     }
