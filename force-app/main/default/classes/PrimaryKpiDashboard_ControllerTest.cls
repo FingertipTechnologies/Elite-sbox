@@ -114,10 +114,5 @@ private class PrimaryKpiDashboard_ControllerTest {
 
         System.assertNotEquals(null, d.teamPickers, 'Drill-down pickers should always be provided');
         System.assertNotEquals(null, d.viewerIsAdmin, 'Admin flag should be set');
-        // With no drill path chosen, an admin viewer is awaiting an RSM selection.
-        if (d.viewerIsAdmin) {
-            System.assertEquals(true, d.teamAwaitingSelection,
-                'Admin with no selection is awaiting an RSM pick');
-        }
     }
 }

@@ -174,18 +174,6 @@
                 </div>
             </template>
 
-            <!-- My Team: admin has not picked a Regional Sales Manager yet -->
-            <template if:true={teamAwaitingSelection}>
-                <div class="kpi-panel slds-text-align_center slds-p-around_medium">
-                    <lightning-icon icon-name="utility:filterList" size="small"
-                        class="slds-m-bottom_x-small"></lightning-icon>
-                    <p class="slds-text-body_regular slds-text-color_weak">
-                        Select a Regional Sales Manager above to view their team, then drill
-                        into their reportees.
-                    </p>
-                </div>
-            </template>
-
             <!-- My Team: selected user has neither their own record nor a team -->
             <template if:true={showTeamNoData}>
                 <div class="kpi-panel slds-text-align_center slds-p-around_medium">

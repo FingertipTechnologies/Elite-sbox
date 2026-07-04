@@ -87,15 +87,11 @@ export default class PrimaryKpiDashboard extends LightningElement {
     // Team analytics (totals / members / breakdowns) show whenever the focused
     // user has a downline with data — alongside their own record if they have one.
     get showTeamBlock() {
-        return this.isTeamView && !this.teamAwaitingSelection && this.hasTeam;
-    }
-    get teamAwaitingSelection() {
-        return this.isTeamView && !!this.data && !!this.data.teamAwaitingSelection;
+        return this.isTeamView && this.hasTeam;
     }
     // Selected user with neither a personal record nor a team → say so.
     get showTeamNoData() {
-        return this.isTeamView && this.hasData && !this.teamAwaitingSelection
-            && !this.hasTeam && !this.teamShowsPersonal;
+        return this.isTeamView && this.hasData && !this.hasTeam && !this.teamShowsPersonal;
     }
     // Only surface the "no PBIS" banner in My view — Team view keeps its pickers.
     get showEmptyMessage() { return this.isEmpty && !this.isTeamView; }
@@ -264,12 +260,13 @@ export default class PrimaryKpiDashboard extends LightningElement {
         if (e.detail.action.name === 'drill') {
             this.viewMode = 'search';
             this.viewUserId = e.detail.row.userId;
+            this.teamPath = [];   // leave the team drill so viewUserId drives the detail
             this.load();
         }
     }
     handleTeamCardClick(e) {
         const uid = e.currentTarget.dataset.id;
-        if (uid) { this.viewMode = 'search'; this.viewUserId = uid; this.load(); }
+        if (uid) { this.viewMode = 'search'; this.viewUserId = uid; this.teamPath = []; this.load(); }
     }
     handleBack() { this.viewMode = 'team'; this.viewUserId = ''; this.load(); }
 

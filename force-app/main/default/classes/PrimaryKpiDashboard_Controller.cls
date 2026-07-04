@@ -33,8 +33,7 @@ public with sharing class PrimaryKpiDashboard_Controller {
 
         // My Team cascade drill-down: one picker per level, top → bottom.
         @AuraEnabled public List<TeamPicker> teamPickers;
-        @AuraEnabled public Boolean teamAwaitingSelection; // admin who hasn't picked an RSM yet
-        @AuraEnabled public Boolean teamShowsPersonal;     // a leaf user is selected in the drill
+        @AuraEnabled public Boolean teamShowsPersonal;     // a picked user's own record is shown
     }
     // One level of the My Team drill-down. `options` are the direct reportees to
     // choose from at this level; `selectedUserId` is the choice already made (if any).
@@ -125,11 +124,18 @@ public with sharing class PrimaryKpiDashboard_Controller {
         Boolean hasPath = !path.isEmpty();
         d.teamPickers = buildTeamPickers(me, d.viewerIsAdmin, path);
 
-        // The deepest picked user is the focus. With nobody picked, a manager sees
-        // their own whole team; an admin is prompted to pick an RSM first.
-        Id teamFocusId = hasPath ? path[path.size() - 1] : (d.viewerIsAdmin ? null : me);
-        Set<Id> teamDownline = (teamFocusId == null) ? new Set<Id>() : subordinatesOf(teamFocusId);
-        d.teamAwaitingSelection = d.viewerIsAdmin && !hasPath;
+        // The deepest picked user is the focus. With nobody picked ("All"):
+        //   - an admin sees every regional manager and their teams,
+        //   - any other manager sees their own whole team.
+        Id teamFocusId = hasPath ? path[path.size() - 1] : null;
+        Set<Id> teamDownline;
+        if (hasPath) {
+            teamDownline = subordinatesOf(teamFocusId);
+        } else if (d.viewerIsAdmin) {
+            teamDownline = topManagerUniverse();
+        } else {
+            teamDownline = subordinateIds;
+        }
 
         // A specifically picked user also shows their OWN record — not just the
         // (possibly empty) team below them.
@@ -194,8 +200,9 @@ public with sharing class PrimaryKpiDashboard_Controller {
         List<Option> reps = topLevelOptions(me, isAdmin);
         Integer level = 0;
         while (reps != null && !reps.isEmpty()) {
-            // The admin's top RSM picker has no "All" — they pick a specific RSM first.
-            Boolean includeAll = !(isAdmin && level == 0);
+            // Every picker offers "All" to drop back to that level's aggregate —
+            // including the admin's top RSM picker (default = all regional managers).
+            Boolean includeAll = true;
             TeamPicker tp = new TeamPicker();
             tp.level = level;
             tp.label = pickerLabel(level, isAdmin);
@@ -221,6 +228,29 @@ public with sharing class PrimaryKpiDashboard_Controller {
         o.userId = ALL_OPTION;
         o.label = 'All';
         return o;
+    }
+
+    // Every regional manager (RSM tier) plus everyone in their role downline —
+    // the "All" aggregate an admin sees before drilling into one RSM.
+    private static Set<Id> topManagerUniverse() {
+        Set<Id> userIds = new Set<Id>();
+        Set<Id> roleIds = new Set<Id>();
+        for (User u : [
+            SELECT Id, UserRoleId
+            FROM User
+            WHERE IsActive = true AND Profile.Name IN :TOP_MANAGER_PROFILES
+        ]) {
+            userIds.add(u.Id);
+            if (u.UserRoleId != null) roleIds.add(u.UserRoleId);
+        }
+        if (!roleIds.isEmpty()) {
+            Set<Id> childRoles = RoleHeirarchyUtility.getAllChildRoleIds(roleIds);
+            childRoles.addAll(roleIds);
+            for (User u : [SELECT Id FROM User WHERE UserRoleId IN :childRoles AND IsActive = true]) {
+                userIds.add(u.Id);
+            }
+        }
+        return userIds;
     }
 
     private static String pickerLabel(Integer level, Boolean isAdmin) {
