@@ -664,7 +664,7 @@ public without sharing class DMSPortalLwc {
             Product__r.Product_Group__c, Product__r.Product_Sub_Group__c,
             GRN_Saleable_Quantity__c,GRN_Nonsaleable_Quantity__c,Secondary_Return_Saleable_Quantity__c,Secondary_Return_Nonsaleable_Quantity__c,
             Primary_Return_Quantity__c,Secondary_Invoice_Quantity__c,Available_Saleable_Quantity__c,Available_Nonsaleable_Quantity__c,
-            Saleable_to_Non_Saleable_Quantity__c,Non_Saleable_to_Saleable_Quantity__c,Written_Off_Quantity__c,
+            Saleable_to_Non_Saleable_Quantity__c,Non_Saleable_to_Saleable_Quantity__c,Written_Off_Quantity__c,Closing_Stock_Quantity__c,
             Product_Name__c FROM Distributor_Stock__c WHERE Distributor__c = :accountId
         ];
         
@@ -729,6 +729,7 @@ public without sharing class DMSPortalLwc {
             stockData.salebletoNonSaleableQty = i.Saleable_to_Non_Saleable_Quantity__c;
             stockData.nonSaleabletoSaleableQty = i.Non_Saleable_to_Saleable_Quantity__c;
             stockData.writtenOffQty = i.Written_Off_Quantity__c;
+            stockData.closingStockQty = i.Closing_Stock_Quantity__c;
 
             stockData.availableSaleableQuantity = i.Available_Saleable_Quantity__c;
             stockData.availableNonSaleableQuantity = i.Available_Nonsaleable_Quantity__c;
@@ -2809,54 +2810,7 @@ public without sharing class DMSPortalLwc {
     @AuraEnabled
     public static void saveStockAdjustments(list<Stock_Adjustment__c> stockAdjustments)
     {
-        Set<String> keySet = new Set<String>();
-        for(Stock_Adjustment__c stk: stockAdjustments)
-        {
-            String key = stk.Distributor__c + '_' + stk.Product_Name__c;
-            keySet.add(key); 
-        }
-        // Step 3: Load existing stocks
-        Map<String, Distributor_Stock__c> existingStockMap = new Map<String, Distributor_Stock__c>();
-        for (Distributor_Stock__c stock : [
-            SELECT Id, Product__c, Distributor__c, DistributorWithProduct__c
-            FROM Distributor_Stock__c
-            WHERE DistributorWithProduct__c IN :keySet
-        ]) {
-            existingStockMap.put(stock.DistributorWithProduct__c, stock);
-        }
-        
-        // Step 4: Create new stock records if needed
-        List<Distributor_Stock__c> newStocks = new List<Distributor_Stock__c>();
-        for (Stock_Adjustment__c stkItem : stockAdjustments) {
-            
-            // Check if stock exists, else create new stock
-            String key = stkItem.Distributor__c + '_' + stkItem.Product_Name__c;
-            if (existingStockMap.containsKey(key)) {
-                stkItem.Distributor_Stock__c = existingStockMap.get(key).Id;
-            } else {
-                Distributor_Stock__c newStock = new Distributor_Stock__c(
-                    Product__c = stkItem.Product__c,
-                    Distributor__c = stkItem.Distributor__c
-                );
-                newStocks.add(newStock);
-                existingStockMap.put(key, newStock);
-            }
-        }
-        
-        // Step 5: Insert new stocks if any
-        if (!newStocks.isEmpty()) {
-            insert newStocks;
-            for (Distributor_Stock__c stock : newStocks) {
-                String key = stock.Distributor__c + '_' + stock.Product__c;
-                existingStockMap.put(key, stock);
-            }
-            
-            // Update Distributor Stock reference in items
-            for (Stock_Adjustment__c item : stockAdjustments) {
-                String key = item.Distributor__c + '_' + item.Product_Name__c;
-                item.Distributor_Stock__c = existingStockMap.get(key).Id;
-            }
-        }
+        // StockAdjustmentTrigger (before insert) resolves/creates the Distributor_Stock__c parent
         insert stockAdjustments;
     }
     
@@ -3117,6 +3071,7 @@ public without sharing class DMSPortalLwc {
         @AuraEnabled public decimal salebletoNonSaleableQty;
         @AuraEnabled public decimal nonSaleabletoSaleableQty;
         @AuraEnabled public decimal writtenOffQty;
+        @AuraEnabled public decimal closingStockQty;
         
         @AuraEnabled public decimal availableSaleableQuantity;
         @AuraEnabled public decimal availableNonSaleableQuantity;

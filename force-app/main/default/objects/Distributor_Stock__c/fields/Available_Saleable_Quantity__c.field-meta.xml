@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Available_Saleable_Quantity__c</fullName>
     <externalId>false</externalId>
-    <formula>GRN_Saleable_Quantity__c + Secondary_Return_Saleable_Quantity__c - Secondary_Invoice_Quantity__c -Saleable_to_Non_Saleable_Quantity__c + Non_Saleable_to_Saleable_Quantity__c</formula>
+    <formula>GRN_Saleable_Quantity__c + Secondary_Return_Saleable_Quantity__c - Secondary_Invoice_Quantity__c -Saleable_to_Non_Saleable_Quantity__c + Non_Saleable_to_Saleable_Quantity__c + Closing_Stock_Quantity__c</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
     <label>Available Saleable Quantity</label>
     <precision>18</precision>

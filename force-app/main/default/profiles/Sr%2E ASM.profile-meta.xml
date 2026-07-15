@@ -4371,6 +4371,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>Distributor_Stock__c.Closing_Stock_Quantity__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>Distributor_Stock__c.Written_Off_Quantity__c</field>
         <readable>true</readable>
     </fieldPermissions>

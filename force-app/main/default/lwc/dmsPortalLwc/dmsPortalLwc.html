@@ -993,6 +993,7 @@
                                     <th style="width:5%">Sale → Non-Sale Qty (EA)</th>
                                     <th style="width:5%">Non-Sale → Sale Qty (EA)</th>
                                     <th style="width:5%">Written Off Qty (EA)</th>
+                                    <th style="width:5%">Closing Stock Qty (EA)</th>
                                     <th style="width:7%">Available Sale Qty (EA)</th>
                                     <th style="width:7%">Available Non-Sale Qty (EA)</th>
                                     <th style="width:7%">Unit Price (₹)</th>
@@ -1017,6 +1018,7 @@
                                             <td style="width:5%">{row.salebletoNonSaleableQty}</td>
                                             <td style="width:5%">{row.nonSaleabletoSaleableQty}</td>
                                             <td style="width:5%">{row.writtenOffQty}</td>
+                                            <td style="width:5%">{row.closingStockQty}</td>
                                             <td style="width:7%">{row.availableSaleableQuantity}</td>
                                             <td style="width:7%">{row.availableNonSaleableQuantity}</td>
                                             <td style="width:7%">{row.unitPrice}</td>
@@ -1026,7 +1028,7 @@
                                 </template>
                                 <template lwc:else>
                                     <tr>
-                                        <td colspan="16">
+                                        <td colspan="17">
                                             <div class="slds-truncate" style="text-align:center">
                                                 <span style="color:red;padding:10px;font-size:large">No
                                                     records found!</span>

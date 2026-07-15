@@ -2259,7 +2259,7 @@ export default class NavigationComponent extends LightningElement {
             'SKU', 'GRN Sale Qty', 'GRN Non-Sale Qty', 'Secondary Invoice Qty',
             'Primary Return Qty', 'Secondary Return Sale Qty', 'Secondary Return Non-Sale Qty',
             'Sale → Non-Sale Qty', 'Non-Sale → Sale Qty', 'Written Off Qty',
-            'Available Sale Qty', 'Available Non-Sale Qty', 'Unit Price', 'Total Amount'
+            'Closing Stock Qty', 'Available Sale Qty', 'Available Non-Sale Qty', 'Unit Price', 'Total Amount'
         ];
 
         const rows = data.map(row => [
@@ -2273,6 +2273,7 @@ export default class NavigationComponent extends LightningElement {
             row.salebletoNonSaleableQty || 0,
             row.nonSaleabletoSaleableQty || 0,
             row.writtenOffQty || 0,
+            row.closingStockQty || 0,
             row.availableSaleableQuantity || 0,
             row.availableNonSaleableQuantity || 0,
             row.unitPrice || 0,
@@ -2287,7 +2288,7 @@ export default class NavigationComponent extends LightningElement {
                 ws['!cols'] = [
                     { wch: 30 }, { wch: 12 }, { wch: 14 }, { wch: 18 },
                     { wch: 14 }, { wch: 20 }, { wch: 22 },
-                    { wch: 18 }, { wch: 18 }, { wch: 12 },
+                    { wch: 18 }, { wch: 18 }, { wch: 12 }, { wch: 16 },
                     { wch: 14 }, { wch: 16 }, { wch: 10 }, { wch: 12 }
                 ];
                 const wb = XLSX.utils.book_new();
