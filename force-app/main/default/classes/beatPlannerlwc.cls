@@ -1731,7 +1731,7 @@ global with sharing class beatPlannerlwc {
                 SELECT Id, Name, Channel__c, Net_Weight__c,Product_Category_Name__c,Product_Sub_Group__c,Delivery_Plant__c,Alternate_UOM__c,Uom_Conversion__c, Product_Category1__c, List_Price__c,
                 MRP__c, Tax_Percent__c, Tax_Class__c, CreatedDate, UOM__c,
                 (SELECT Id, Unit_Price__c, MRP__c,Tax__c, UOM__c, Customer__c, Customer_Type__c, Region__c, Secondary_Customer_Category__c,Sales_Channel__c
-                 FROM Price_Books__r where Customer_Type__c =:acc.Customer_Type__c and Sales_Channel__c IN: channelSet)
+                 FROM Price_Books__r where Customer_Type__c =:acc.Customer_Type__c and Sales_Channel__c IN: channelSet Order by LastModifiedDate ASC)
                 FROM Product__c
                 WHERE Is_Active__c = true AND Id IN :skuNameToId.values()
             ];
@@ -1969,6 +1969,7 @@ global with sharing class beatPlannerlwc {
         Set<String> channelSet = new Set<String>();
         system.debug('customerType'+customerType);
         if (customerType == 'Primary Customer') { 
+            system.debug('customerType'+customerType);
             channelSet = getPrimaryCustomerChannels(accountId, currentUserId, salesChannelList, us.Alternate_Sales_Channel__c);
         } else if (customerType == 'Secondary Customer') {
             channelSet = getSecondaryCustomerChannels(accountId, currentUserId, salesChannelList);

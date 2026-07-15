@@ -50,7 +50,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>AutoMapSecondaryCustomersQueueable</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>AutoPJPCreationScheduler</apexClass>
@@ -818,7 +818,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>PBISActualsBatch</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>PBISActualsBatchTest</apexClass>
@@ -826,7 +826,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>PBISActualsRefreshController</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>PBISActualsRefreshControllerTest</apexClass>
@@ -834,7 +834,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>PBISActualsScheduler</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>PBISActualsSchedulerTest</apexClass>
@@ -842,7 +842,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>PBISActuals_Controller</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>PBISActuals_ControllerTest</apexClass>
@@ -850,7 +850,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>PBISActuals_Service</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>PBISActuals_ServiceTest</apexClass>
@@ -858,7 +858,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>PBISPolicy_Controller</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>PBISPolicy_ControllerTest</apexClass>
@@ -866,7 +866,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>PBIS_TargetTriggerHandler</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>PBIS_TargetTriggerHandlerTest</apexClass>
@@ -914,7 +914,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>PrimaryKpiDashboard_Controller</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>PrimaryKpiDashboard_ControllerTest</apexClass>
@@ -1042,7 +1042,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>SDParameter_Controller</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>SDParameter_ControllerTest</apexClass>
@@ -1070,7 +1070,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>SchemeDefinitionController</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>SchemeDefinitionControllerTest</apexClass>
@@ -1086,7 +1086,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>SchemeProductGroupController</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>SchemeProductGroupControllerTest</apexClass>
@@ -1094,7 +1094,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>SecondaryAchievementBatch</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>SecondaryAchievementBatchTest</apexClass>
@@ -1102,7 +1102,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>SecondaryAchievementScheduler</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>SecondaryAchievementSchedulerTest</apexClass>
@@ -1137,6 +1137,10 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>SecondaryInvoiceItemTriggerHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>SecondaryInvoiceSharingBatch</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -1166,11 +1170,11 @@
     </classAccesses>
     <classAccesses>
         <apexClass>SecondaryPBISQueueable</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>SecondaryPBISScheduler</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>SecondaryPBISSchedulerTest</apexClass>
@@ -1178,7 +1182,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>SecondaryPBIS_Controller</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>SecondaryPBIS_ControllerTest</apexClass>
@@ -1186,7 +1190,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>SecondaryPBIS_Service</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>SecondaryPBIS_ServiceTest</apexClass>
@@ -1194,7 +1198,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>SecondaryTarget_Controller</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>SecondaryTarget_ControllerTest</apexClass>
@@ -1286,7 +1290,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>TAM_AttendanceService</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>TAM_AttendanceServiceTest</apexClass>
@@ -1294,7 +1298,7 @@
     </classAccesses>
     <classAccesses>
         <apexClass>TAM_CalculationEngine_Service</apexClass>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
         <apexClass>TAM_CalculationEngine_ServiceTest</apexClass>

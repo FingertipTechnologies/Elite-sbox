@@ -7,16 +7,23 @@
 
             <!-- Filters -->
             <div class="slds-grid slds-gutters_x-small slds-wrap slds-m-bottom_small">
-                <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
-                    <lightning-input type="number" label="Year" value={year} onchange={handleYear}></lightning-input>
-                </div>
-                <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
-                    <lightning-combobox label="Month" value={month} options={monthOptions}
-                        onchange={handleMonth}></lightning-combobox>
-                </div>
+                <!-- Period first, then the Month (Monthly) or Quarter (Quarterly) selection -->
                 <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
                     <lightning-combobox label="Period" value={incentivePeriod} options={periodOptions}
                         onchange={handlePeriod}></lightning-combobox>
+                </div>
+                <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                    <lightning-input type="number" label="Year" value={year} onchange={handleYear}></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                    <template if:false={isQuarterly}>
+                        <lightning-combobox label="Month" value={month} options={monthOptions}
+                            onchange={handleMonth}></lightning-combobox>
+                    </template>
+                    <template if:true={isQuarterly}>
+                        <lightning-combobox label="Quarter" value={quarter} options={quarterOptions}
+                            onchange={handleQuarter}></lightning-combobox>
+                    </template>
                 </div>
                 <template if:true={showViewControl}>
                     <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
@@ -31,6 +38,16 @@
                         </div>
                     </template>
                 </template>
+                <!-- My Team drill-down: one searchable field per level of the hierarchy -->
+                <template if:true={showTeamPickers}>
+                    <template for:each={teamPickerRows} for:item="pk">
+                        <div key={pk.key} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                            <c-searchable-combobox label={pk.label} placeholder="Search…"
+                                data-level={pk.level} options={pk.options} value={pk.value}
+                                onchange={handleTeamPickerChange}></c-searchable-combobox>
+                        </div>
+                    </template>
+                </template>
             </div>
 
             <template if:true={isLoading}>
@@ -38,7 +55,7 @@
             </template>
 
             <!-- Empty -->
-            <template if:true={isEmpty}>
+            <template if:true={showEmptyMessage}>
                 <div class="slds-p-around_large slds-text-align_center">
                     <lightning-icon icon-name="utility:moneybag" alternative-text="Info"
                         size="medium" variant="warning"></lightning-icon>
@@ -60,6 +77,10 @@
                     <template if:true={isDrilled}>
                         <lightning-button label="Back to team" icon-name="utility:back"
                             onclick={handleBack}></lightning-button>
+                    </template>
+                    <template if:true={teamShowsPersonal}>
+                        <lightning-button label="Back to team" icon-name="utility:back"
+                            onclick={handleBackToTeam}></lightning-button>
                     </template>
                 </div>
 
@@ -160,6 +181,16 @@
                 </div>
             </template>
 
+            <!-- My Team: selected user has neither their own record nor a team -->
+            <template if:true={showTeamNoData}>
+                <div class="kpi-panel slds-text-align_center slds-p-around_medium">
+                    <lightning-icon icon-name="utility:moneybag" size="small" class="slds-m-bottom_x-small"></lightning-icon>
+                    <p class="slds-text-body_regular slds-text-color_weak">
+                        No Primary PBIS records to show for {data.periodLabel}.
+                    </p>
+                </div>
+            </template>
+
             <!-- My Team -->
             <template if:true={showTeamBlock}>
                 <!-- Team summary cards (like My view) -->
@@ -213,7 +244,7 @@
                                             <div class="kpi-mini-value">{u.eligibleText}</div>
                                         </div>
                                     </div>
-                                    <div class="kpi-card-cta">Tap to view this user
+                                    <div class="kpi-card-cta">Tap to drill down
                                         <lightning-icon icon-name="utility:chevronright" size="xx-small"></lightning-icon>
                                     </div>
                                 </div>

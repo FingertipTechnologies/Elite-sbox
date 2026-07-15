@@ -1137,6 +1137,10 @@
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>SecondaryInvoiceItemTriggerHandler</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>SecondaryInvoiceSharingBatch</apexClass>
         <enabled>false</enabled>
     </classAccesses>

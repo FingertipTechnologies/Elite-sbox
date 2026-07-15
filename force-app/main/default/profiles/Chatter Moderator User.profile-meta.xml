@@ -1137,6 +1137,10 @@
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>SecondaryInvoiceItemTriggerHandler</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>SecondaryInvoiceSharingBatch</apexClass>
         <enabled>false</enabled>
     </classAccesses>
@@ -14489,10 +14493,6 @@
     <userPermissions>
         <enabled>true</enabled>
         <name>AssignTopics</name>
-    </userPermissions>
-    <userPermissions>
-        <enabled>true</enabled>
-        <name>BypassMFAForUiLogins</name>
     </userPermissions>
     <userPermissions>
         <enabled>true</enabled>

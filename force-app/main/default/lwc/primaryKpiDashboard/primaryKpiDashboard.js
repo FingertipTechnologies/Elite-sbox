@@ -10,6 +10,14 @@ const MONTHS = [
     { label: 'October', value: 10 }, { label: 'November', value: 11 }, { label: 'December', value: 12 }
 ];
 
+// Calendar quarters (Q1 = Jan–Mar … Q4 = Oct–Dec).
+const QUARTERS = [
+    { label: 'Q1 (First Quarter): January – March', value: 1 },
+    { label: 'Q2 (Second Quarter): April – June', value: 2 },
+    { label: 'Q3 (Third Quarter): July – September', value: 3 },
+    { label: 'Q4 (Fourth Quarter): October – December', value: 4 }
+];
+
 const INR = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
 const CCY = { currencyCode: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 };
 
@@ -39,11 +47,12 @@ const TEAM_COLUMNS = [
       cellAttributes: { alignment: 'right', class: { fieldName: 'pctClass' } }, initialWidth: 100 },
     { label: 'Incentive', fieldName: 'totalIncentive', type: 'currency', typeAttributes: CCY, cellAttributes: { alignment: 'right' } },
     { label: 'Eligible', fieldName: 'eligibleText', type: 'text', initialWidth: 90 },
-    { type: 'action', typeAttributes: { rowActions: [{ label: 'View this user', name: 'drill' }] } }
+    { type: 'action', typeAttributes: { rowActions: [{ label: 'Drill down', name: 'drill' }] } }
 ];
 
 export default class PrimaryKpiDashboard extends LightningElement {
     monthOptions = MONTHS;
+    quarterOptions = QUARTERS;
     periodOptions = [{ label: 'Monthly', value: 'Monthly' }, { label: 'Quarterly', value: 'Quarterly' }];
     paramColumns = PARAM_COLUMNS;
     teamColumns = TEAM_COLUMNS;
@@ -57,9 +66,11 @@ export default class PrimaryKpiDashboard extends LightningElement {
 
     @track year;
     @track month;
+    @track quarter;
     @track incentivePeriod = 'Monthly';
     @track viewMode = 'my';      // my | team | search
     @track viewUserId = '';
+    @track teamPath = [];        // My Team drill-down: selected userIds, top → bottom
     @track data;
     @track isLoading = false;
 
@@ -67,7 +78,15 @@ export default class PrimaryKpiDashboard extends LightningElement {
         const now = new Date();
         this.year = now.getFullYear();
         this.month = now.getMonth() + 1;
+        this.quarter = this.calendarQuarterOf(this.month);   // seed for when Period → Quarterly
         this.load();
+    }
+
+    get isQuarterly() { return this.incentivePeriod === 'Quarterly'; }
+
+    // Calendar quarter of a 1–12 month: Jan–Mar=1, Apr–Jun=2, Jul–Sep=3, Oct–Dec=4.
+    calendarQuarterOf(m) {
+        return Math.floor((m - 1) / 3) + 1;
     }
 
     // ===== mode flags =====
@@ -78,8 +97,34 @@ export default class PrimaryKpiDashboard extends LightningElement {
     get isMyView() { return this.viewMode === 'my'; }
     get isTeamView() { return this.viewMode === 'team'; }
     get isSearchView() { return this.viewMode === 'search'; }
-    get showPersonalBlock() { return this.hasHero && (this.isMyView || (this.isSearchView && !!this.viewUserId)); }
-    get showTeamBlock() { return this.isTeamView; }
+    // A specifically-selected user in the drill shows their own record too.
+    get teamShowsPersonal() { return this.isTeamView && !!this.data && !!this.data.teamShowsPersonal; }
+    get showPersonalBlock() {
+        return this.hasHero && (this.isMyView || (this.isSearchView && !!this.viewUserId) || this.teamShowsPersonal);
+    }
+    // Team analytics (totals / members / breakdowns) show whenever the focused
+    // user has a downline with data — alongside their own record if they have one.
+    get showTeamBlock() {
+        return this.isTeamView && this.hasTeam;
+    }
+    // Selected user with neither a personal record nor a team → say so.
+    get showTeamNoData() {
+        return this.isTeamView && this.hasData && !this.hasTeam && !this.teamShowsPersonal;
+    }
+    // Only surface the "no PBIS" banner in My view — Team view keeps its pickers.
+    get showEmptyMessage() { return this.isEmpty && !this.isTeamView; }
+
+    // ===== My Team drill-down pickers =====
+    get showTeamPickers() { return this.isTeamView && this.teamPickerRows.length > 0; }
+    get teamPickerRows() {
+        return ((this.data && this.data.teamPickers) || []).map(p => ({
+            key: 'lvl-' + p.level,
+            level: p.level,
+            label: p.label,
+            value: p.selectedUserId || '',
+            options: (p.options || []).map(o => ({ label: o.label, value: o.userId }))
+        }));
+    }
     get isDrilled() { return this.isSearchView && !!this.viewUserId; }
     get searchUserOptions() {
         return ((this.data && this.data.userPickerOptions) || []).map(o => ({ label: o.label, value: o.userId }));
@@ -91,7 +136,7 @@ export default class PrimaryKpiDashboard extends LightningElement {
     get noTargetForSelected() {
         return this.isSearchView && !!this.viewUserId && this.hasData && !this.hasHero;
     }
-    // Heading above the personal block: "My Primary PBIS" for My view, the user's name in Search.
+    // Heading above the personal block: "My Primary PBIS" for My view, the user's name otherwise.
     get personalHeading() {
         return this.isMyView ? 'My Primary PBIS' : ((this.data && this.data.selectedUserName) || 'Primary PBIS');
     }
@@ -225,32 +270,59 @@ export default class PrimaryKpiDashboard extends LightningElement {
     // ===== handlers =====
     handleYear(e) { this.year = e.target.value ? Number(e.target.value) : null; this.load(); }
     handleMonth(e) { this.month = Number(e.detail.value); this.load(); }
-    handlePeriod(e) { this.incentivePeriod = e.detail.value; this.load(); }
-    handleViewMode(e) { this.viewMode = e.detail.value; this.viewUserId = ''; this.load(); }
+    handleQuarter(e) { this.quarter = Number(e.detail.value); this.load(); }
+    handlePeriod(e) {
+        this.incentivePeriod = e.detail.value;
+        // Seed a quarter from the current month the first time we switch to Quarterly.
+        if (this.isQuarterly && !this.quarter) this.quarter = this.calendarQuarterOf(this.month || 1);
+        this.load();
+    }
+    handleViewMode(e) { this.viewMode = e.detail.value; this.viewUserId = ''; this.teamPath = []; this.load(); }
     handleUserSearch(e) { this.viewUserId = e.detail.value; this.load(); }
     handleRefresh() { this.load(); }
+    // Drilling a team member steps one level down the cascade (their record +
+    // their own direct reportees), staying in the My Team view.
     handleRowAction(e) {
         if (e.detail.action.name === 'drill') {
-            this.viewMode = 'search';
-            this.viewUserId = e.detail.row.userId;
+            this.teamPath = [...this.teamPath, e.detail.row.userId];
             this.load();
         }
     }
     handleTeamCardClick(e) {
         const uid = e.currentTarget.dataset.id;
-        if (uid) { this.viewMode = 'search'; this.viewUserId = uid; this.load(); }
+        if (uid) { this.teamPath = [...this.teamPath, uid]; this.load(); }
     }
     handleBack() { this.viewMode = 'team'; this.viewUserId = ''; this.load(); }
 
+    // My Team cascade: a change at level N replaces the path from N onward.
+    // Picking "All" (or clearing) drops this level and shows the aggregate.
+    handleTeamPickerChange(e) {
+        const level = Number(e.currentTarget.dataset.level);
+        const val = e.detail.value;
+        const next = this.teamPath.slice(0, level);
+        if (val && val !== 'ALL') next.push(val);
+        this.teamPath = next;
+        this.load();
+    }
+    // "Back to team" from a drilled-to leaf: drop the deepest selection.
+    handleBackToTeam() {
+        if (this.teamPath.length) { this.teamPath = this.teamPath.slice(0, -1); }
+        else { this.viewMode = 'team'; this.viewUserId = ''; }
+        this.load();
+    }
+
     // ===== apex =====
     load() {
-        if (!this.year || !this.month) return;
+        if (!this.year) return;
+        if (this.isQuarterly ? !this.quarter : !this.month) return;
         this.isLoading = true;
         getDashboard({
             year: this.year,
             month: this.month,
             incentivePeriod: this.incentivePeriod,
-            viewUserId: this.viewUserId || null
+            viewUserId: this.viewUserId || null,
+            teamPath: this.teamPath,
+            quarter: this.isQuarterly ? this.quarter : null
         })
             .then(d => { this.data = d; })
             .catch(err => this.toast('Error', this.msg(err), 'error'))

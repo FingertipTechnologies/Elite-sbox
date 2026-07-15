@@ -26,6 +26,11 @@
                 <default>false</default>
                 <label>Written Off Quantity</label>
             </value>
+            <value>
+                <fullName>Closing Stock</fullName>
+                <default>false</default>
+                <label>Closing Stock</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>
