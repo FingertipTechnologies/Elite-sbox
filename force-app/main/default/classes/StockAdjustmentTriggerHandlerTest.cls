@@ -70,8 +70,7 @@ public class StockAdjustmentTriggerHandlerTest {
             Distributor__c            = distributor.Id,
             Product__c                = product.Id,
             Adjustment_Type__c        = 'Closing Stock',
-            Quantity__c               = 100,
-            Stock_Adjustment_Date__c  = Date.today()
+            Quantity__c               = 100
         );
 
         Test.startTest();
@@ -120,8 +119,7 @@ public class StockAdjustmentTriggerHandlerTest {
             Distributor__c            = distributor.Id,
             Product__c                = product.Id,
             Adjustment_Type__c        = 'Closing Stock',
-            Quantity__c               = 50,
-            Stock_Adjustment_Date__c  = Date.today()
+            Quantity__c               = 50
         );
 
         Test.startTest();
@@ -157,8 +155,7 @@ public class StockAdjustmentTriggerHandlerTest {
             Distributor__c            = distributor.Id,
             Product__c                = product.Id,
             Adjustment_Type__c        = 'Written Off Quantity',
-            Quantity__c               = 5,
-            Stock_Adjustment_Date__c  = Date.today()
+            Quantity__c               = 5
         );
 
         Test.startTest();
@@ -216,8 +213,8 @@ public class StockAdjustmentTriggerHandlerTest {
                     Distributor__c            = distributor.Id,
                     Product__c                = products[i].Id,
                     Adjustment_Type__c        = 'Closing Stock',
-                    Quantity__c               = 10,
-                    Stock_Adjustment_Date__c  = Date.today()
+                    Quantity__c               = 10
+
                 ));
             }
         }
@@ -273,8 +270,7 @@ public class StockAdjustmentTriggerHandlerTest {
             Product__c                = product.Id,
             Distributor_Stock__c      = existingStock.Id,
             Adjustment_Type__c        = 'Closing Stock',
-            Quantity__c               = 30,
-            Stock_Adjustment_Date__c  = Date.today()
+            Quantity__c               = 30
         );
 
         Test.startTest();
