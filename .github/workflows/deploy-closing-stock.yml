@@ -1,0 +1,82 @@
+name: Deploy Closing Stock Feature
+
+# Manual, on-demand deploy of the Closing Stock go-live feature:
+# - Distributor_Stock__c.Closing_Stock_Quantity__c rollup (sum of Stock_Adjustment__c
+#   Quantity where Adjustment Type = 'Closing Stock')
+# - Available_Saleable_Quantity__c formula now adds Closing_Stock_Quantity__c
+# - StockAdjustmentTrigger + handler: before insert, auto-creates/links the
+#   Distributor_Stock__c parent so adjustments can be data-loaded with just
+#   Distributor + Product ids
+# - DMSPortalLwc.saveStockAdjustments simplified to rely on the trigger
+# - dmsPortalLwc Stock tab: new "Closing Stock Qty (EA)" column (table + download)
+#
+# Run from the GitHub UI: Actions -> "Deploy Closing Stock Feature" -> Run workflow.
+# (A workflow_dispatch workflow only appears in the Actions UI once this file is on the
+# branch GitHub shows the dropdown for.)
+
+on:
+  workflow_dispatch:
+    inputs:
+      check_only:
+        description: 'Validate only (dry run, no changes committed to the org)'
+        type: boolean
+        default: false
+      run_tests:
+        description: 'Run StockAdjustmentTriggerHandlerTest as part of the deploy'
+        type: boolean
+        default: true
+      include_profiles:
+        description: 'Also deploy profile field permissions for Closing_Stock_Quantity__c (all profiles)'
+        type: boolean
+        default: false
+
+jobs:
+  deploy-closing-stock:
+    runs-on: ubuntu-latest
+
+    # Node 22+ on ubuntu-latest makes the Salesforce CLI exit 13
+    # ("unsettled top-level await"); pin Node 20 and keep the CLI quiet/stable.
+    env:
+      SF_AUTOUPDATE_DISABLE: "true"
+      SF_DISABLE_TELEMETRY: "true"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install --global @salesforce/cli
+          sf --version
+
+      - name: Authenticate to Salesforce
+        run: |
+          echo "${{ secrets.SALESFORCE_AUTH_URL }}" > authfile.txt
+          sf org login sfdx-url --sfdx-url-file authfile.txt --alias deployment-org --set-default
+
+      - name: Deploy Closing Stock metadata
+        run: |
+          ARGS="--source-dir force-app/main/default/objects/Distributor_Stock__c/fields/Closing_Stock_Quantity__c.field-meta.xml"
+          ARGS="$ARGS --source-dir force-app/main/default/objects/Distributor_Stock__c/fields/Available_Saleable_Quantity__c.field-meta.xml"
+          ARGS="$ARGS --source-dir force-app/main/default/triggers/StockAdjustmentTrigger.trigger"
+          ARGS="$ARGS --source-dir force-app/main/default/classes/StockAdjustmentTriggerHandler.cls"
+          ARGS="$ARGS --source-dir force-app/main/default/classes/StockAdjustmentTriggerHandlerTest.cls"
+          ARGS="$ARGS --source-dir force-app/main/default/classes/DMSPortalLwc.cls"
+          ARGS="$ARGS --source-dir force-app/main/default/lwc/dmsPortalLwc"
+          if [ "${{ inputs.include_profiles }}" = "true" ]; then
+            ARGS="$ARGS --source-dir force-app/main/default/profiles"
+          fi
+          ARGS="$ARGS --target-org deployment-org --wait 45"
+          if [ "${{ inputs.run_tests }}" = "true" ]; then
+            ARGS="$ARGS --test-level RunSpecifiedTests --tests StockAdjustmentTriggerHandlerTest"
+          fi
+          if [ "${{ inputs.check_only }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          echo "sf project deploy start $ARGS"
+          sf project deploy start $ARGS
