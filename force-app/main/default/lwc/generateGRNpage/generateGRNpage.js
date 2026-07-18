@@ -137,9 +137,18 @@ export default class GenerateGRNpage extends LightningElement {
         if (input) input.value = null;
     }
 
+    isSaving = false;
+
     handleSave() {
+        // Re-entry guard: a double-click must not create a second GRN
+        if (this.isSaving) {
+            return;
+        }
+        this.isSaving = true;
+
         if (!this.invoiceItems || this.invoiceItems.length === 0) {
             this.showToast('Error', 'No invoice data found', 'error');
+            this.isSaving = false;
             return;
         }
 
@@ -162,6 +171,7 @@ export default class GenerateGRNpage extends LightningElement {
                     `Received Saleable Or Non-Saleable Quantity missing for item at row ${item.rowIndex}.`,
                     'error'
                 );
+                this.isSaving = false;
                 return; // Stop further execution
             }
 
@@ -171,6 +181,7 @@ export default class GenerateGRNpage extends LightningElement {
                     `Total received quantity is not matching with invoiced quantity for item at row ${item.rowIndex}.`,
                     'error'
                 );
+                this.isSaving = false;
                 return; // Stop further execution
             }
 
@@ -193,6 +204,7 @@ export default class GenerateGRNpage extends LightningElement {
 
         if (payload.length === 0) {
             this.showToast('Error', 'No valid items to save.', 'error');
+            this.isSaving = false;
             return;
         }
 
@@ -229,11 +241,13 @@ export default class GenerateGRNpage extends LightningElement {
                         }
                     }));
                     this.isPageLoaded = false;
+                    this.isSaving = false;
                 }, 1000);
             })
             .catch(error => {
                 this.showToast('Error', error.body?.message || 'Unknown error', 'error');
                 this.isPageLoaded = false;
+                this.isSaving = false;
             });
     }
 

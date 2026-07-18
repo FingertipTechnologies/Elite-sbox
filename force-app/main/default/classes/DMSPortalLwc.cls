@@ -3908,6 +3908,7 @@ public without sharing class DMSPortalLwc {
         @AuraEnabled public Date documentDate;
         @AuraEnabled public Decimal documentAmount;
         @AuraEnabled public Decimal collectedAmount;
+        @AuraEnabled public Decimal creditAdjustedAmount;
         @AuraEnabled public Decimal outstandingAmount;
         @AuraEnabled public String documentType;
         @AuraEnabled public Decimal aging;
@@ -3968,6 +3969,7 @@ public without sharing class DMSPortalLwc {
         // Secondary Invoices with outstanding amount
         List<Secondary_Invoice__c> invoices = [
             SELECT Name, Invoice_Date__c, Grand_Total__c, Paid_Invoice_Amount__c, Pending_Amount__c,
+                   Credit_Adjusted_Amount__c,
                    Store__r.Name, Store__r.SAP_Customer_Code__c,Customer__r.Name, Customer__r.Customer_Code__c,
                    Beat_Name__c,Executive_Name__c,Executive_Employee_Code__c,Aging_in_Days__c
             FROM Secondary_Invoice__c
@@ -3988,6 +3990,7 @@ public without sharing class DMSPortalLwc {
             item.documentDate = inv.Invoice_Date__c;
             item.documentAmount = inv.Grand_Total__c != null ? inv.Grand_Total__c : 0;
             item.collectedAmount = inv.Paid_Invoice_Amount__c != null ? inv.Paid_Invoice_Amount__c : 0;
+            item.creditAdjustedAmount = inv.Credit_Adjusted_Amount__c != null ? inv.Credit_Adjusted_Amount__c : 0;
             item.outstandingAmount = inv.Pending_Amount__c != null ? inv.Pending_Amount__c : 0;
             item.documentType = 'Invoice';
             item.aging = inv.Aging_in_Days__c != null ? inv.Aging_in_Days__c : 0;
@@ -3997,6 +4000,7 @@ public without sharing class DMSPortalLwc {
         // Secondary Debit Notes with outstanding amount
         List<Secondary_Debit_Note__c> debitNotes = [
             SELECT Name, Note_Date__c, Amount__c, Paid_Amount__c, Pending_Amount__c,
+                   Credit_Adjusted_Amount__c,
                    Distributor__r.Name, Distributor__r.SAP_Customer_Code__c,
                    Customer__r.Name, Customer__r.Customer_Code__c,Aging_in_Days__c
             FROM Secondary_Debit_Note__c
@@ -4017,6 +4021,7 @@ public without sharing class DMSPortalLwc {
             item.documentDate = dn.Note_Date__c;
             item.documentAmount = dn.Amount__c != null ? dn.Amount__c : 0;
             item.collectedAmount = dn.Paid_Amount__c != null ? dn.Paid_Amount__c : 0;
+            item.creditAdjustedAmount = dn.Credit_Adjusted_Amount__c != null ? dn.Credit_Adjusted_Amount__c : 0;
             item.outstandingAmount = dn.Pending_Amount__c != null ? dn.Pending_Amount__c : 0;
             item.documentType = 'Debit Note';
             item.aging = dn.Aging_in_Days__c != null ? dn.Aging_in_Days__c : 0;
@@ -4046,8 +4051,9 @@ public without sharing class DMSPortalLwc {
             item.documentNumber = cn.Name;
             item.documentDate = cn.Credit_Date__c;
             item.documentAmount = cn.Amount__c != null ? cn.Amount__c : 0;
-            item.collectedAmount = (cn.Applied_Invoice_Amount__c != null ? cn.Applied_Invoice_Amount__c : 0)
-                                 + (cn.Applied_Debit_Amount__c != null ? cn.Applied_Debit_Amount__c : 0);
+            item.collectedAmount = 0;
+            item.creditAdjustedAmount = (cn.Applied_Invoice_Amount__c != null ? cn.Applied_Invoice_Amount__c : 0)
+                                      + (cn.Applied_Debit_Amount__c != null ? cn.Applied_Debit_Amount__c : 0);
             item.outstandingAmount = cn.Unapplied_Amount__c != null ? -cn.Unapplied_Amount__c : 0;
             item.documentType = 'Credit Note';
             item.aging = 0;

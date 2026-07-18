@@ -12,6 +12,7 @@ export default class OutstandingReport extends LightningElement {
     @track showDownloadMenu = false;
     @track totalDocumentAmount = 0;
     @track totalCollectedAmount = 0;
+    @track totalCreditAdjustedAmount = 0;
     @track totalOutstandingAmount = 0;
 
     sheetJsLoaded = false;
@@ -41,6 +42,10 @@ export default class OutstandingReport extends LightningElement {
         return this.formatCurrency(this.totalCollectedAmount);
     }
 
+    get formattedTotalCreditAdjusted() {
+        return this.formatCurrency(this.totalCreditAdjustedAmount);
+    }
+
     get formattedTotalOutstanding() {
         return this.formatCurrency(this.totalOutstandingAmount);
     }
@@ -51,14 +56,17 @@ export default class OutstandingReport extends LightningElement {
             .then(result => {
                 let totalDoc = 0;
                 let totalCol = 0;
+                let totalCredit = 0;
                 let totalOut = 0;
 
                 this.reportData = (result || []).map((item, index) => {
                     const docAmt = Number(item.documentAmount) || 0;
                     const colAmt = Number(item.collectedAmount) || 0;
+                    const creditAmt = Number(item.creditAdjustedAmount) || 0;
                     const outAmt = Number(item.outstandingAmount) || 0;
                     totalDoc += docAmt;
                     totalCol += colAmt;
+                    totalCredit += creditAmt;
                     totalOut += outAmt;
 
                     return {
@@ -68,12 +76,14 @@ export default class OutstandingReport extends LightningElement {
                         formattedDate: item.documentDate,
                         formattedDocAmount: this.formatCurrency(docAmt),
                         formattedCollected: this.formatCurrency(colAmt),
+                        formattedCreditAdjusted: this.formatCurrency(creditAmt),
                         formattedOutstanding: this.formatCurrency(outAmt)
                     };
                 });
 
                 this.totalDocumentAmount = totalDoc;
                 this.totalCollectedAmount = totalCol;
+                this.totalCreditAdjustedAmount = totalCredit;
                 this.totalOutstandingAmount = totalOut;
                 this.isLoading = false;
             })
@@ -111,7 +121,7 @@ export default class OutstandingReport extends LightningElement {
             'Secondary Customer Code', 'Secondary Customer Name',
             'Executive Code', 'Executive Name', 'Beat Name',
             'Document Number', 'Document Date',
-            'Amount', 'Collected Amount', 'Outstanding Amount'
+            'Amount', 'Collected Amount', 'Credit Adjusted Amount', 'Outstanding Amount'
         ];
     }
 
@@ -121,11 +131,13 @@ export default class OutstandingReport extends LightningElement {
             r.secondaryCustomerCode, r.secondaryCustomerName,
             r.executiveCode || '', r.executiveName || '', r.beatName || '',
             r.documentNumber, r.documentDate,
-            Number(r.documentAmount) || 0, Number(r.collectedAmount) || 0, Number(r.outstandingAmount) || 0
+            Number(r.documentAmount) || 0, Number(r.collectedAmount) || 0,
+            Number(r.creditAdjustedAmount) || 0, Number(r.outstandingAmount) || 0
         ]);
         rows.push([
             '', '', '', '', '', '', '', '', '', '', 'Total',
-            this.totalDocumentAmount, this.totalCollectedAmount, this.totalOutstandingAmount
+            this.totalDocumentAmount, this.totalCollectedAmount,
+            this.totalCreditAdjustedAmount, this.totalOutstandingAmount
         ]);
         return rows;
     }
@@ -206,6 +218,7 @@ export default class OutstandingReport extends LightningElement {
                     <td>${r.formattedDate || ''}</td>
                     <td class="num">${r.formattedDocAmount}</td>
                     <td class="num">${r.formattedCollected}</td>
+                    <td class="num">${r.formattedCreditAdjusted}</td>
                     <td class="num bold">${r.formattedOutstanding}</td>
                 </tr>`;
             });
@@ -214,6 +227,7 @@ export default class OutstandingReport extends LightningElement {
                 <td colspan="11">Total</td>
                 <td class="num">${this.formattedTotalDocument}</td>
                 <td class="num">${this.formattedTotalCollected}</td>
+                <td class="num">${this.formattedTotalCreditAdjusted}</td>
                 <td class="num bold">${this.formattedTotalOutstanding}</td>
             </tr>`;
 
@@ -238,6 +252,7 @@ export default class OutstandingReport extends LightningElement {
                                 <th>Doc Number</th><th>Doc Date</th>
                                 <th class="num">Amount</th>
                                 <th class="num">Collected</th>
+                                <th class="num">Credit Adjusted</th>
                                 <th class="num">Outstanding</th>
                             </tr>
                         </thead>

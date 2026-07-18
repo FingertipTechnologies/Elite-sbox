@@ -74,6 +74,8 @@ jobs:
           ARGS="$ARGS --source-dir force-app/main/default/triggers/SecondaryInvoiceSharingTrigger.trigger"
           ARGS="$ARGS --source-dir force-app/main/default/triggers/SecondaryDebitNoteTrigger.trigger"
           ARGS="$ARGS --source-dir force-app/main/default/lwc/secondaryCustomerLedger"
+          ARGS="$ARGS --source-dir force-app/main/default/lwc/outstandingReport"
+          ARGS="$ARGS --source-dir force-app/main/default/lwc/generateGRNpage"
           if [ "${{ inputs.include_profiles }}" = "true" ]; then
             ARGS="$ARGS --source-dir force-app/main/default/profiles"
           fi
