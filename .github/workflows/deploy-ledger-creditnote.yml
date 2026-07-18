@@ -1,0 +1,88 @@
+name: Deploy Ledger Fix + Credit Note Allocation
+
+# Manual, on-demand deploy of:
+# - Secondary Customer Ledger: Return__c removed from opening balance + ledger rows
+# - Credit note allocation: junction objects, Credit_Adjusted_Amount__c rollups,
+#   Pending_Amount__c formula updates, Applied/Unapplied fields on credit note,
+#   SecondaryCreditNoteAllocationHandler + trigger wiring (CN insert allocation,
+#   auto-apply on new invoice/debit note)
+# - Outstanding report: unapplied credit notes as negative rows
+#
+# Run from the GitHub UI: Actions -> "Deploy Ledger Fix + Credit Note Allocation"
+# -> Run workflow (select the branch that has these changes).
+
+on:
+  workflow_dispatch:
+    inputs:
+      check_only:
+        description: 'Validate only (dry run, no changes committed to the org)'
+        type: boolean
+        default: false
+      run_tests:
+        description: 'Run SecondaryCreditNoteAllocationHandlerTest as part of the deploy'
+        type: boolean
+        default: true
+      include_profiles:
+        description: 'Also deploy profile field permissions for the new fields (all profiles)'
+        type: boolean
+        default: false
+
+jobs:
+  deploy-ledger-creditnote:
+    runs-on: ubuntu-latest
+
+    # Node 22 + @salesforce/cli@2.x is the combo that works (see retrieve.yml):
+    # the current CLI's undici dependency crashes on Node 20.20.
+    env:
+      SF_AUTOUPDATE_DISABLE: "true"
+      SF_DISABLE_TELEMETRY: "true"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install --global @salesforce/cli@2.x
+          sf --version
+
+      - name: Authenticate to Salesforce
+        run: |
+          echo "${{ secrets.SALESFORCE_AUTH_URL }}" > authfile.txt
+          sf org login sfdx-url --sfdx-url-file authfile.txt --alias deployment-org --set-default
+
+      - name: Deploy ledger fix and credit note allocation metadata
+        run: |
+          ARGS="--source-dir force-app/main/default/objects/Secondary_Credit_Note_Item__c"
+          ARGS="$ARGS --source-dir force-app/main/default/objects/Secondary_Credit_Note_Debit_Item__c"
+          ARGS="$ARGS --source-dir force-app/main/default/objects/Secondary_Invoice__c/fields/Credit_Adjusted_Amount__c.field-meta.xml"
+          ARGS="$ARGS --source-dir force-app/main/default/objects/Secondary_Invoice__c/fields/Pending_Amount__c.field-meta.xml"
+          ARGS="$ARGS --source-dir force-app/main/default/objects/Secondary_Debit_Note__c/fields/Credit_Adjusted_Amount__c.field-meta.xml"
+          ARGS="$ARGS --source-dir force-app/main/default/objects/Secondary_Debit_Note__c/fields/Pending_Amount__c.field-meta.xml"
+          ARGS="$ARGS --source-dir force-app/main/default/objects/Secondary_Credit_Note__c/fields/Applied_Invoice_Amount__c.field-meta.xml"
+          ARGS="$ARGS --source-dir force-app/main/default/objects/Secondary_Credit_Note__c/fields/Applied_Debit_Amount__c.field-meta.xml"
+          ARGS="$ARGS --source-dir force-app/main/default/objects/Secondary_Credit_Note__c/fields/Unapplied_Amount__c.field-meta.xml"
+          ARGS="$ARGS --source-dir force-app/main/default/classes/SecondaryCreditNoteAllocationHandler.cls"
+          ARGS="$ARGS --source-dir force-app/main/default/classes/SecondaryCreditNoteAllocationHandlerTest.cls"
+          ARGS="$ARGS --source-dir force-app/main/default/classes/DMSPortalLwc.cls"
+          ARGS="$ARGS --source-dir force-app/main/default/triggers/SecondaryCreditNoteSharingTrigger.trigger"
+          ARGS="$ARGS --source-dir force-app/main/default/triggers/SecondaryInvoiceSharingTrigger.trigger"
+          ARGS="$ARGS --source-dir force-app/main/default/triggers/SecondaryDebitNoteTrigger.trigger"
+          ARGS="$ARGS --source-dir force-app/main/default/lwc/secondaryCustomerLedger"
+          if [ "${{ inputs.include_profiles }}" = "true" ]; then
+            ARGS="$ARGS --source-dir force-app/main/default/profiles"
+          fi
+          ARGS="$ARGS --target-org deployment-org --wait 45"
+          if [ "${{ inputs.run_tests }}" = "true" ]; then
+            ARGS="$ARGS --test-level RunSpecifiedTests --tests SecondaryCreditNoteAllocationHandlerTest"
+          fi
+          if [ "${{ inputs.check_only }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          echo "sf project deploy start $ARGS"
+          sf project deploy start $ARGS
