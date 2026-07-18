@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Pending_Amount__c</fullName>
     <externalId>false</externalId>
-    <formula>Amount__c -  Paid_Amount__c</formula>
+    <formula>Amount__c -  Paid_Amount__c - Credit_Adjusted_Amount__c</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
     <label>Pending Amount</label>
     <precision>18</precision>

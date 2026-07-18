@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Applied_Debit_Amount__c</fullName>
+    <externalId>false</externalId>
+    <label>Applied Debit Amount</label>
+    <summarizedField>Secondary_Credit_Note_Debit_Item__c.Amount__c</summarizedField>
+    <summaryForeignKey>Secondary_Credit_Note_Debit_Item__c.Secondary_Credit_Note__c</summaryForeignKey>
+    <summaryOperation>sum</summaryOperation>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Summary</type>
+</CustomField>

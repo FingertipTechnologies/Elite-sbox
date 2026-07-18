@@ -3321,18 +3321,10 @@ public without sharing class DMSPortalLwc {
                 totalCredits += (Decimal) creditNoteAgg[0].get('totalAmount');
             }
             
-            // Sum all Secondary Returns before cutoff date (CREDIT - decreases balance)
-            List<AggregateResult> returnAgg = [
-                SELECT SUM(Total_Amount__c) totalAmount
-                FROM Return__c
-                WHERE Customer__c = :customerId
-                AND Return_Date__c < :cutoffDate
-                AND Customer_Type__c = 'Secondary Customer'
-            ];
-            if (!returnAgg.isEmpty() && returnAgg[0].get('totalAmount') != null) {
-                totalCredits += (Decimal) returnAgg[0].get('totalAmount');
-            }
-            
+            // Secondary Returns are intentionally NOT part of the ledger:
+            // the distributor raises a Secondary Credit Note for the return,
+            // and only that credit note adjusts the customer balance.
+
             // Sum all Secondary Receipts before cutoff date (CREDIT - decreases balance)
             List<AggregateResult> receiptAgg = [
                 SELECT SUM(Total_Amount__c) totalAmount
@@ -3391,29 +3383,10 @@ public without sharing class DMSPortalLwc {
                 result.ledgerData.add(entry);
             }
             
-            // Fetch Secondary Returns (CREDIT)
-            List<Return__c> returns = [
-                SELECT Id, Name, Return_Date__c, Total_Amount__c
-                FROM Return__c
-                WHERE Customer__c = :customerId
-                AND Return_Date__c >= :startDate
-                AND Return_Date__c <= :endDate
-                AND Customer_Type__c = 'Secondary Customer'
-                ORDER BY Return_Date__c ASC
-            ];
-            
-            for (Return__c ret : returns) {
-                LedgerEntry entry = new LedgerEntry();
-                entry.transactionType = 'Return';
-                entry.transactionDate = ret.Return_Date__c;
-                entry.transactionNo   = ret.Name;           // FIX: doc number
-                entry.description     = 'Secondary Return';
-                entry.referenceNo     = ret.Name;           // FIX: was ret.Id
-                entry.amount          = ret.Total_Amount__c;
-                entry.status          = 'Completed';
-                result.ledgerData.add(entry);
-            }
-            
+            // Secondary Returns are intentionally NOT part of the ledger:
+            // the distributor raises a Secondary Credit Note for the return,
+            // and only that credit note adjusts the customer balance.
+
             // Fetch Secondary Credit Notes (CREDIT)
             List<Secondary_Credit_Note__c> creditNotes = [
                 SELECT Id, Name, Credit_Date__c, Amount__c, Status__c
@@ -4047,6 +4020,37 @@ public without sharing class DMSPortalLwc {
             item.outstandingAmount = dn.Pending_Amount__c != null ? dn.Pending_Amount__c : 0;
             item.documentType = 'Debit Note';
             item.aging = dn.Aging_in_Days__c != null ? dn.Aging_in_Days__c : 0;
+            result.add(item);
+        }
+
+        // Secondary Credit Notes with unapplied credit (negative outstanding,
+        // so the report total nets the customer's open credit)
+        List<Secondary_Credit_Note__c> creditNotes = [
+            SELECT Name, Credit_Date__c, Amount__c, Applied_Invoice_Amount__c, Applied_Debit_Amount__c,
+                   Unapplied_Amount__c, Distributor__r.Name, Distributor__r.SAP_Customer_Code__c,
+                   Customer__r.Name, Customer__r.Customer_Code__c
+            FROM Secondary_Credit_Note__c
+            WHERE Customer__c = :customerId AND Unapplied_Amount__c > 0
+            ORDER BY Credit_Date__c ASC
+        ];
+
+        for (Secondary_Credit_Note__c cn : creditNotes) {
+            OutstandingReportItem item = new OutstandingReportItem();
+            item.primaryCustomerSapCode = cn.Distributor__r != null ? cn.Distributor__r.SAP_Customer_Code__c : '';
+            item.primaryCustomerName = cn.Distributor__r != null ? cn.Distributor__r.Name : '';
+            item.secondaryCustomerCode = cn.Customer__r != null ? cn.Customer__r.Customer_Code__c : '';
+            item.secondaryCustomerName = cn.Customer__r != null ? cn.Customer__r.Name : '';
+            item.executiveCode = execCode;
+            item.executiveName = execName;
+            item.beatName = beatNameVal;
+            item.documentNumber = cn.Name;
+            item.documentDate = cn.Credit_Date__c;
+            item.documentAmount = cn.Amount__c != null ? cn.Amount__c : 0;
+            item.collectedAmount = (cn.Applied_Invoice_Amount__c != null ? cn.Applied_Invoice_Amount__c : 0)
+                                 + (cn.Applied_Debit_Amount__c != null ? cn.Applied_Debit_Amount__c : 0);
+            item.outstandingAmount = cn.Unapplied_Amount__c != null ? -cn.Unapplied_Amount__c : 0;
+            item.documentType = 'Credit Note';
+            item.aging = 0;
             result.add(item);
         }
 

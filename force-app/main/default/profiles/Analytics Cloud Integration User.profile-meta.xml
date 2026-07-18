@@ -10625,6 +10625,21 @@
         <readable>false</readable>
     </fieldPermissions>
     <fieldPermissions>
+        <editable>false</editable>
+        <field>Secondary_Credit_Note__c.Applied_Debit_Amount__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Secondary_Credit_Note__c.Applied_Invoice_Amount__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Secondary_Credit_Note__c.Unapplied_Amount__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
         <editable>true</editable>
         <field>Secondary_Credit_Note__c.Amount__c</field>
         <readable>true</readable>
@@ -10687,6 +10702,11 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>Secondary_Debit_Note__c.Note_Date__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Secondary_Debit_Note__c.Credit_Adjusted_Amount__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -11001,6 +11021,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>Secondary_Invoice__c.Credit_Adjusted_Amount__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>Secondary_Invoice__c.Paid_Invoice_Amount__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -11066,7 +11091,17 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Secondary_Credit_Note_Debit_Item__c.Amount__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Secondary_Receipt_Debit_Item__c.Amount__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Secondary_Credit_Note_Item__c.Amount__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

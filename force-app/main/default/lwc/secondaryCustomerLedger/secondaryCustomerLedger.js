@@ -182,7 +182,6 @@ export default class SecondaryCustomerLedger extends LightningElement {
                                 entry.transactionType === 'Debit Note';
 
                 const isCredit = entry.transactionType === 'Receipt' ||
-                                entry.transactionType === 'Return' ||
                                 entry.transactionType === 'Credit Note';
 
                 const amount = Number(entry.amount) || 0;
