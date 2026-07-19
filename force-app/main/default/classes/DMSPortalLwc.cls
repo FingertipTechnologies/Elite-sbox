@@ -61,7 +61,7 @@ public without sharing class DMSPortalLwc {
         List<SecInvData> result = new List<SecInvData>();
         if (customerId == null) return result;
         List<Secondary_Invoice__c> invoices = [
-            SELECT Id, Name, Invoice_Date__c, Grand_Total__c, Paid_Invoice_Amount__c, Pending_Amount__c, Customer__c, Customer__r.Name, Total_Quantity__c, Total_Tax__c, Status__c
+            SELECT Id, Name, Invoice_Date__c, Grand_Total__c, Paid_Invoice_Amount__c, Pending_Amount__c, Credit_Adjusted_Amount__c, Customer__c, Customer__r.Name, Total_Quantity__c, Total_Tax__c, Status__c
             FROM Secondary_Invoice__c
             WHERE Customer__c = :customerId AND Pending_Amount__c > 0
             ORDER BY Invoice_Date__c ASC
@@ -77,6 +77,7 @@ public without sharing class DMSPortalLwc {
             data.paidAmount = inv.Paid_Invoice_Amount__c;
             data.Status = inv.Status__c;
             data.pendingAmount = inv.Pending_Amount__c;
+            data.creditAdjustedAmount = inv.Credit_Adjusted_Amount__c != null ? inv.Credit_Adjusted_Amount__c : 0;
             data.tax = inv.Total_Tax__c;
             data.Quantity = inv.Total_Quantity__c;
             // Add extra fields for paid and pending amounts if needed in JS
@@ -3116,7 +3117,8 @@ public without sharing class DMSPortalLwc {
         @AuraEnabled public String Status;
         @AuraEnabled public decimal tax;
         @AuraEnabled public decimal pendingAmount;
-        
+        @AuraEnabled public decimal creditAdjustedAmount;
+
         @AuraEnabled public decimal Quantity;
         @AuraEnabled public boolean selected = false;
         @AuraEnabled public String beatName;
@@ -3491,7 +3493,7 @@ public without sharing class DMSPortalLwc {
         List<DebitNoteData> result = new List<DebitNoteData>();
         if (customerId == null) return result;
         List<Secondary_Debit_Note__c> notes = [
-            SELECT Id, Name, Note_Date__c, Amount__c, Paid_Amount__c, Pending_Amount__c,
+            SELECT Id, Name, Note_Date__c, Amount__c, Paid_Amount__c, Pending_Amount__c, Credit_Adjusted_Amount__c,
                    Customer__c, Customer__r.Name, Status__c, Reason__c
             FROM Secondary_Debit_Note__c
             WHERE Customer__c = :customerId AND Pending_Amount__c > 0
@@ -3505,6 +3507,7 @@ public without sharing class DMSPortalLwc {
             data.amount = dn.Amount__c;
             data.paidAmount = dn.Paid_Amount__c;
             data.pendingAmount = dn.Pending_Amount__c;
+            data.creditAdjustedAmount = dn.Credit_Adjusted_Amount__c != null ? dn.Credit_Adjusted_Amount__c : 0;
             data.reason = dn.Reason__c;
             result.add(data);
         }
@@ -3555,6 +3558,7 @@ public without sharing class DMSPortalLwc {
         @AuraEnabled public Decimal amount;
         @AuraEnabled public Decimal paidAmount;
         @AuraEnabled public Decimal pendingAmount;
+        @AuraEnabled public Decimal creditAdjustedAmount;
         @AuraEnabled public String reason;
     }
 

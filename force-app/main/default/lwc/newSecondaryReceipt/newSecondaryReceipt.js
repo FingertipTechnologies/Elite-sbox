@@ -375,6 +375,7 @@ export default class NewSecondaryReceipt extends LightningElement {
                 InvDate: inv.InvDate,
                 invoiceAmount: inv.Amount != null ? inv.Amount : 0,
                 alreadyPaid: inv.paidAmount != null ? inv.paidAmount : 0,
+                creditAdjusted: inv.creditAdjustedAmount != null ? inv.creditAdjustedAmount : 0,
                 pendingAmount: inv.pendingAmount != null ? inv.pendingAmount : 0,
                 payingNow: 0,
                 balance: inv.pendingAmount != null ? Math.round((inv.pendingAmount + Number.EPSILON) * 100) / 100 : 0
@@ -389,6 +390,7 @@ export default class NewSecondaryReceipt extends LightningElement {
                 noteDate: dn.noteDate,
                 amount: dn.amount != null ? dn.amount : 0,
                 paidAmount: dn.paidAmount != null ? dn.paidAmount : 0,
+                creditAdjusted: dn.creditAdjustedAmount != null ? dn.creditAdjustedAmount : 0,
                 pendingAmount: dn.pendingAmount != null ? dn.pendingAmount : 0,
                 reason: dn.reason,
                 payingNow: 0,

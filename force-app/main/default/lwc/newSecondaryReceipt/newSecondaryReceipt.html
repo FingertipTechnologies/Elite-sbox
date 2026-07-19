@@ -96,6 +96,7 @@
                                         <th>Date</th>
                                         <th>Invoice amt (₹)</th>
                                         <th>Already paid (₹)</th>
+                                        <th>Credit Adjusted (₹)</th>
                                         <th>Pending (₹)</th>
                                         <th>Paying now (₹)</th>
                                         <th>Balance (₹)</th>
@@ -110,6 +111,7 @@
                                                 <td>{inv.InvDate}</td>
                                                 <td>₹{inv.invoiceAmount}</td>
                                                 <td>₹{inv.alreadyPaid}</td>
+                                                <td>₹{inv.creditAdjusted}</td>
                                                 <td class="pending-amt">₹{inv.pendingAmount}</td>
                                                 <td>
                                                     <input type="number" class="paying-input"  data-index={index} value={inv.payingNow} min="0" max={inv.pending} onchange={handlePayingNowChange} />
@@ -120,7 +122,7 @@
                                     </template>
                                     <template if:false={pendingInvoices}>
                                         <tr>
-                                            <td colspan="7" class="no-records">No pending invoices found!</td>
+                                            <td colspan="9" class="no-records">No pending invoices found!</td>
                                         </tr>
                                     </template>
                                 </tbody>
@@ -143,6 +145,7 @@
                                             <th>Date</th>
                                             <th>Amount (₹)</th>
                                             <th>Paid (₹)</th>
+                                            <th>Credit Adjusted (₹)</th>
                                             <th>Pending (₹)</th>
                                             <th>Paying now (₹)</th>
                                             <th>Balance (₹)</th>
@@ -156,6 +159,7 @@
                                                 <td>{dn.noteDate}</td>
                                                 <td>₹{dn.amount}</td>
                                                 <td>₹{dn.paidAmount}</td>
+                                                <td>₹{dn.creditAdjusted}</td>
                                                 <td class="pending-amt">₹{dn.pendingAmount}</td>
                                                 <td>
                                                     <input type="number" class="paying-input"  data-index={index} value={dn.payingNow} min="0" max={dn.pendingAmount} onchange={handleDebitNotePayingNowChange} />
